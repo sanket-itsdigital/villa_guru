@@ -347,7 +347,7 @@ import json
 
 def vendor_request(request):
 
-    data = hotel.objects.filter(is_active = False).select_related('user', 'city', 'property_type').prefetch_related('amenities', 'rooms')
+    data = villa.objects.filter(is_active = False).select_related('user', 'city', 'property_type').prefetch_related('amenities', 'rooms')
 
     context = {
         'data' : data
@@ -376,25 +376,25 @@ def activate_vendor_request(request, user_id):
 
     user_instance.save()
 
-    hotel_instance = hotel.objects.get(user = user_instance)
-    hotel_instance.is_active = True
+    villa_instance = villa.objects.get(user = user_instance)
+    villa_instance.is_active = True
 
-    hotel_instance.save()
+    villa_instance.save()
 
-    msg =  'Hi, Your account is activated login and completed your profile' + str(hotel_instance.id)
+    msg =  'Hi, Your account is activated login and completed your profile' + str(villa_instance.id)
 
     send_test_email(request, 'Your account is actiated', msg, user_instance)
 
     return redirect('vendor_request')
 
 
-from hotel.forms import *
+from hotel.forms import villa_Form
 
 def register_vendor(request):
 
     if request.method == 'POST':
 
-        form = hotel_Form(request.POST, request.FILES)  # ⬅️ Preserve submitted data
+        form = villa_Form(request.POST, request.FILES)  # ⬅️ Preserve submitted data
 
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
@@ -451,14 +451,14 @@ def register_vendor(request):
                 form.fields.pop('profit_margin')
 
             if form.is_valid():
-                hotel = form.save(commit=False)
+                villa_obj = form.save(commit=False)
                 if not request.user.is_superuser:
-                    hotel.user = user  # auto-assign vendor user
-                hotel.save()
+                    villa_obj.user = user  # auto-assign vendor user
+                villa_obj.save()
                 form.save_m2m()
 
                 for img in request.FILES.getlist('image'):
-                    HotelImage.objects.create(hotel=hotel, image=img)
+                    VillaImage.objects.create(villa=villa_obj, image=img)
 
                 return render(request, 'hotel_registration_succful.html')
 
@@ -479,7 +479,7 @@ def register_vendor(request):
     else:
 
     
-        form = hotel_Form()
+        form = villa_Form()
 
         context = { 
                 'form': form, 
@@ -624,13 +624,13 @@ def provider_user_list(request):
     return render(request, 'staff_list.djhtml', { 'data' : page_obj})
 
 
-from customer.models import *
-from hotel.models import *
+from customer.models import VillaBooking
+from hotel.models import villa, VillaImage
 
 
 def user_booking_history(request, user_id):
 
-    data = HotelBooking.objects.filter(user__id = user_id)
+    data = VillaBooking.objects.filter(user__id = user_id)
 
     user_instance = User.objects.get(id = user_id)
 
@@ -641,11 +641,11 @@ def user_booking_history(request, user_id):
 
 def hotel_booking_history(request, user_id):
 
-    data = HotelBooking.objects.filter(hotel__user__id = user_id)
+    data = VillaBooking.objects.filter(villa__user__id = user_id)
 
-    hotel_instance = hotel.objects.get(user__id = user_id)
+    villa_instance = villa.objects.get(user__id = user_id)
 
-    return render(request, 'hotel_booking_history.html', { 'data' : data, 'hotel_instance' : hotel_instance})
+    return render(request, 'hotel_booking_history.html', { 'data' : data, 'hotel_instance' : villa_instance})
 
 
 

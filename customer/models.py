@@ -3,29 +3,45 @@ from django.db import models
 # Create your models here.
 
 
-
 from decimal import Decimal
 
-class HotelBooking(models.Model):
-    
+
+class VillaBooking(models.Model):
+
     STATUS_CHOICES = [
-        ('confirmed', 'Confirmed'),
-        ('checked_in', 'Check In'),
-        ('cancelled', 'Cancelled'),
-        ('completed', 'Completed'),
+        ("confirmed", "Confirmed"),
+        ("checked_in", "Check In"),
+        ("cancelled", "Cancelled"),
+        ("completed", "Completed"),
     ]
 
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='confirmed')
-    
+    status = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default="confirmed"
+    )
+
     booking_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
 
-    user = models.ForeignKey("users.User", on_delete=models.SET_NULL, null=True, blank=True)
-    hotel = models.ForeignKey("hotel.hotel", on_delete=models.CASCADE)
-    room = models.ForeignKey("hotel.hotel_rooms", on_delete=models.CASCADE, null=True, blank=True, help_text="Optional: Leave empty for whole villa booking")
+    user = models.ForeignKey(
+        "users.User", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    villa = models.ForeignKey("hotel.villa", on_delete=models.CASCADE)
+    room = models.ForeignKey(
+        "hotel.villa_rooms",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text="Optional: Leave empty for whole villa booking",
+    )
 
-    room_price_per_night = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    villa_price_per_night = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Villa price per night (for whole villa booking)")
-
+    room_price_per_night = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00
+    )
+    villa_price_per_night = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        help_text="Villa price per night (for whole villa booking)",
+    )
 
     check_in = models.DateField()
     check_out = models.DateField()
@@ -40,26 +56,39 @@ class HotelBooking(models.Model):
     special_request = models.TextField(blank=True, null=True)
 
     no_of_rooms = models.IntegerField(default=1)
-     # Financial fields
-    base_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Room rate * nights")
-    tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Service Tax or Other")
-    gst_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="GST component")
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Final price to user")
+    # Financial fields
+    base_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00, help_text="Room rate * nights"
+    )
+    tax_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00, help_text="Service Tax or Other"
+    )
+    gst_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00, help_text="GST component"
+    )
+    total_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00, help_text="Final price to user"
+    )
 
-    commission_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    commission_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00
+    )
     commission_gst = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    
-    tds_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="1% TDS on subtotal")
-    tcs_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="1% TCS on subtotal")
+
+    tds_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00, help_text="1% TDS on subtotal"
+    )
+    tcs_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.00, help_text="1% TCS on subtotal"
+    )
 
     hotel_earning = models.DecimalField(max_digits=10, decimal_places=2, default=5.00)
 
-
     payment_type = models.CharField(
-    max_length=10,
-    choices=[("cash", "Cash at Hotel"), ("online", "Online (Razorpay)")],
-    blank=True,
-    null=True
+        max_length=10,
+        choices=[("cash", "Cash at Villa"), ("online", "Online (Razorpay)")],
+        blank=True,
+        null=True,
     )
 
     payment_status = models.CharField(
@@ -70,32 +99,39 @@ class HotelBooking(models.Model):
             ("failed", "Failed"),
             ("refunded", "Refunded"),
         ],
-       default="pending"
+        default="pending",
     )
 
-    payment_id = models.CharField(max_length=100, blank=True, null=True, help_text="Razorpay Payment ID")
-    order_id = models.CharField(max_length=100, blank=True, null=True, help_text="Razorpay Order ID")
-    transaction_id = models.CharField(max_length=100, blank=True, null=True, help_text="Reference ID for reconciliation")
+    payment_id = models.CharField(
+        max_length=100, blank=True, null=True, help_text="Razorpay Payment ID"
+    )
+    order_id = models.CharField(
+        max_length=100, blank=True, null=True, help_text="Razorpay Order ID"
+    )
+    transaction_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Reference ID for reconciliation",
+    )
 
     paid_at = models.DateTimeField(blank=True, null=True)
 
-
     created_at = models.DateTimeField(auto_now_add=True)
-    
 
     def save(self, *args, **kwargs):
 
         if not self.booking_id:
 
-            print('----------------')
+            print("----------------")
 
-            last = HotelBooking.objects.order_by('-id').first()
+            last = VillaBooking.objects.order_by("-id").first()
             next_id = (last.id + 1) if last else 1
-            print(f"RS-BK{next_id:04d}" )
+            print(f"RS-BK{next_id:04d}")
             self.booking_id = f"RS-BK{next_id:04d}"  # RS-BK0001, RS-BK0002, etc.
         else:
 
-            print('--------11----------')
+            print("--------11----------")
 
             print(self.booking_id)
 
@@ -104,45 +140,55 @@ class HotelBooking(models.Model):
             if self.room:
                 # Room-based booking (legacy support)
                 if not self.room_price_per_night:
-                    self.room_price_per_night = self.room.price_per_night  # snapshot at booking time
+                    self.room_price_per_night = (
+                        self.room.price_per_night
+                    )  # snapshot at booking time
                 price_per_night = self.room_price_per_night or self.room.price_per_night
                 nights = (self.check_out - self.check_in).days or 1
                 base = price_per_night * nights * self.no_of_rooms
-            elif self.hotel:
+            elif self.villa:
                 # Villa-level booking (whole villa)
+                # Use marked-up price (what customer pays)
+                marked_up_price = self.villa.get_marked_up_price()
                 if not self.villa_price_per_night:
-                    self.villa_price_per_night = self.hotel.price_per_night or Decimal('0.00')
-                price_per_night = self.villa_price_per_night or self.hotel.price_per_night or Decimal('0.00')
+                    self.villa_price_per_night = marked_up_price or Decimal("0.00")
+                price_per_night = (
+                    self.villa_price_per_night
+                    or marked_up_price
+                    or self.villa.price_per_night
+                    or Decimal("0.00")
+                )
                 nights = (self.check_out - self.check_in).days or 1
-                base = price_per_night * nights  # Whole villa, so no_of_rooms is not used
+                base = (
+                    price_per_night * nights
+                )  # Whole villa, so no_of_rooms is not used
             else:
                 # No pricing available
-                price_per_night = Decimal('0.00')
+                price_per_night = Decimal("0.00")
                 nights = (self.check_out - self.check_in).days or 1
-                base = Decimal('0.00')
-            
+                base = Decimal("0.00")
 
             # Determine GST Rate
-            gst_percent = Decimal('0.05') if price_per_night < 7500 else Decimal('0.12')
+            gst_percent = Decimal("0.05") if price_per_night < 7500 else Decimal("0.12")
             gst = base * gst_percent
             subtotal = base + gst
 
             # Commission and its GST
-            commission_percent = Decimal('0.10')
+            commission_percent = Decimal("0.10")
             commission = base * commission_percent
-            commission_gst_percent = Decimal('0.18')
+            commission_gst_percent = Decimal("0.18")
             commission_gst = commission * commission_gst_percent
 
             # TCS and TDS
-            tcs_percent = Decimal('0.005')
-            tds_percent = Decimal('0.001')
+            tcs_percent = Decimal("0.005")
+            tds_percent = Decimal("0.001")
             tcs_amount = base * tcs_percent
             tds_amount = base * tds_percent
 
             # Final Amount to User
             total_amount = subtotal
 
-            # Hotel's Earning
+            # Villa's Earning
             hotel_net = subtotal - commission - commission_gst - tds_amount - tcs_amount
 
             # Save fields
@@ -158,59 +204,62 @@ class HotelBooking(models.Model):
 
         super().save(*args, **kwargs)
 
-
     def __init__(self, *args, **kwargs):
-        user = kwargs['context']['request'].user if 'context' in kwargs and 'request' in kwargs['context'] else None
+        user = (
+            kwargs["context"]["request"].user
+            if "context" in kwargs and "request" in kwargs["context"]
+            else None
+        )
         super().__init__(*args, **kwargs)
 
         if user and not user.is_superuser:
-            self.fields['status'].choices = [('completed', 'Completed')]
+            self.fields["status"].choices = [("completed", "Completed")]
 
     def __str__(self):
-        return f"Booking for {self.first_name} at {self.hotel.name}"
-    
+        return f"Booking for {self.first_name} at {self.villa.name}"
 
 
-    
 class SupportTicket(models.Model):
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE)
-    booking = models.ForeignKey(HotelBooking, on_delete=models.CASCADE)
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE)
+    booking = models.ForeignKey(VillaBooking, on_delete=models.CASCADE)
     subject = models.CharField(max_length=255)
     is_resolved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+
 class TicketMessage(models.Model):
-    ticket = models.ForeignKey(SupportTicket, on_delete=models.CASCADE, related_name='messages')
-    sender = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    ticket = models.ForeignKey(
+        SupportTicket, on_delete=models.CASCADE, related_name="messages"
+    )
+    sender = models.ForeignKey("users.User", on_delete=models.CASCADE)
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
 
-
-class favouritehotel(models.Model):
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE)
-    hotel = models.ForeignKey("hotel.hotel", on_delete=models.CASCADE)
+class favouritevilla(models.Model):
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE)
+    villa = models.ForeignKey("hotel.villa", on_delete=models.CASCADE)
 
     class Meta:
-        unique_together = ('user', 'hotel') 
-
-
+        unique_together = ("user", "villa")
 
 
 class PaymentTransaction(models.Model):
     PAYMENT_STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('paid', 'Paid'),
-        ('failed', 'Failed'),
-        ('refunded', 'Refunded'),
+        ("pending", "Pending"),
+        ("paid", "Paid"),
+        ("failed", "Failed"),
+        ("refunded", "Refunded"),
     ]
 
     PAYMENT_METHOD_CHOICES = [
-        ('online', 'Online'),
-        ('cash', 'Cash'),
+        ("online", "Online"),
+        ("cash", "Cash"),
     ]
 
-    booking = models.ForeignKey("HotelBooking", on_delete=models.CASCADE, related_name="transactions")
+    booking = models.ForeignKey(
+        "VillaBooking", on_delete=models.CASCADE, related_name="transactions"
+    )
 
     # Razorpay IDs
     razorpay_order_id = models.CharField(max_length=100, blank=True, null=True)
@@ -224,11 +273,15 @@ class PaymentTransaction(models.Model):
     method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
 
     # Extra info
-    response_payload = models.JSONField(blank=True, null=True)  # store full webhook/order response
+    response_payload = models.JSONField(
+        blank=True, null=True
+    )  # store full webhook/order response
     remarks = models.TextField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Txn {self.razorpay_payment_id or self.id} - {self.status} - {self.amount}"
+        return (
+            f"Txn {self.razorpay_payment_id or self.id} - {self.status} - {self.amount}"
+        )

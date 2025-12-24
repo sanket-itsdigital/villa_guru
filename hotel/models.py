@@ -3,9 +3,9 @@ from django.db import models
 # Create your models here.
 
 
-class hotel(models.Model):
+class villa(models.Model):
 
-    HOTEL_CATEGORY_CHOICES = [
+    VILLA_CATEGORY_CHOICES = [
         ("Budget", "Budget"),
         ("Mid_range", "Mid-range"),
         ("Premium", "Premium"),
@@ -13,19 +13,19 @@ class hotel(models.Model):
         # Add more as needed
     ]
 
-    hotel_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    villa_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
 
     user = models.OneToOneField(
         "users.User",
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        related_name="hotel",
+        related_name="villa",
     )
     name = models.CharField(max_length=255)
 
     category = models.CharField(
-        max_length=50, choices=HOTEL_CATEGORY_CHOICES, default="Budget"
+        max_length=50, choices=VILLA_CATEGORY_CHOICES, default="Budget"
     )
     property_type = models.ForeignKey(
         "masters.property_type", on_delete=models.CASCADE, null=True, blank=True
@@ -95,12 +95,32 @@ class hotel(models.Model):
 
     def save(self, *args, **kwargs):
         # First save to get ID
-        if not self.hotel_id:
+        if not self.villa_id:
             super().save(*args, **kwargs)  # Save once to get ID
-            self.hotel_id = f"RS-{self.id:03d}"
-            super().save(update_fields=["hotel_id"])  # Save only hotel_id
+            self.villa_id = f"RS-{self.id:03d}"
+            super().save(update_fields=["villa_id"])  # Save only villa_id
         else:
             super().save(*args, **kwargs)
+
+    def get_marked_up_price(self):
+        """
+        Calculate the price with admin-configured markup percentage.
+        Returns the original price if no markup is set.
+        """
+        from masters.models import SystemSettings
+
+        if not self.price_per_night:
+            return None
+
+        settings = SystemSettings.get_settings()
+        markup_percentage = settings.price_markup_percentage or 0
+
+        if markup_percentage == 0:
+            return self.price_per_night
+
+        # Calculate: original_price * (1 + markup_percentage/100)
+        marked_up_price = self.price_per_night * (1 + markup_percentage / 100)
+        return round(marked_up_price, 2)
 
     def __str__(self):
         return self.name
@@ -110,20 +130,20 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 
-@receiver(post_save, sender=hotel)
-def sync_user_status_with_hotel(sender, instance, **kwargs):
+@receiver(post_save, sender=villa)
+def sync_user_status_with_villa(sender, instance, **kwargs):
     if instance.user:
         if instance.user.is_active != instance.is_active:
             instance.user.is_active = instance.is_active
             instance.user.save(update_fields=["is_active"])
 
 
-class HotelImage(models.Model):
-    hotel = models.ForeignKey(hotel, related_name="images", on_delete=models.CASCADE)
-    image = models.ImageField(upload_to="hotel_gallery/")
+class VillaImage(models.Model):
+    villa = models.ForeignKey(villa, related_name="images", on_delete=models.CASCADE)
+    image = models.ImageField(upload_to="villa_gallery/")
 
 
-class hotel_rooms(models.Model):
+class villa_rooms(models.Model):
 
     ROOM_TYPE_CHOICES = [
         ("standard", "Standard Room"),
@@ -140,8 +160,8 @@ class hotel_rooms(models.Model):
         ("all_meals", "Breakfast + Lunch + Dinner"),
     ]
 
-    hotel = models.ForeignKey(
-        "hotel.hotel",
+    villa = models.ForeignKey(
+        "hotel.villa",
         on_delete=models.CASCADE,
         related_name="rooms",
         null=True,
@@ -175,29 +195,29 @@ class hotel_rooms(models.Model):
         return f" {self.room_type} - ₹{self.price_per_night}"
 
 
-class hotel_roomsImage(models.Model):
-    hotel_rooms = models.ForeignKey(
-        hotel_rooms, related_name="images", on_delete=models.CASCADE
+class villa_roomsImage(models.Model):
+    villa_rooms = models.ForeignKey(
+        villa_rooms, related_name="images", on_delete=models.CASCADE
     )
-    image = models.ImageField(upload_to="hotel_rooms_gallery/")
+    image = models.ImageField(upload_to="villa_rooms_gallery/")
 
 
-class HotelAvailability(models.Model):
-    hotel = models.ForeignKey("hotel.hotel", on_delete=models.CASCADE)
+class VillaAvailability(models.Model):
+    villa = models.ForeignKey("hotel.villa", on_delete=models.CASCADE)
     date = models.DateField()
     is_open = models.BooleanField(default=True)
 
     class Meta:
-        unique_together = ("hotel", "date")
+        unique_together = ("villa", "date")
 
     def __str__(self):
         return (
-            f"{self.hotel.name} - {self.date} - {'Open' if self.is_open else 'Closed'}"
+            f"{self.villa.name} - {self.date} - {'Open' if self.is_open else 'Closed'}"
         )
 
 
 class RoomAvailability(models.Model):
-    room = models.ForeignKey("hotel_rooms", on_delete=models.CASCADE)
+    room = models.ForeignKey("hotel.villa_rooms", on_delete=models.CASCADE)
     date = models.DateField()
     available_count = models.PositiveIntegerField(default=0)
 

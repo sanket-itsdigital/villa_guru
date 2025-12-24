@@ -2,7 +2,7 @@ from django import forms
 from .models import *
 from masters.models import *
 
-class hotel_Form(forms.ModelForm):
+class villa_Form(forms.ModelForm):
    
     amenities = forms.ModelMultipleChoiceField(
         queryset=amenity.objects.all(),
@@ -13,7 +13,7 @@ class hotel_Form(forms.ModelForm):
     )
 
     class Meta:
-        model = hotel
+        model = villa
         fields = '__all__'
         widgets = {
             'user': forms.Select(attrs={'class': 'form-control'}),
@@ -21,11 +21,13 @@ class hotel_Form(forms.ModelForm):
             'category': forms.Select(attrs={'class': 'form-control', 'placeholder': "Category (e.g. Budget)"}),
             'no_of_rooms': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': "Number of Villa"}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': "Address"}),
+            'property_type': forms.Select(attrs={'class': 'form-control select2'}),
             'city': forms.Select(attrs={'class': 'form-control select2'}),
             'star_rating': forms.NumberInput(attrs={'class': 'form-control'}),
             'overall_rating': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
             'pincode': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': "Pincode"}),
             'profit_margin': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'price_per_night': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Villa price per night (for whole villa booking)'}),
             'main_image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': "Description", 'style': "padding: 10px"}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -61,7 +63,7 @@ class hotel_Form(forms.ModelForm):
 
 
 
-class hotel_rooms_Form(forms.ModelForm):
+class villa_rooms_Form(forms.ModelForm):
 
     room_amenities = forms.ModelMultipleChoiceField(
     queryset=room_amenity.objects.all(),
@@ -73,10 +75,10 @@ class hotel_rooms_Form(forms.ModelForm):
     )
 
     class Meta:
-        model = hotel_rooms
+        model = villa_rooms
         fields = '__all__'
         widgets = {
-            'hotel': forms.Select(attrs={'class': 'form-control'}),
+            'villa': forms.Select(attrs={'class': 'form-control'}),
             'room_type': forms.Select(attrs={'class': 'form-control'}),
             'title': forms.Select(attrs={'class': 'form-control'}),  # it's a choice field
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),

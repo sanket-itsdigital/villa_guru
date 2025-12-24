@@ -1,9 +1,9 @@
 from django import forms
-from .models import HotelBooking
+from .models import VillaBooking
 
-class HotelBookingStatusForm(forms.ModelForm):
+class VillaBookingStatusForm(forms.ModelForm):
     class Meta:
-        model = HotelBooking
+        model = VillaBooking
         fields = '__all__'
 
     

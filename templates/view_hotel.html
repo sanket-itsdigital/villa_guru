@@ -217,25 +217,34 @@ Villa{% endblock title %} {% block extra_css %}
 
                     <div class="card-body text-center">
                       <h4>{{ data.name }}</h4>
-                      <p class="text-muted">{{ data.city.name }}</p>
+                      <p class="text-muted">{% if data.city %}{{ data.city.name }}{% else %}No city{% endif %}</p>
                       {% if data.main_image %}
                       <img
                         src="{{ data.main_image.url }}"
                         class="img-fluid rounded mb-3"
                         alt="Villa Image"
+                        style="max-height: 200px; width: auto;"
                       />
                       {% endif %}
                       <span
-                        class="badge bg-{{ data.is_featured|yesno:'success,secondary' }}"
+                        class="badge bg-{% if data.is_featured %}success{% else %}secondary{% endif %}"
                       >
-                        {{ data.is_featured|yesno:"Featured,Regular" }}
+                        {% if data.is_featured %}Featured{% else %}Regular{% endif %}
                       </span>
                       <p class="mt-2">
-                        <strong>Rating:</strong> {{ data.star_rating }} ★<br />
-                        <strong>Overall:</strong> {{
-                        data.overall_rating|default:"N/A" }}
+                        <strong>Rating:</strong> {% if data.star_rating %}{{ data.star_rating }}{% else %}None{% endif %} ★<br />
+                        <strong>Overall:</strong> {% if data.overall_rating %}{{ data.overall_rating }}{% else %}N/A{% endif %}
                       </p>
-                      <p>{{ data.description }}</p>
+                      {% if data.description %}
+                      <p>{{ data.description|truncatewords:30 }}</p>
+                      {% else %}
+                      <p class="text-muted">No description available.</p>
+                      {% endif %}
+                      {% if data.price_per_night %}
+                      <p class="mt-2">
+                        <strong>Price per Night:</strong> ₹{{ data.price_per_night }}
+                      </p>
+                      {% endif %}
                     </div>
                   </div>
 
@@ -263,14 +272,20 @@ Villa{% endblock title %} {% block extra_css %}
                       <h6 class="mb-0">Amenities</h6>
                     </div>
                     <div class="card-body">
-                      {% for amenity in data.amenities.all %}
-                      <div class="d-flex align-items-center mb-1">
-                        <span class="text-success me-2">✔️</span> {{
-                        amenity.name }}
-                      </div>
-                      {% empty %}
-                      <p>No amenities available.</p>
-                      {% endfor %}
+                      {% if data.amenities.all %}
+                        {% for amenity in data.amenities.all %}
+                        <div class="d-flex align-items-center mb-2">
+                          {% if amenity.image %}
+                          <img src="{{ amenity.image.url }}" alt="{{ amenity.name }}" style="width: 24px; height: 24px; margin-right: 8px; border-radius: 4px;">
+                          {% else %}
+                          <span class="text-success me-2">✓</span>
+                          {% endif %}
+                          <span>{{ amenity.name }}</span>
+                        </div>
+                        {% endfor %}
+                      {% else %}
+                        <p class="text-muted mb-0">No amenities available.</p>
+                      {% endif %}
                     </div>
                   </div>
                 </div>

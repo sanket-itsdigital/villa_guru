@@ -185,6 +185,14 @@
                         </div>
 
                         <div class="mb-4">
+                            <label class="form-label">Property Type:</label>
+                            {{ form.property_type }}
+                            {% if form.property_type.errors %}
+                                <div class="text-danger">{{ form.property_type.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
                             <label class="form-label">City:</label>
                             {{ form.city }}
                             {% if form.city.errors %}
@@ -216,6 +224,14 @@
                             {% endif %}
                         </div>
 
+                        <div class="mb-4">
+                            <label class="form-label">Price Per Night (for whole villa booking):</label>
+                            {{ form.price_per_night }}
+                            {% if form.price_per_night.errors %}
+                                <div class="text-danger">{{ form.price_per_night.errors.0 }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Set the price for booking the entire villa per night</small>
+                        </div>
 
                         <div class="dropdown mb-4">
   <label class="form-label d-block">Amenities:</label>

@@ -101,13 +101,13 @@
             <span>Users Management</span>
           </a>
           <ul class="sub-menu" aria-expanded="false">
-            <li>
+            {% comment %} <li>
               <a href="javascript:void(0);" class="has-arrow">Staff</a>
               <ul class="sub-menu" aria-expanded="false">
                 <li><a href="{% url 'add_custom_user' %}">Add Staff</a></li>
                 <li><a href="{% url 'list_custom_user' %}">Staff List</a></li>
               </ul>
-            </li>
+            </li> {% endcomment %}
             <li><a href="{% url 'customer_user_list' %}">Customer List</a></li>
             <li>
               <a href="{% url 'provider_user_list' %}">Villa User List</a>

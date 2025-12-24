@@ -5,6 +5,6 @@ from django.contrib import admin
 
 from .models import *
 
-admin.site.register(HotelBooking)
+admin.site.register(VillaBooking)
 admin.site.register(SupportTicket)
 admin.site.register(PaymentTransaction)
