@@ -1,0 +1,871 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Villa Vendor Registration</title>
+
+    <!-- Bootstrap & FontAwesome -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", sans-serif;
+        height: 100vh;
+        overflow: hidden;
+      }
+      .main {
+        padding: 2rem;
+        height: 100vh;
+        background: linear-gradient(145deg, #ecf6fc 0%, #1a82c5 100%);
+      }
+
+      .main-container {
+        display: flex;
+        gap: 2rem;
+        height: 93%;
+        align-self: center;
+      }
+
+      .logo {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #1a82c5;
+        margin-bottom: 0.8rem;
+      }
+
+      /* Left Side - Fixed Content */
+      .left-panel {
+        background: #ecf6fcfc;
+        width: 40%;
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow-y: auto;
+        border-radius: 15px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
+      .benefits-section {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        margin-bottom: 2rem;
+      }
+
+      .benefits-section h2 {
+        color: #2d3436;
+        font-size: 2.4rem;
+        font-weight: 300;
+        line-height: 1;
+        margin-bottom: 1rem;
+      }
+
+      .benefits-section p {
+        color: #636e72;
+        font-size: 1rem;
+        margin-bottom: 2rem;
+        line-height: 1.5;
+      }
+
+      .benefit-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        color: #2d3436;
+      }
+
+      .benefit-item .icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 1rem;
+        flex-shrink: 0;
+      }
+
+      .benefit-item span {
+        font-size: 1rem;
+        font-weight: 500;
+      }
+
+      .testimonial {
+        background: rgba(255, 255, 255, 0.9);
+        padding: 1rem;
+        border-radius: 12px;
+      }
+
+      .testimonial p {
+        font-style: italic;
+        color: #2d3436;
+        margin-bottom: 0.3rem;
+        font-size: 0.75rem;
+      }
+
+      .testimonial .author {
+        font-size: 0.85rem;
+        color: #000;
+        font-weight: 500;
+      }
+
+      /* Right Side - Scrollable Form */
+      .right-panel {
+        width: 60%;
+        background: #ecf6fcfc;
+        overflow-y: auto;
+        scrollbar-width: 0px;
+        position: relative;
+        border-radius: 15px;
+      }
+
+      .form-container {
+        max-width: 700px;
+        margin: 0 auto;
+        padding: 2rem;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      .form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .form-header h1 {
+        color: #2d3436;
+        font-size: 2.2rem;
+        font-weight: 350;
+        margin-bottom: 1rem;
+      }
+
+      .form-header p {
+        color: #636e72;
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      .contact-info {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 8px;
+      }
+
+      .contact-item {
+        display: flex;
+        align-items: center;
+        color: #636e72;
+        font-size: 0.9rem;
+      }
+
+      .contact-item i {
+        margin-right: 0.5rem;
+      }
+
+      .form-section {
+        background: #ffffff;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 2rem;
+        border: 1px solid #e9ecef;
+        position: relative;
+      }
+
+      .section-title {
+        color: #2d3436;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        text-align: center;
+      }
+
+      .form-control,
+      .form-select {
+        border: none !important;
+        padding: 0.75rem 0.5rem;
+        font-size: 1rem;
+      }
+
+      .form-control:focus,
+      .form-select:focus {
+        box-shadow: none !important;
+        outline: none !important;
+      }
+
+      .input-group {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .input-group:focus-within {
+        border-color: #1a82c5;
+        box-shadow: 0 0 0 0.1rem rgba(22, 173, 248, 0.438);
+      }
+
+      .input-group-text {
+        /* background-color: #f8f9fa; */
+        background-color: #fff;
+        border: none !important;
+        /* border-radius: 8px 0 0 8px; */
+        color: #636e72;
+      }
+
+      .btn-next {
+        background: #2d3436;
+        color: white;
+        border: none;
+        padding: 0.875rem 3rem;
+        border-radius: 25px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin: 2rem auto;
+        display: block;
+      }
+
+      .btn-next:hover {
+        background: #636e72;
+        transform: translateY(-2px);
+      }
+
+      .step-indicator {
+        position: absolute;
+        bottom: 1rem;
+        right: 1rem;
+        font-size: 0.9rem;
+        color: #636e72;
+        font-weight: 500;
+      }
+
+      /* Mobile Responsiveness */
+      @media (max-width: 768px) {
+        .main-container {
+          flex-direction: column;
+        }
+
+        .left-panel {
+          display: none;
+        }
+
+        .right-panel {
+          width: 100%;
+        }
+
+        .form-container {
+          max-width: 100%;
+          padding: 1rem;
+        }
+
+        .form-header h1 {
+          font-size: 1.5rem;
+        }
+
+        .contact-info {
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+      }
+
+      /* Custom scrollbar */
+      .left-panel::-webkit-scrollbar {
+        display: none;
+      }
+      .right-panel::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .right-panel::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+
+      .right-panel::-webkit-scrollbar-thumb {
+        background: #1a82c5;
+        border-radius: 4px;
+      }
+
+      .right-panel::-webkit-scrollbar-thumb:hover {
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="main">
+      <div class="logo">  <a href="{% url 'dashboard' %}" class="logo logo-light" >
+                            <span class="logo-lg">
+                                <img src="{% static 'images/trans_logo.png'%}" alt="" height="55" width="147" style="
+   
+    width: 200px;">
+                            </span>
+                        </a></div>
+      <div class="main-container">
+        <!-- Left Panel - Fixed Content -->
+        <div class="left-panel">
+          <div>
+            <div class="benefits-section">
+              <h2>
+                Save time, delight your guests... Let Rabbitstay handle the
+                rest!
+              </h2>
+              <p>
+                Simply fill in our form and one of our friendly team members
+                will be in touch within the next business day to answer all of
+                your questions!
+              </p>
+
+              <div class="benefit-item">
+                <div class="icon"><i class="fas fa-chart-line"></i></div>
+                <span>More reservations.</span>
+              </div>
+
+              <div class="benefit-item">
+                <div class="icon"><i class="fas fa-dollar-sign"></i></div>
+                <span>More revenue per booking.</span>
+              </div>
+
+              <div class="benefit-item">
+                <div class="icon"><i class="fas fa-globe"></i></div>
+                <span>Connect to guests around the world.</span>
+              </div>
+
+              <div class="benefit-item">
+                <div class="icon"><i class="fas fa-user-cog"></i></div>
+                <span>No more manually updating 3rd party booking sites.</span>
+              </div>
+            </div>
+          </div>
+
+          {% comment %} <div class="testimonial">
+            <p>
+              "We've been surprised by the high amount of overseas visitors
+              discovering us, that has been a real bonus since using Little
+              Hotelier"
+            </p>
+            <div class="author">- The Hyatt, Hyd</div>
+          </div> {% endcomment %}
+        </div>
+
+        <!-- Right Panel - Scrollable Form -->
+        <div class="right-panel">
+          <div class="form-container">
+            <div class="form-header">
+              <h1>
+                Congratulations on taking the first step to simplifying your
+                operations.
+              </h1>
+              {% comment %} <p>
+                Simply fill in our form and one of our friendly team members
+                will be in touch within the next business day to answer all of
+                your questions!
+              </p> {% endcomment %}
+
+              <!-- <div class="contact-info">
+              <div class="contact-item">
+                <i class="fas fa-user"></i>
+                <span>Mohan</span>
+              </div>
+              <div class="contact-item">
+                <i class="fas fa-user"></i>
+                <span>Aa</span>
+              </div>
+            </div> -->
+
+              <!-- <div class="contact-info">
+              <div class="contact-item">
+                <i class="fas fa-envelope"></i>
+                <span>mohanarjun221@gmail.com</span>
+              </div>
+              <div class="contact-item">
+                <i class="fas fa-phone"></i>
+                <span>+91 9908075746</span>
+              </div>
+            </div> -->
+            </div>
+
+
+            <form method="POST" enctype="multipart/form-data">
+
+
+              {% csrf_token %}
+
+              {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <p style="color: red;">{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% if error %}<div class="messages"> <p style="color: red;">{{ error }}</p></div>{% endif %}
+
+
+              <!-- Personal Details Form -->
+              <div class="form-section">
+                <h5 class="section-title">Personal Details</h5>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <div class="input-group">
+                      <span class="input-group-text"
+                        ><i class="fas fa-user"></i
+                      ></span>
+                      <input
+                        type="text"
+                        class="form-control"
+                        placeholder="First Name"
+                        id="first_name"
+                        value="{{ first_name|default:'' }}"
+                        name="first_name"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <div class="input-group">
+                      <span class="input-group-text"
+                        ><i class="fas fa-user"></i
+                      ></span>
+                      <input
+                        type="text"
+                        class="form-control"
+                        placeholder="Last Name"
+                        id="last_name"
+                        value="{{ last_name|default:'' }}"
+                        name="last_name"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <div class="input-group">
+                      <span class="input-group-text"
+                        ><i class="fas fa-envelope"></i
+                      ></span>
+                      <input
+                        type="email"
+                        class="form-control"
+                        placeholder="Email"
+                        id="email"
+                      value="{{ email|default:'' }}"
+                      name="email"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <div class="input-group">
+                      <span class="input-group-text"
+                        ><i class="fas fa-phone"></i
+                      ></span>
+                      <input
+                        type="text"
+                        class="form-control"
+                        placeholder="Enter your mobile"
+                        value="{{ mobile|default:'' }}"
+                        name="mobile"
+                        pattern="^\d{10}$"
+                        maxlength="10"
+                        title="Enter a 10-digit mobile number"
+                        required
+                      />
+
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <div class="input-group">
+                      <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                      <input
+                        type="password"
+                        class="form-control"
+                        placeholder="Password"
+                        name="password"
+                        id="password"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <div class="input-group">
+                      <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                      <input
+                        type="password"
+                        class="form-control"
+                        placeholder="Confirm Password"
+                        name="confirm_password"
+                        id="confirm_password"
+                        required
+                      />
+                    </div>
+                    <small id="password-note" class="text-danger d-block mt-1"></small>
+                  </div>
+
+                </div>
+                <div class="step-indicator">Step 1 of 5</div>
+              </div>
+           
+
+              <!-- Hotel Details Form -->
+              <div class="form-section">
+                <h5 class="section-title">Villa Details</h5>
+                <div class="mb-3">
+                  <div class="input-group">
+                    <span class="input-group-text"
+                      ><i class="fas fa-hotel"></i
+                    ></span>
+                    {{ form.name }}
+                              {% if form.name.errors %}
+                              <div class="text-danger">{{ form.name.errors.0 }}</div>
+                                  {% endif %}
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <div class="input-group">
+                      <span class="input-group-text"
+                        ><i class="fas fa-list"></i
+                      ></span>
+                      {{ form.category }}
+                              {% if form.category.errors %}
+                                  <div class="text-danger">{{ form.category.errors.0 }}</div>
+                              {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <div class="input-group">
+                      <span class="input-group-text"
+                        ><i class="fas fa-door-open"></i
+                      ></span>
+                      {{ form.no_of_rooms }}
+                              {% if form.no_of_rooms.errors %}
+                                  <div class="text-danger">{{ form.no_of_rooms.errors.0 }}</div>
+                              {% endif %}
+                    </div>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <div class="input-group">
+                    <span class="input-group-text"
+                      ><i class="fas fa-map-marker-alt"></i
+                    ></span>
+                    {{ form.address }}
+                              {% if form.address.errors %}
+                                  <div class="text-danger">{{ form.address.errors.0 }}</div>
+                              {% endif %}
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <div class="input-group">
+                      <span class="input-group-text"
+                        ><i class="fas fa-city"></i
+                      ></span>
+                      {{ form.city }}
+                              {% if form.city.errors %}
+                                  <div class="text-danger">{{ form.city.errors.0 }}</div>
+                              {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <div class="input-group">
+                      <span class="input-group-text"
+                        ><i class="fas fa-map-pin"></i
+                      ></span>
+                      {{ form.landmark }}
+                              {% if form.landmark.errors %}
+                                  <div class="text-danger">{{ form.landmark.errors.0 }}</div>
+                              {% endif %}
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <div class="input-group">
+                      <span class="input-group-text"
+                        ><i class="fas fa-mail-bulk"></i
+                      ></span>
+                        {{ form.pincode }}
+                              {% if form.pincode.errors %}
+                                  <div class="text-danger">{{ form.pincode.errors.0 }}</div>
+                              {% endif %}
+                    </div>
+                  </div>
+                  <!-- Amenities Dropdown -->
+<div class="col-md-6 mb-3">
+  <div class="dropdown w-100">
+    <button
+      class="btn input-group dropdown-toggle w-100 d-flex justify-content-between align-items-center"
+      style="height: 50px"
+      type="button"
+      data-bs-toggle="dropdown"
+      aria-expanded="false"
+    >
+      <span id="selectedAmenities">Select Amenities</span>
+    </button>
+    <ul
+      class="dropdown-menu p-2 w-100"
+      style="max-height: 200px; overflow-y: auto"
+    >
+      {% for amenity in form.fields.amenities.queryset %}
+        <li>
+          <label class="form-check-label w-100">
+            <input
+              class="form-check-input me-2 amenity-checkbox"
+              type="checkbox"
+              name="amenities"
+              value="{{ amenity.id }}"
+            />
+            {{ amenity.name }}
+          </label>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+                </div>
+              </div>
+
+              <!-- Legal & Tax Information -->
+              <div class="form-section">
+                <h5 class="section-title">Legal & Tax Information</h5>
+                <div class="mb-3 input-group">
+                  <span class="input-group-text"
+                    ><i class="fas fa-file-invoice"></i
+                  ></span>
+                  {{ form.gst_number }}
+                              {% if form.gst_number.errors %}
+                                  <div class="text-danger">{{ form.gst_number.errors.0 }}</div>
+                              {% endif %}
+                </div>
+                <div class="mb-3 input-group">
+                  <span class="input-group-text"
+                    ><i class="fas fa-upload"></i
+                  ></span>
+                  {{ form.gst_certificate }}
+                              {% if form.gst_certificate.errors %}
+                                  <div class="text-danger">{{ form.gst_certificate.errors.0 }}</div>
+                              {% endif %}
+                </div>
+                <div class="mb-3 input-group">
+                  <span class="input-group-text"
+                    ><i class="fas fa-id-card"></i
+                  ></span>
+                  {{ form.pan_number }}
+                              {% if form.pan_number.errors %}
+                                  <div class="text-danger">{{ form.pan_number.errors.0 }}</div>
+                              {% endif %}
+                </div>
+                <div class="step-indicator">Step 3 of 5</div>
+              </div>
+
+              <!-- Bank Details -->
+              <div class="form-section">
+                <h5 class="section-title">Bank Details</h5>
+                <div class="mb-3 input-group">
+                  <span class="input-group-text"
+                    ><i class="fas fa-user"></i
+                  ></span>
+                  {{ form.account_holder_name }}
+                              {% if form.account_holder_name.errors %}
+                                  <div class="text-danger">{{ form.account_holder_name.errors.0 }}</div>
+                              {% endif %}
+                </div>
+                <div class="mb-3 input-group">
+                  <span class="input-group-text"
+                    ><i class="fas fa-hashtag"></i
+                  ></span>
+                  {{ form.account_number }}
+                                  {% if form.account_number.errors %}
+                                      <div class="text-danger">{{ form.account_number.errors.0 }}</div>
+                                  {% endif %}
+                </div>
+                <div class="mb-3 input-group">
+                  <span class="input-group-text"
+                    ><i class="fas fa-code-branch"></i
+                  ></span>
+                  {{ form.ifsc_code }}
+                                  {% if form.ifsc_code.errors %}
+                                      <div class="text-danger">{{ form.ifsc_code.errors.0 }}</div>
+                                  {% endif %}
+                </div>
+                <div class="mb-3 input-group">
+                  <span class="input-group-text"
+                    ><i class="fas fa-university"></i
+                  ></span>
+                  {{ form.bank_name }}
+                                  {% if form.bank_name.errors %}
+                                      <div class="text-danger">{{ form.bank_name.errors.0 }}</div>
+                                  {% endif %}
+                </div>
+                <div class="mb-3 input-group">
+                  <span class="input-group-text"
+                    ><i class="fas fa-file-upload"></i
+                  ></span>
+                  {{ form.bank_document }}
+                                  {% if form.bank_document.errors %}
+                                      <div class="text-danger">{{ form.bank_document.errors.0 }}</div>
+                                  {% endif %}
+                </div>
+                <div class="step-indicator">Step 4 of 5</div>
+              </div>
+
+              <!-- About Hotel -->
+              <div class="form-section">
+                <h5 class="section-title">About Villa</h5>
+                <div class="mb-3 input-group">
+                  {{ form.description }}
+                  {% if form.description.errors %}
+                      <div class="text-danger">{{ form.description.errors.0 }}</div>
+                  {% endif %}
+                </div>
+              
+                 <!-- Hotel Image Upload -->
+              <p>Villa Image</p>
+              <div class="input-group mb-3">
+                <span class="input-group-text"
+                  ><i class="fas fa-image"></i
+                ></span>
+                {{ form.main_image }}
+                    {% if form.main_image.errors %}
+                        <div class="text-danger">{{ form.main_image.errors.0 }}</div>
+                    {% endif %}
+              </div>
+              <div id="hotelImagePreview" class="mb-3"></div>
+
+              <!-- Gallery Image Upload -->
+              <p>Gallery Images</p>
+              <div class="input-group mb-3">
+                <span class="input-group-text"
+                  ><i class="fas fa-images"></i
+                ></span>
+                <input type="file" class="form-control" id="image-upload" name="image" accept="image/*" multiple><br><br>
+
+                
+              </div>
+              <div class="row">
+             <div
+              id="galleryImagesPreview"
+              class="row row-cols-2 row-cols-sm-3 row-cols-md-4 g-3 mt-2"
+            ></div>
+
+
+
+              </div>
+                <div class="step-indicator">Step 5 of 5</div>
+
+              </div>
+
+              <button type="submit" class="btn-next">Submit</button>
+            </form>
+            </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+ 
+ 
+    <script>
+      // Hotel Image Preview
+      document
+        .getElementById("id_main_image")
+        .addEventListener("change", function (e) {
+          const preview = document.getElementById("hotelImagePreview");
+          preview.innerHTML = "";
+          const file = e.target.files[0];
+          if (file && file.type.startsWith("image/")) {
+            const img = document.createElement("img");
+            img.src = URL.createObjectURL(file);
+            img.style.maxWidth = "200px";
+            img.style.marginTop = "10px";
+            img.classList.add("img-thumbnail");
+            preview.appendChild(img);
+          }
+        });
+
+      // Gallery Images Preview
+      document
+  .getElementById("image-upload")
+  .addEventListener("change", function (e) {
+    const preview = document.getElementById("galleryImagesPreview");
+    preview.innerHTML = "";
+    Array.from(e.target.files).forEach((file) => {
+      if (file && file.type.startsWith("image/")) {
+        const col = document.createElement("div");
+        col.className = "col";
+
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(file);
+        img.classList.add("img-thumbnail");
+        img.style.width = "100%";
+        img.style.height = "auto";
+        img.style.objectFit = "cover";
+
+        col.appendChild(img);
+        preview.appendChild(col);
+      }
+    });
+  });
+
+
+      // Display Select Amenities
+      const checkboxes = document.querySelectorAll(".amenity-checkbox");
+      const selectedAmenitiesSpan =
+        document.getElementById("selectedAmenities");
+
+      checkboxes.forEach((checkbox) => {
+        checkbox.addEventListener("change", () => {
+          const selected = Array.from(checkboxes)
+            .filter((cb) => cb.checked)
+            .map((cb) => cb.value);
+          selectedAmenitiesSpan.textContent =
+            selected.length > 0 ? selected.join(", ") : "Select Amenities";
+        });
+      });
+    </script>
+
+<script>
+  const password = document.getElementById('password');
+  const confirmPassword = document.getElementById('confirm_password');
+  const note = document.getElementById('password-note');
+
+  function checkPasswordMatch() {
+    if (confirmPassword.value === "") {
+      note.textContent = "";
+    } else if (password.value !== confirmPassword.value) {
+      note.textContent = "Passwords do not match";
+    } else {
+      note.textContent = "Passwords match";
+      note.classList.remove("text-danger");
+      note.classList.add("text-success");
+    }
+  }
+
+  password.addEventListener('input', checkPasswordMatch);
+  confirmPassword.addEventListener('input', checkPasswordMatch);
+</script>
+
+ 
+  </body>
+</html>
