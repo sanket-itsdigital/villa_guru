@@ -7,10 +7,10 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 
 
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import SimpleRouter
 
 
-router = DefaultRouter()
+router = SimpleRouter()
 router.register(r'profile', UserProfileViewSet, basename='user-profile')
 
 

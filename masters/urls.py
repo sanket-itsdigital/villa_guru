@@ -8,9 +8,9 @@ from django.conf.urls.static import static
 
 
 
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import SimpleRouter
 
-router = DefaultRouter()
+router = SimpleRouter()
 router.register(r'customer-address', customer_address_ViewSet, basename='test-booking')
 
 
