@@ -66,6 +66,17 @@ Vaccination{% endblock title %} {% block extra_css %}
               {{ form.name }}
             </div>
 
+            <div class="mb-4">
+              <label for="image" class="form-label">Image:</label>
+              {{ form.image }}
+              {% if form.instance.image %}
+                <div class="mt-2">
+                  <p>Current Image:</p>
+                  <img src="{{ form.instance.image.url }}" alt="{{ form.instance.name }}" width="100" height="100" style="object-fit: cover; border-radius: 4px;">
+                </div>
+              {% endif %}
+            </div>
+
             <div class="text-center">
               <button type="submit" class="btn btn-primary custom-button">
                 Submit

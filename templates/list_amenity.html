@@ -108,6 +108,7 @@
                       <tr>
                         <th>#</th>
                         <th>Name</th>
+                        <th>Image</th>
                         <th>Action</th>
                       </tr>
                     </thead>
@@ -116,7 +117,13 @@
                       <tr>
                         <td>{{ forloop.counter }}</td>
                         <td>{{ i.name }}</td>
-
+                        <td>
+                          {% if i.image %}
+                            <img src="{{ i.image.url }}" alt="{{ i.name }}" width="60" height="60" style="object-fit: cover; border-radius: 4px;">
+                          {% else %}
+                            <span class="text-muted">No Image</span>
+                          {% endif %}
+                        </td>
                         <td>
                           <!-- remove Button -->
 

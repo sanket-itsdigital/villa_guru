@@ -21,9 +21,10 @@ class HotelBooking(models.Model):
 
     user = models.ForeignKey("users.User", on_delete=models.SET_NULL, null=True, blank=True)
     hotel = models.ForeignKey("hotel.hotel", on_delete=models.CASCADE)
-    room = models.ForeignKey("hotel.hotel_rooms", on_delete=models.CASCADE)
+    room = models.ForeignKey("hotel.hotel_rooms", on_delete=models.CASCADE, null=True, blank=True, help_text="Optional: Leave empty for whole villa booking")
 
     room_price_per_night = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    villa_price_per_night = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Villa price per night (for whole villa booking)")
 
 
     check_in = models.DateField()
@@ -98,20 +99,31 @@ class HotelBooking(models.Model):
 
             print(self.booking_id)
 
-        if self.check_in and self.check_out and self.room:
-            
-            if self.check_in and self.check_out and self.room:
+        if self.check_in and self.check_out:
+            # Determine pricing: villa-level or room-level
+            if self.room:
+                # Room-based booking (legacy support)
                 if not self.room_price_per_night:
                     self.room_price_per_night = self.room.price_per_night  # snapshot at booking time
-                      
-                        # Use stored price if already present, else fetch from room
-            room_price = self.room_price_per_night or self.room.price_per_night
-            nights = (self.check_out - self.check_in).days or 1
-            base = room_price * nights * self.no_of_rooms
+                price_per_night = self.room_price_per_night or self.room.price_per_night
+                nights = (self.check_out - self.check_in).days or 1
+                base = price_per_night * nights * self.no_of_rooms
+            elif self.hotel:
+                # Villa-level booking (whole villa)
+                if not self.villa_price_per_night:
+                    self.villa_price_per_night = self.hotel.price_per_night or Decimal('0.00')
+                price_per_night = self.villa_price_per_night or self.hotel.price_per_night or Decimal('0.00')
+                nights = (self.check_out - self.check_in).days or 1
+                base = price_per_night * nights  # Whole villa, so no_of_rooms is not used
+            else:
+                # No pricing available
+                price_per_night = Decimal('0.00')
+                nights = (self.check_out - self.check_in).days or 1
+                base = Decimal('0.00')
             
 
             # Determine GST Rate
-            gst_percent = Decimal('0.05') if room_price < 7500 else Decimal('0.12')
+            gst_percent = Decimal('0.05') if price_per_night < 7500 else Decimal('0.12')
             gst = base * gst_percent
             subtotal = base + gst
 

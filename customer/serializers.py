@@ -121,7 +121,7 @@ class TicketMessageSerializer(serializers.ModelSerializer):
 class HotelBookingSerializer(serializers.ModelSerializer):
     
     room = serializers.PrimaryKeyRelatedField(
-        queryset=hotel_rooms.objects.all(), write_only=True
+        queryset=hotel_rooms.objects.all(), write_only=True, required=False, allow_null=True
     )
     hotel = serializers.PrimaryKeyRelatedField(
         queryset=hotel.objects.all(), write_only=True
@@ -144,12 +144,13 @@ class HotelBookingSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         room = data.get('room')
+        hotel = data.get('hotel')
         check_in = data.get('check_in')
         check_out = data.get('check_out')
         quantity = data.get('no_of_rooms', 1)
 
-        if not room or not check_in or not check_out:
-            raise serializers.ValidationError("Room, check-in, and check-out are required.")
+        if not check_in or not check_out:
+            raise serializers.ValidationError("Check-in and check-out are required.")
 
         if check_in < date.today():
             raise serializers.ValidationError("Check-in cannot be in the past.")
@@ -157,23 +158,31 @@ class HotelBookingSerializer(serializers.ModelSerializer):
         if check_in >= check_out:
             raise serializers.ValidationError("Check-out must be after check-in.")
 
-        num_days = (check_out - check_in).days
-        booking_dates = [check_in + timedelta(days=i) for i in range(num_days)]
+        # If room is provided, validate room availability (legacy room booking)
+        if room:
+            num_days = (check_out - check_in).days
+            booking_dates = [check_in + timedelta(days=i) for i in range(num_days)]
 
-        availabilities = RoomAvailability.objects.filter(
-            room=room,
-            date__in=booking_dates
-        )
+            availabilities = RoomAvailability.objects.filter(
+                room=room,
+                date__in=booking_dates
+            )
 
-        availability_map = {a.date: a.available_count for a in availabilities}
+            availability_map = {a.date: a.available_count for a in availabilities}
 
-        insufficient_dates = [
-            d for d in booking_dates if availability_map.get(d, 0) < quantity
-        ]
+            insufficient_dates = [
+                d for d in booking_dates if availability_map.get(d, 0) < quantity
+            ]
 
-        if insufficient_dates:
-            dates_str = ", ".join(str(d) for d in insufficient_dates)
-            raise serializers.ValidationError(f"Only limited rooms available on: {dates_str}")
+            if insufficient_dates:
+                dates_str = ", ".join(str(d) for d in insufficient_dates)
+                raise serializers.ValidationError(f"Only limited rooms available on: {dates_str}")
+        elif hotel:
+            # Villa-level booking: validate villa has price
+            if not hotel.price_per_night:
+                raise serializers.ValidationError("Villa does not have a price set. Please set villa price per night.")
+        else:
+            raise serializers.ValidationError("Either room or hotel must be provided for booking.")
 
         return data
 

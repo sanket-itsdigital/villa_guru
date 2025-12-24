@@ -248,6 +248,17 @@
             <li><a href="{% url 'list_home_banner' %}">Banner List</a></li>
           </ul>
         </li>
+
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="calendar"></i>
+            <span>Event</span>
+          </a>
+          <ul class="sub-menu">
+            <li><a href="{% url 'add_event' %}">Add Event</a></li>
+            <li><a href="{% url 'list_event' %}">List Event</a></li>
+          </ul>
+        </li>
         {% endif %}
 
         <!-- ===== CA Section (Yellow) ===== -->
