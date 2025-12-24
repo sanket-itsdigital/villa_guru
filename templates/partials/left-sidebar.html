@@ -1,332 +1,333 @@
-{% load static %}
-
-{% load static %}
-{% load group_tags %}
-
-{% block left_sidebar %}
-
-{% block extra_css %}
-
+{% load static %} {% load static %} {% load group_tags %} {% block left_sidebar
+%} {% block extra_css %}
 
 <style>
+  .has-arrow {
+    color: white !important;
+  }
 
-.has-arrow{
-    color : white !important;
-}
+  #sidebar-menu ul li a svg {
+    color: white !important;
+  }
 
-#sidebar-menu ul li a svg{
-    color :  white !important;
-}
-
-.mm-active .active {
+  .mm-active .active {
     color: var(--bs-teal) !important;
-}
+  }
 
-.nonnm {
+  .nonnm {
     color: white !important;
-}
+  }
 
-/* Ensure links marked with `nonnm` remain white even when their parent menu item
+  /* Ensure links marked with `nonnm` remain white even when their parent menu item
    is active (overrides .mm-active>a rules which may set a grey color). */
-#sidebar-menu ul li a.nonnm,
-#sidebar-menu ul li a.nonnm i,
-#sidebar-menu ul li a.nonnm span,
-#sidebar-menu ul li.mm-active > a.nonnm,
-#sidebar-menu ul li.mm-active > a.nonnm i,
-#sidebar-menu ul li.mm-active > a.nonnm span {
+  #sidebar-menu ul li a.nonnm,
+  #sidebar-menu ul li a.nonnm i,
+  #sidebar-menu ul li a.nonnm span,
+  #sidebar-menu ul li.mm-active > a.nonnm,
+  #sidebar-menu ul li.mm-active > a.nonnm i,
+  #sidebar-menu ul li.mm-active > a.nonnm span {
     color: white !important;
-}
+  }
 
-/* Also ensure parent links (with the caret/arrow) stay white when active */
-#sidebar-menu ul li a.has-arrow,
-#sidebar-menu ul li a.has-arrow i,
-#sidebar-menu ul li a.has-arrow span,
-#sidebar-menu ul li.mm-active > a.has-arrow,
-#sidebar-menu ul li.mm-active > a.has-arrow i,
-#sidebar-menu ul li.mm-active > a.has-arrow span {
+  /* Also ensure parent links (with the caret/arrow) stay white when active */
+  #sidebar-menu ul li a.has-arrow,
+  #sidebar-menu ul li a.has-arrow i,
+  #sidebar-menu ul li a.has-arrow span,
+  #sidebar-menu ul li.mm-active > a.has-arrow,
+  #sidebar-menu ul li.mm-active > a.has-arrow i,
+  #sidebar-menu ul li.mm-active > a.has-arrow span {
     color: white !important;
-}
+  }
 
-.mm-active>a {
-   color : var(--bs-secondary-text-emphasis) !important;
-}
+  .mm-active > a {
+    color: var(--bs-secondary-text-emphasis) !important;
+  }
 
-
-#sidebar-menu ul li ul.sub-menu li a {
-    padding: .425rem 1.5rem .425rem 3.5rem;
-    font-size: .825rem;
+  #sidebar-menu ul li ul.sub-menu li a {
+    padding: 0.425rem 1.5rem 0.425rem 3.5rem;
+    font-size: 0.825rem;
     color: white !important;
-}
+  }
 
-#sidebar-menu ul li ul.sub-menu li a:hover {
+  #sidebar-menu ul li ul.sub-menu li a:hover {
     color: #545a6d !important;
-}
+  }
 
-#sidebar-menu ul li a:hover {
+  #sidebar-menu ul li a:hover {
     color: #545a6d !important;
-}
+  }
 
-/* Hover override: make sidebar link text (and icons) a light pink on hover */
-#sidebar-menu ul li a:hover,
-#sidebar-menu ul li a:hover i,
-#sidebar-menu ul li a:hover span {
-    color: #FFF0F3 !important;
-}
-
+  /* Hover override: make sidebar link text (and icons) a light pink on hover */
+  #sidebar-menu ul li a:hover,
+  #sidebar-menu ul li a:hover i,
+  #sidebar-menu ul li a:hover span {
+    color: #fff0f3 !important;
+  }
 </style>
 
+{% endblock extra_css %} {% if request.user.is_authenticated %}
 
-{% endblock extra_css %}
-
-
-{% if request.user.is_authenticated %}
-
-       <!-- ========== Left Sidebar Start ========== -->
+<!-- ========== Left Sidebar Start ========== -->
 <div class="vertical-menu">
-    <div data-simplebar class="h-100">
-        <div id="sidebar-menu" style="background-color: #780000;">
-            <ul class="metismenu list-unstyled" id="side-menu">
+  <div data-simplebar class="h-100">
+    <div id="sidebar-menu" style="background-color: #780000">
+      <ul class="metismenu list-unstyled" id="side-menu">
+        <!-- ===== Admin Section (Black) ===== -->
 
-                <!-- ===== Admin Section (Black) ===== -->
+        <li>
+          <a href="{% url 'user_profile' %}" class="nonnm">
+            <i data-feather="user"></i>
+            <span>User Profile</span>
+          </a>
+        </li>
 
-                <li>
-                    <a href="{% url 'user_profile' %}" class="nonnm">
-                        <i data-feather="user"></i>
-                        <span>User Profile</span>
-                    </a>
-                </li>
+        <li>
+          <a href="{% url 'dashboard' %}" class="nonnm">
+            <i data-feather="home"></i>
+            <span class="badge rounded-pill text-success float-end">9+</span>
+            <span>Admin Dashboard</span>
+          </a>
+        </li>
 
+        {% if request.user.is_superuser %}
 
-                <li>
-                    <a href="{% url 'dashboard' %}" class="nonnm" >
-                        <i data-feather="home"></i>
-                        <span class="badge rounded-pill text-success float-end">9+</span>
-                        <span>Admin Dashboard</span>
-                    </a>
-                </li>
-                
-                {% if request.user.is_superuser %}
-               
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="users"></i>
+            <span>Users Management</span>
+          </a>
+          <ul class="sub-menu" aria-expanded="false">
+            <li>
+              <a href="javascript:void(0);" class="has-arrow">Staff</a>
+              <ul class="sub-menu" aria-expanded="false">
+                <li><a href="{% url 'add_custom_user' %}">Add Staff</a></li>
+                <li><a href="{% url 'list_custom_user' %}">Staff List</a></li>
+              </ul>
+            </li>
+            <li><a href="{% url 'customer_user_list' %}">Customer List</a></li>
+            <li>
+              <a href="{% url 'provider_user_list' %}">Villa User List</a>
+            </li>
+            <li><a href="{% url 'vendor_request' %}">Villa Request List</a></li>
+          </ul>
 
-                <li>
-                    <a href="javascript: void(0);" class="has-arrow">
-                        <i data-feather="users"></i>
-                        <span>Users Management</span>
-                    </a>
-                    <ul class="sub-menu" aria-expanded="false">
-                        <li>
-                            <a href="javascript:void(0);" class="has-arrow">Staff</a>
-                            <ul class="sub-menu" aria-expanded="false">
-                                <li><a href="{% url 'add_custom_user' %}">Add Staff</a></li>
-                                <li><a href="{% url 'list_custom_user' %}">Staff List</a></li>
-                            </ul>
-                        </li>
-                        <li><a href="{% url 'customer_user_list' %}">Customer List</a></li>
-                        <li><a href="{% url 'provider_user_list' %}">Villa User List</a></li>
-                        <li><a href="{% url 'vendor_request' %}">Villa Request List</a></li>
-                    </ul>
+          <ul class="sub-menu" aria-expanded="false">
+            <li><a href="{% url 'list_support_tickets' %}">Chat Support</a></li>
+          </ul>
+        </li>
 
-                    <ul class="sub-menu" aria-expanded="false">
-                        <li><a href="{% url 'list_support_tickets' %}">Chat Support</a></li>
-                    </ul>
-                            
-                </li>
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="map-pin"></i>
+            <span>City</span>
+          </a>
+          <ul class="sub-menu" aria-expanded="false">
+            <li><a href="{% url 'add_city' %}">Add City</a></li>
+            <li><a href="{% url 'list_city' %}">List City</a></li>
+          </ul>
+        </li>
 
-                <li>
-                    <a href="javascript: void(0);" class="has-arrow">
-                        <i data-feather="map-pin"></i>
-                        <span>City</span>
-                    </a>
-                    <ul class="sub-menu" aria-expanded="false">
-                        <li><a href="{% url 'add_city' %}">Add City</a></li>
-                        <li><a href="{% url 'list_city' %}">List City</a></li>
-                    </ul>
-                </li>
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="box"></i>
+            <span>Room Type</span>
+          </a>
+          <ul class="sub-menu">
+            <li><a href="{% url 'add_room_type' %}">Add Room Type</a></li>
+            <li><a href="{% url 'list_room_type' %}">List Room Type</a></li>
+          </ul>
+        </li>
 
-                <li>
-                    <a href="javascript: void(0);" class="has-arrow">
-                        <i data-feather="box"></i>
-                        <span>Room Type</span>
-                    </a>
-                    <ul class="sub-menu">
-                        <li><a href="{% url 'add_room_type' %}">Add Room Type</a></li>
-                        <li><a href="{% url 'list_room_type' %}">List Room Type</a></li>
-                    </ul>
-                </li>
+        {% endif %}
 
+        <!-- ===== Staff Section (Red) ===== -->
+        {% if request.user|has_group:"Staff" or request.user.is_superuser and
+        not request.user.is_service_provider %}
 
-                {% endif %}
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="box"></i>
+            <span>Amenity</span>
+          </a>
+          <ul class="sub-menu">
+            <li><a href="{% url 'add_amenity' %}">Add Amenity</a></li>
+            <li><a href="{% url 'list_amenity' %}">List Amenity</a></li>
+          </ul>
+        </li>
 
-                <!-- ===== Staff Section (Red) ===== -->
-                {% if request.user|has_group:"Staff" or request.user.is_superuser and not request.user.is_service_provider %}
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="box"></i>
+            <span>Property Type</span>
+          </a>
+          <ul class="sub-menu">
+            <li>
+              <a href="{% url 'add_property_type' %}">Add Property Type</a>
+            </li>
+            <li>
+              <a href="{% url 'list_property_type' %}">List Property Type</a>
+            </li>
+          </ul>
+        </li>
 
-                <li>
-                    <a href="javascript: void(0);" class="has-arrow">
-                        <i data-feather="box"></i>
-                        <span>Amenity</span>
-                    </a>
-                    <ul class="sub-menu">
-                        <li><a href="{% url 'add_amenity' %}">Add Amenity</a></li>
-                        <li><a href="{% url 'list_amenity' %}">List Amenity</a></li>
-                    </ul>
-                </li>
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="box"></i>
+            <span>Room Amenity</span>
+          </a>
+          <ul class="sub-menu">
+            <li><a href="{% url 'add_room_amenity' %}">Add Room Amenity</a></li>
+            <li>
+              <a href="{% url 'list_room_amenity' %}">List Room Amenity</a>
+            </li>
+          </ul>
+        </li>
 
-                <li>
-                    <a href="javascript: void(0);" class="has-arrow">
-                        <i data-feather="box"></i>
-                        <span>Property Type</span>
-                    </a>
-                    <ul class="sub-menu">
-                        <li><a href="{% url 'add_property_type' %}">Add Property Type</a></li>
-                        <li><a href="{% url 'list_property_type' %}">List Property Type</a></li>
-                    </ul>
-                </li>
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="home"></i>
+            <span>Villa</span>
+          </a>
+          <ul class="sub-menu">
+            <li><a href="{% url 'list_hotel' %}">List Villa</a></li>
+          </ul>
+        </li>
 
-                <li>
-                    <a href="javascript: void(0);" class="has-arrow">
-                        <i data-feather="box"></i>
-                        <span>Room Amenity</span>
-                    </a>
-                    <ul class="sub-menu">
-                        <li><a href="{% url 'add_room_amenity' %}">Add Room Amenity</a></li>
-                        <li><a href="{% url 'list_room_amenity' %}">List Room Amenity</a></li>
-                    </ul>
-                </li>
+        {% endif %} {% if request.user|has_group:'Staff' or
+        request.user.is_superuser or request.user.is_service_provider %} {% if
+        request.user.is_service_provider %}
 
-          
+        <li>
+          <a href="{% url 'view_hotel' %}">
+            <i data-feather="layers"></i>
+            <span data-key="t-authentication">My Villa</span>
+          </a>
+        </li>
 
-                <li>
-                    <a href="javascript: void(0);" class="has-arrow">
-                        <i data-feather="home"></i>
-                        <span>Villa</span>
-                    </a>
-                    <ul class="sub-menu">
-                        <li><a href="{% url 'list_hotel' %}">List Villa</a></li>
-                    </ul>
-                </li>
+        {% endif %}
 
-                {% endif %}
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="layout"></i>
+            <span>Villa Rooms</span>
+          </a>
+          <ul class="sub-menu">
+            <li><a href="{% url 'add_hotel_rooms' %}">Add Villa Rooms</a></li>
+            <li><a href="{% url 'list_hotel_rooms' %}">List Villa Rooms</a></li>
+          </ul>
+        </li>
 
-                {% if request.user|has_group:'Staff' or request.user.is_superuser or request.user.is_service_provider %}
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="calendar"></i>
+            <span>Bookings</span>
+          </a>
+          <ul class="sub-menu">
+            <li><a href="{% url 'list_hotel_bookings' %}">All Bookings</a></li>
+            <li>
+              <a href="{% url 'list_hotel_future_bookings' %}"
+                >All Future Bookings</a
+              >
+            </li>
+          </ul>
+        </li>
 
-               {% if request.user.is_service_provider %}
+        {% endif %} {% if request.user|has_group:'Staff' or
+        request.user.is_superuser %}
 
-                        <li>
-                            <a href="{% url 'view_hotel' %}">
-                                <i data-feather="layers"></i>
-                                <span data-key="t-authentication">My Villa</span>
-                            </a>
-                        </li>
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="image"></i>
+            <span>Banner</span>
+          </a>
+          <ul class="sub-menu">
+            <li><a href="{% url 'add_home_banner' %}">Add Banner</a></li>
+            <li><a href="{% url 'list_home_banner' %}">Banner List</a></li>
+          </ul>
+        </li>
+        {% endif %}
 
+        <!-- ===== CA Section (Yellow) ===== -->
+        {% if request.user|has_group:'Staff' or request.user.is_superuser or
+        request.user.is_service_provider %}
 
-                        {% endif %}
+        <li>
+          <a href="{% url 'list_hotel_earning' %}" class="nonnm">
+            <i data-feather="dollar-sign"></i>
+            <span>Earnings</span>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'list_payments' %}" class="nonnm">
+            <i data-feather="dollar-sign"></i>
+            <span>Payments</span>
+          </a>
+        </li>
 
-                <li>
-                    <a href="javascript: void(0);" class="has-arrow">
-                        <i data-feather="layout"></i>
-                        <span>Villa Rooms</span>
-                    </a>
-                    <ul class="sub-menu">
-                        <li><a href="{% url 'add_hotel_rooms' %}">Add Villa Rooms</a></li>
-                        <li><a href="{% url 'list_hotel_rooms' %}">List Villa Rooms</a></li>
-                    </ul>
-                </li>
+        {% comment %}
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="bar-chart-2"></i>
+            <span>Reports</span>
+          </a>
+          <ul class="sub-menu">
+            <li><a href="#">Recent Payments</a></li>
+            <li><a href="#">Initiate Refunds</a></li>
+            <li><a href="#">Refunds</a></li>
+            <li><a href="#">Payment Reports</a></li>
+          </ul>
+        </li>
+        {% endcomment %} {% endif %}
 
-                <li>
-                    <a href="javascript: void(0);" class="has-arrow">
-                        <i data-feather="calendar"></i>
-                        <span>Bookings</span>
-                    </a>
-                    <ul class="sub-menu">
-                        <li><a href="{% url 'list_hotel_bookings' %}">All Bookings</a></li>
-                        <li><a href="{% url 'list_hotel_future_bookings' %}">All Future Bookings</a></li>
-                    </ul>
-                </li>
+        <!-- ===== Logout ===== -->
 
-                {% endif %}
-
-                {% if request.user|has_group:'Staff' or request.user.is_superuser %}
-
-
-
-                <li>
-                    <a href="javascript: void(0);" class="has-arrow">
-                        <i data-feather="image"></i>
-                        <span>Banner</span>
-                    </a>
-                    <ul class="sub-menu">
-                        <li><a href="{% url 'add_home_banner' %}">Add Banner</a></li>
-                        <li><a href="{% url 'list_home_banner' %}">Banner List</a></li>
-                    </ul>
-                </li>
-                {% endif %}
-
-                <!-- ===== CA Section (Yellow) ===== -->
-                {% if request.user|has_group:'Staff' or request.user.is_superuser or request.user.is_service_provider %}
-
-                <li>
-                    <a href="{% url 'list_hotel_earning' %}" class="nonnm">
-                        <i data-feather="dollar-sign"></i>
-                        <span>Earnings</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'list_payments' %}" class="nonnm">
-                        <i data-feather="dollar-sign"></i>
-                        <span>Payments</span>
-                    </a>
-                </li>
-
-
-               
-                {% comment %} <li>
-                    <a href="javascript: void(0);" class="has-arrow">
-                        <i data-feather="bar-chart-2"></i>
-                        <span>Reports</span>
-                    </a>
-                    <ul class="sub-menu">
-                        <li><a href="#">Recent Payments</a></li>
-                        <li><a href="#">Initiate Refunds</a></li>
-                        <li><a href="#">Refunds</a></li>
-                        <li><a href="#">Payment Reports</a></li>
-                    </ul>
-                </li> {% endcomment %}
-                {% endif %}
-
-                <!-- ===== Logout ===== -->
-
-                {% if request.user.is_superuser %}
-                <div style="margin: 100% 0 0 35%; align-content: center">
-                    <form method="POST" action="{% url 'logout' %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-primary" style="background-color: white !important;
-    color: black;">Logout</button>
-                    </form>
-                </div>
-                {% elif request.user.is_service_provider %}
-                    <div style="margin: 100% 0 0 35%; align-content: center">
-                        <form method="POST" action="{% url 'vendor_logout' %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary" style="background-color: white !important;
-    color: black;">Logout</button>
-                        </form>
-                    </div>
-                
-                {% else %}
-                    <div style="margin: 100% 0 0 35%; align-content: center">
-                        <form method="POST" action="{% url 'login_staff' %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary" style="background-color: white !important;
-    color: black;">Logout</button>
-                        </form>
-                    </div>
-                {% endif %}
-            </ul>
+        {% if request.user.is_superuser %}
+        <div style="margin: 100% 0 0 35%; align-content: center">
+          <form method="POST" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button
+              type="submit"
+              class="btn btn-primary"
+              style="background-color: white !important; color: black"
+            >
+              Logout
+            </button>
+          </form>
         </div>
+        {% elif request.user.is_service_provider %}
+        <div style="margin: 100% 0 0 35%; align-content: center">
+          <form method="POST" action="{% url 'vendor_logout' %}">
+            {% csrf_token %}
+            <button
+              type="submit"
+              class="btn btn-primary"
+              style="background-color: white !important; color: black"
+            >
+              Logout
+            </button>
+          </form>
+        </div>
+
+        {% else %}
+        <div style="margin: 100% 0 0 35%; align-content: center">
+          <form method="POST" action="{% url 'login_staff' %}">
+            {% csrf_token %}
+            <button
+              type="submit"
+              class="btn btn-primary"
+              style="background-color: white !important; color: black"
+            >
+              Logout
+            </button>
+          </form>
+        </div>
+        {% endif %}
+      </ul>
     </div>
+  </div>
 </div>
 <!-- Left Sidebar End -->
 
 {% endif %}
-        <!-- Left Sidebar End -->
+<!-- Left Sidebar End -->
 {% endblock left_sidebar %}

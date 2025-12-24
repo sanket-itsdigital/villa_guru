@@ -1,134 +1,131 @@
-{% extends "partials/adminBase.html" %}
-{% load static %}
+{% extends "partials/adminBase.html" %} {% load static %} {% block title %}Add
+Villa{% endblock title %} {% block extra_css %}
 
-{% block title %}Add Villa{% endblock title %}
+<link
+  href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+  rel="stylesheet"
+/>
 
+<!-- plugin css -->
+<link
+  href="{% static 'libs/admin-resources/jquery.vectormap/jquery-jvectormap-1.2.2.css' %}"
+  rel="stylesheet"
+  type="text/css"
+/>
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+/>
+<style>
+  body {
+    background-color: #f0d28c;
+    padding-bottom: 20px;
+  }
 
-{% block extra_css %}
+  .form-container {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
 
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  .form-heading {
+    text-align: left;
+    margin-bottom: 20px;
+    font-weight: bold;
+    font-size: 2rem;
+    color: #780000 !important ;
+  }
 
+  .description-box {
+    height: 150px;
+    resize: none;
+  }
 
+  .image-preview {
+    max-height: 100px;
+    margin-top: 10px;
+  }
 
-    <!-- plugin css -->
-    <link href="{% static 'libs/admin-resources/jquery.vectormap/jquery-jvectormap-1.2.2.css' %}" rel="stylesheet"
-          type="text/css"/>
-    <link
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
-            rel="stylesheet"
-    />
-    <style>
-        body {
-            background-color: #f0d28c;
-            padding-bottom: 20px;
-        }
+  .btn-primary {
+    background-color: #780000 !important ;
+    border-color: #780000 !important ;
+  }
 
-        .form-container {
-            background-color: #ffffff;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
+  .custom-button {
+    width: 150px;
+  }
 
-        .form-heading {
-            text-align: left;
-            margin-bottom: 20px;
-            font-weight: bold;
-            font-size: 2rem;
-            color: #780000!important ;
-        }
+  .select2-container--default .select2-selection--multiple {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    min-height: calc(2.25rem + 2px);
+    background-color: white;
+  }
 
-        .description-box {
-            height: 150px;
-            resize: none;
-        }
+  .select2-selection__choice {
+    background-color: #0d6efd;
+    border: none;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
+  }
 
-        .image-preview {
-            max-height: 100px;
-            margin-top: 10px;
-        }
+  .select2-selection__choice__remove {
+    color: white;
+    margin-left: 4px;
+  }
 
-        .btn-primary {
-            background-color: #780000!important ;
-            border-color: #780000!important ;
-        }
+  .select2-selection__choice__display {
+    margin-left: 9px !important;
+  }
 
-        .custom-button {
-            width: 150px;
-        }
-
-         .select2-container--default .select2-selection--multiple {
-        border: 1px solid #ced4da;
-        border-radius: 0.375rem;
-        padding: 0.375rem 0.75rem;
-        min-height: calc(2.25rem + 2px);
-        background-color: white;
-    }
-
-    .select2-selection__choice {
-        background-color: #0d6efd;
-        border: none;
-        color: white;
-        padding: 2px 6px;
-        border-radius: 4px;
-        margin-top: 4px;
-    }
-
+  .select2-container--default
+    .select2-selection--multiple
     .select2-selection__choice__remove {
-        color: white;
-        margin-left: 4px;
-    }
+    background-color: transparent;
+    border: none;
+    border-right: 1px solid black !important;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+    color: black !important;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold;
+    padding: 0 4px;
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
 
-  
+  .select2-container .select2-selection--multiple .select2-selection__choice {
+    background-color: #3fabe1 !important;
+    border: 1px solid #3fabe1 !important;
+    border-radius: 1px;
+    padding: 0 7px;
+  }
 
-    .select2-selection__choice__display{
-        margin-left: 9px !important;
-
-    }
-
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-        background-color: transparent;
-        border: none;
-        border-right: 1px solid black !important;
-        border-top-left-radius: 4px;
-        border-bottom-left-radius: 4px;
-        color: black !important;
-        cursor: pointer;
-        font-size: 1em;
-        font-weight: bold;
-        padding: 0 4px;
-        position: absolute;
-        left: 0;
-        top: 0;
-    }
-
-    .select2-container .select2-selection--multiple .select2-selection__choice {
-        background-color: #3fabe1 !important;
-        border: 1px solid #3fabe1 !important;
-        border-radius: 1px;
-        padding: 0 7px;
-    }
-
-
-    .image-gallery {
+  .image-gallery {
     display: flex;
     overflow-x: auto;
     gap: 10px;
     padding-bottom: 10px;
-}
+  }
 
-.image-gallery img {
+  .image-gallery img {
     height: 80px;
     border-radius: 5px;
     flex-shrink: 0;
-}
+  }
 
-.image-gallery-container {
+  .image-gallery-container {
     position: relative;
     max-width: 100%;
-}
+  }
 
-.see-more-overlay {
+  .see-more-overlay {
     position: absolute;
     right: 0;
     top: 0;
@@ -139,265 +136,312 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-}
+  }
 
-.form-container {
+  .form-container {
     background-color: #96c7f9;
     padding: 8px 10px !important;
+  }
 
-}
-
-
-.card{
+  .card {
     border-radius: 8px;
     box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-
-    
-    </style>
-{% endblock extra_css %}
-
-
-{% block content %}
-
+  }
+</style>
+{% endblock extra_css %} {% block content %}
 
 <div class="main-content">
-    <div class="page-content">
-
-         <div class="container-fluid">
-            <!-- start page title -->
-           <div class="row">
-    <div class="col-12">
-        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+  <div class="page-content">
+    <div class="container-fluid">
+      <!-- start page title -->
+      <div class="row">
+        <div class="col-12">
+          <div
+            class="page-title-box d-sm-flex align-items-center justify-content-between"
+          >
             <h4 class="mb-sm-0 font-size-18">My Villa</h4>
             <h4 class="mb-sm-0 font-size-18">Villa ID: {{ data.villa_id }}</h4>
 
             <!-- Right-side calendar icon -->
-            <div class="calendar-icon" style="margin-right: 200px;">
-             <a href="{% url 'update_hotel_availability' %}">  <img src="{% static 'images/calendar.png' %}" alt="Calendar" style="height: 40px;"> </a>
+            <div class="calendar-icon" style="margin-right: 200px">
+              <a href="{% url 'update_hotel_availability' %}">
+                <img
+                  src="{% static 'images/calendar.png' %}"
+                  alt="Calendar"
+                  style="height: 40px"
+                />
+              </a>
             </div>
+          </div>
         </div>
-    </div>
-</div>
+      </div>
 
+      {% if not data.is_active %}
+      <div
+        class="alert alert-danger d-flex align-items-center"
+        role="alert"
+        style="font-weight: 500; font-size: 15px"
+      >
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span
+          >This villa is <strong>not active yet</strong>. Please wait for admin
+          approval.</span
+        >
+      </div>
+      {% endif %}
 
-            {% if not data.is_active %}
-            <div class="alert alert-danger d-flex align-items-center" role="alert" style="font-weight: 500; font-size: 15px;">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <span>This villa is <strong>not active yet</strong>. Please wait for admin approval.</span>
-            </div>
-            {% endif %}
+      <div class="container">
+        <div class="form-container">
+          <form method="POST" enctype="multipart/form-data">
+            <div class="container mt-5">
+              <div class="row">
+                <!-- Villa Info -->
+                <div class="col-md-4">
+                  <div class="card shadow-sm mb-4">
+                    {% if data %}
+                    <p
+                      style="margin: auto; padding-top: 10px; font-weight: 800"
+                    >
+                      Villa
+                    </p>
+                    <hr style="padding: 0px; margin: 0px; margin-top: 6px" />
+                    <div class="mt-2" style="margin: 0 auto">
+                      <a href="{% url 'update_hotel' data.id %}"
+                        ><i
+                          class="bi bi-pencil-square text-primary action-icons"
+                          title="Edit"
+                        ></i
+                        >Edit</a
+                      >
+                    </div>
 
-        <div class="container">
-            <div class="form-container">
-                <form method="POST" enctype="multipart/form-data">
+                    <div class="card-body text-center">
+                      <h4>{{ data.name }}</h4>
+                      <p class="text-muted">{{ data.city.name }}</p>
+                      {% if data.main_image %}
+                      <img
+                        src="{{ data.main_image.url }}"
+                        class="img-fluid rounded mb-3"
+                        alt="Villa Image"
+                      />
+                      {% endif %}
+                      <span
+                        class="badge bg-{{ data.is_featured|yesno:'success,secondary' }}"
+                      >
+                        {{ data.is_featured|yesno:"Featured,Regular" }}
+                      </span>
+                      <p class="mt-2">
+                        <strong>Rating:</strong> {{ data.star_rating }} ★<br />
+                        <strong>Overall:</strong> {{
+                        data.overall_rating|default:"N/A" }}
+                      </p>
+                      <p>{{ data.description }}</p>
+                    </div>
+                  </div>
 
+                  {% comment %} {% if data.images.all %}
+                  <div class="image-gallery-container mb-3">
+                    <div class="image-gallery" id="hotelGallery">
+                      {% for image in data.images.all %}
+                      <img src="{{ image.image.url }}" alt="Gallery Image" />
+                      {% endfor %}
+                    </div>
+                    {% if data.images.count > 4 %}
+                    <div
+                      class="see-more-overlay"
+                      onclick="scrollGallery('hotelGallery')"
+                    >
+                      ➡️
+                    </div>
+                    {% endif %}
+                  </div>
+                  {% endif %} {% endcomment %}
 
-                   <div class="container mt-5">
-                        <div class="row">
-                            <!-- Villa Info -->
-                            <div class="col-md-4">
-                                <div class="card shadow-sm mb-4">
-                                    {% if data %}
-                                    <p style="margin: auto; padding-top: 10px;
-    font-weight: 800;"> Villa </p> <hr style="padding: 0px;
-    margin: 0px;
-    margin-top: 6px;">
-                                    <div class="mt-2" style="margin: 0 auto;">
-                                                            <a href="{% url 'update_hotel' data.id %}" ><i class="bi bi-pencil-square text-primary action-icons" title="Edit"></i>Edit</a>
-                                                </div>
-                                                
-
-                                        <div class="card-body text-center">
-                                            <h4>{{ data.name }}</h4>
-                                            <p class="text-muted">{{ data.city.name }}</p>
-                                            {% if data.main_image %}
-                                                <img src="{{ data.main_image.url }}" class="img-fluid rounded mb-3" alt="Villa Image">
-                                            {% endif %}
-                                            <span class="badge bg-{{ data.is_featured|yesno:'success,secondary' }}">
-                                                {{ data.is_featured|yesno:"Featured,Regular" }}
-                                            </span>
-                                            <p class="mt-2">
-                                                <strong>Rating:</strong> {{ data.star_rating }} ★<br>
-                                                <strong>Overall:</strong> {{ data.overall_rating|default:"N/A" }}
-                                            </p>
-                                            <p>{{ data.description }}</p>
-                                        </div>
-                                    </div>
-
-                                {% comment %} {% if data.images.all %}
-                                <div class="image-gallery-container mb-3">
-                                    <div class="image-gallery" id="hotelGallery">
-                                        {% for image in data.images.all %}
-                                            <img src="{{ image.image.url }}" alt="Gallery Image">
-                                        {% endfor %}
-                                    </div>
-                                    {% if data.images.count > 4 %}
-                                        <div class="see-more-overlay" onclick="scrollGallery('hotelGallery')">
-                                            ➡️
-                                        </div>
-                                    {% endif %}
-                                </div>
-                                {% endif %} {% endcomment %}
-
-
-                                <!-- Amenities -->
-                                <div class="card shadow-sm">
-                                    <div class="card-header bg-light">
-                                        <h6 class="mb-0">Amenities</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        {% for amenity in data.amenities.all %}
-                                            <div class="d-flex align-items-center mb-1">
-                                                <span class="text-success me-2">✔️</span> {{ amenity.name }}
-                                            </div>
-                                        {% empty %}
-                                            <p>No amenities available.</p>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Rooms Info -->
-                            <div class="col-md-8">
-
-
-                                {% if data.rooms.all %}
-                                    {% for room in data.rooms.all %}
-                                        <div class="card mb-4 shadow-sm">
-
-                                    <p style="margin: auto; padding-top: 10px;
-    font-weight: 800;"> Rooms </p>   <hr style="padding: 0px;
-   
-    margin-top: 6px;">
-
-
-                                            <div class="row g-0">
-
-                                                
-                                                <div class="col-md-5">
-                                                    {% if room.main_image %}
-                                                        <img src="{{ room.main_image.url }}" class="img-fluid rounded-start" alt="Room Image">
-                                                    {% else %}
-                                                        <p class="text-center p-3">No Image</p>
-                                                    {% endif %}
-
-                                                    <div style="margin:21px;">
-                                                            <strong>Room Amenities:</strong><br>
-                                                            {% for amenity in room.room_amenities.all %}
-                                                                <span class="badge bg-info text-dark" style="padding: 5px; background-color: #780000 !important; color: white !important; font-weight: 600;">{{ amenity.name }}</span>
-                                                            {% empty %}
-                                                                <span class="text-muted">No amenities</span>
-                                                            {% endfor %}
-                                                        </div>
-
-                                                </div>
-                                                {% comment %} {% if room.images.all %}
-                                                    <div class="image-gallery-container mb-2">
-                                                        <div class="image-gallery" id="roomGallery{{ forloop.counter }}">
-                                                            {% for image in room.images.all %}
-                                                                <img src="{{ image.image.url }}" alt="Room Image">
-                                                            {% endfor %}
-                                                        </div>
-                                                        {% if room.images.count > 4 %}
-                                                            <div class="see-more-overlay" onclick="scrollGallery('roomGallery{{ forloop.counter }}')">
-                                                                ➡️
-                                                            </div>
-                                                        {% endif %}
-                                                    </div>
-                                                    {% endif %} {% endcomment %}
-
-                                                <div class="col-md-7">
-                                                    <div class="card-body">
-                                                        <h5>{{ room.get_title_display }} ({{ room.room_type.name }})</h5>
-                                                        <p><strong>Price:</strong> ₹{{ room.price_per_night }}</p>
-                                                        <p><strong>Capacity:</strong> {{ room.capacity }}</p>
-                                                        <p><strong>Bed Type:</strong> {{ room.bed_type }}</p>
-                                                        <p>{{ room.description|truncatewords:25 }}</p>
-                                                        <p><strong>Refundable:</strong> {{ room.refundable|yesno:"Yes,No" }}</p>
-                                                        <p><strong>Meals Included:</strong> {{ room.meals_included|yesno:"Yes,No" }}</p>
-                                                        <p><strong>View:</strong> {{ room.view }}</p>
-
-                                                    
-
-                                                        <div class="mt-3">
-                                                            <a href="{% url 'update_hotel_rooms' room.id %}" class="btn btn-sm btn-warning">Edit</a>
-                                                            <a href="{% url 'delete_hotel_rooms' room.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');">Delete</a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <p>No rooms available.</p>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                       
+                  <!-- Amenities -->
+                  <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                      <h6 class="mb-0">Amenities</h6>
+                    </div>
+                    <div class="card-body">
+                      {% for amenity in data.amenities.all %}
+                      <div class="d-flex align-items-center mb-1">
+                        <span class="text-success me-2">✔️</span> {{
+                        amenity.name }}
+                      </div>
+                      {% empty %}
+                      <p>No amenities available.</p>
+                      {% endfor %}
+                    </div>
+                  </div>
                 </div>
 
-                 {% else %}
+                <!-- Rooms Info -->
+                <div class="col-md-8">
+                  {% if data.rooms.all %} {% for room in data.rooms.all %}
+                  <div class="card mb-4 shadow-sm">
+                    <p
+                      style="margin: auto; padding-top: 10px; font-weight: 800"
+                    >
+                      Rooms
+                    </p>
+                    <hr
+                      style="
+                        padding: 0px;
 
-                               <div class="mt-3" style="margin: 0 auto;">
-                                        <a href="{% url 'add_hotel' %}" ><i class=" text-primary action-icons" title="Edit"></i>Add Villa</a>
-                             </div>
+                        margin-top: 6px;
+                      "
+                    />
 
-                             {% endif %}
+                    <div class="row g-0">
+                      <div class="col-md-5">
+                        {% if room.main_image %}
+                        <img
+                          src="{{ room.main_image.url }}"
+                          class="img-fluid rounded-start"
+                          alt="Room Image"
+                        />
+                        {% else %}
+                        <p class="text-center p-3">No Image</p>
+                        {% endif %}
 
+                        <div style="margin: 21px">
+                          <strong>Room Amenities:</strong><br />
+                          {% for amenity in room.room_amenities.all %}
+                          <span
+                            class="badge bg-info text-dark"
+                            style="
+                              padding: 5px;
+                              background-color: #780000 !important;
+                              color: white !important;
+                              font-weight: 600;
+                            "
+                            >{{ amenity.name }}</span
+                          >
+                          {% empty %}
+                          <span class="text-muted">No amenities</span>
+                          {% endfor %}
+                        </div>
+                      </div>
+                      {% comment %} {% if room.images.all %}
+                      <div class="image-gallery-container mb-2">
+                        <div
+                          class="image-gallery"
+                          id="roomGallery{{ forloop.counter }}"
+                        >
+                          {% for image in room.images.all %}
+                          <img src="{{ image.image.url }}" alt="Room Image" />
+                          {% endfor %}
+                        </div>
+                        {% if room.images.count > 4 %}
+                        <div
+                          class="see-more-overlay"
+                          onclick="scrollGallery('roomGallery{{ forloop.counter }}')"
+                        >
+                          ➡️
+                        </div>
+                        {% endif %}
+                      </div>
+                      {% endif %} {% endcomment %}
 
-                 
-                </form>
+                      <div class="col-md-7">
+                        <div class="card-body">
+                          <h5>
+                            {{ room.get_title_display }} ({{ room.room_type.name
+                            }})
+                          </h5>
+                          <p>
+                            <strong>Price:</strong> ₹{{ room.price_per_night }}
+                          </p>
+                          <p><strong>Capacity:</strong> {{ room.capacity }}</p>
+                          <p><strong>Bed Type:</strong> {{ room.bed_type }}</p>
+                          <p>{{ room.description|truncatewords:25 }}</p>
+                          <p>
+                            <strong>Refundable:</strong> {{
+                            room.refundable|yesno:"Yes,No" }}
+                          </p>
+                          <p>
+                            <strong>Meals Included:</strong> {{
+                            room.meals_included|yesno:"Yes,No" }}
+                          </p>
+                          <p><strong>View:</strong> {{ room.view }}</p>
+
+                          <div class="mt-3">
+                            <a
+                              href="{% url 'update_hotel_rooms' room.id %}"
+                              class="btn btn-sm btn-warning"
+                              >Edit</a
+                            >
+                            <a
+                              href="{% url 'delete_hotel_rooms' room.id %}"
+                              class="btn btn-sm btn-danger"
+                              onclick="return confirm('Are you sure?');"
+                              >Delete</a
+                            >
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %} {% else %}
+                  <p>No rooms available.</p>
+                  {% endif %}
+                </div>
+              </div>
             </div>
+
+            {% else %}
+
+            <div class="mt-3" style="margin: 0 auto">
+              <a href="{% url 'add_hotel' %}"
+                ><i class="text-primary action-icons" title="Edit"></i>Add
+                Villa</a
+              >
+            </div>
+
+            {% endif %}
+          </form>
         </div>
+      </div>
     </div>
-</div>
+  </div>
 
-{% endblock content %}
-
-{% block extra_js %}
-    <script>
-        document.getElementById("id_image").addEventListener("change", function () {
-            const file = this.files[0];
-            const previewContainer = document.getElementById("imagesPreview");
-            previewContainer.innerHTML = "";
-            if (file && file.type.startsWith("image/")) {
-                const reader = new FileReader();
-                reader.onload = function (event) {
-                    const img = document.createElement("img");
-                    img.src = event.target.result;
-                    img.style.width = "100px";
-                    img.style.borderRadius = "5px";
-                    previewContainer.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    </script>
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script>
-  $(document).ready(function() {
-    $('#id_amenities').select2({
-      placeholder: "Select amenities",
-      allowClear: true
+  {% endblock content %} {% block extra_js %}
+  <script>
+    document.getElementById("id_image").addEventListener("change", function () {
+      const file = this.files[0];
+      const previewContainer = document.getElementById("imagesPreview");
+      previewContainer.innerHTML = "";
+      if (file && file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          const img = document.createElement("img");
+          img.src = event.target.result;
+          img.style.width = "100px";
+          img.style.borderRadius = "5px";
+          previewContainer.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      }
     });
-  });
+  </script>
 
-  function scrollGallery(id) {
-    const gallery = document.getElementById(id);
-    if (gallery) {
-        gallery.scrollBy({ left: 200, behavior: 'smooth' });
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      $("#id_amenities").select2({
+        placeholder: "Select amenities",
+        allowClear: true,
+      });
+    });
+
+    function scrollGallery(id) {
+      const gallery = document.getElementById(id);
+      if (gallery) {
+        gallery.scrollBy({ left: 200, behavior: "smooth" });
+      }
     }
-}
+  </script>
 
-
-
-</script>
-
-
-
-{% endblock extra_js %}
+  {% endblock extra_js %}
+</div>
