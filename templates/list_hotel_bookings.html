@@ -1,0 +1,292 @@
+{% extends "partials/adminBase.html" %}
+{% load static %}
+
+{% block title %}Booking List{% endblock title %}
+
+{% block extra_css %}
+<link href="{% static 'libs/admin-resources/jquery.vectormap/jquery-jvectormap-1.2.2.css' %}" rel="stylesheet" type="text/css"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<style>
+    body {
+        background-color: gainsboro;
+        color: #780000 !important;
+    }
+
+    .card {
+        background-color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+        background-color: #780000 !important;
+        color: #ffffff;
+        border-radius: 8px 8px 0 0;
+        padding: 20px;
+    }
+
+    .card-title {
+        margin: 0;
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .table thead {
+        background-color: gray;
+        color: white;
+    }
+
+    .table tbody tr {
+        background-color: white;
+        color: black;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f0d28c;
+        color: #780000 !important;
+    }
+
+    @media (max-width: 768px) {
+        .table-responsive {
+            overflow-x: auto;
+        }
+    }
+</style>
+
+<style>
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 20px;
+  color: white;
+  padding: 7px !important;
+}
+
+.badge-confirmed {
+    background-color: #780000; /* replaced blue */
+}
+
+.badge-checked-in {
+  background-color: #17a2b8; /* Teal */
+}
+
+.badge-cancelled {
+  background-color: #dc3545; /* Red */
+}
+
+.badge-completed {
+  background-color: #28a745; /* Green */
+}
+
+.badge-default {
+  background-color: #6c757d; /* Gray */
+}
+</style>
+
+
+
+{% endblock extra_css %}
+
+{% block content %}
+<div class="main-content">
+    <div class="page-content">
+        <div class="container-fluid">
+            <!-- Page title -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                        <h4 class="mb-sm-0 font-size-18">List Bookings</h4>
+                    </div>
+                </div>
+            </div>
+
+            
+<form method="get">
+    <div class="row">
+        {% for field in filterset.form %}
+            <div class="col-md-3 mb-2">
+                <label>{{ field.label }}</label>
+                {{ field }}
+            </div>
+        {% endfor %}
+        <div class="col-md-3 mb-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2">Apply</button>
+            <a href="{% url 'list_hotel_earning' %}" class="btn btn-secondary">Reset</a>
+
+             <!-- ✅ Correct export button -->
+            <button type="submit" style="margin-left:10px;" name="export" value="1" class="btn btn-success">
+                Export to Excel
+            </button>
+
+        </div>
+    </div>
+</form>
+
+
+            <div class="container">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table id="datatable" class="table table-bordered table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Booking ID</th>
+                                                <th>Villa</th>
+                                                <th>Room</th>
+                                                <th>Room Count</th>
+                                                <th>User</th>
+                                                <th>Status</th>
+                                                <th>Payment Status</th>
+                                                <th>Payment Type</th>
+                                                <th>Check-In</th>
+                                                <th>Check-Out</th>
+                                                <th>Guests</th>
+                                                <th>Childs</th>
+                                                <th>Name</th>
+                                                <th>Phone</th>
+                                                <th>Email</th>
+                                                <th>Base Amount</th>
+                                                <th>Gst Amount</th>
+                                                <th>Total Amount</th>
+                                                <th>Booked At</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% if data %}
+                                                {% for booking in data %}
+                                                    <tr>
+                                                        <td>{{ forloop.counter }}</td>
+                                                        <td>{{ booking.booking_id }}</td>
+                                                        <td>{{ booking.hotel.name }}</td>
+                                                        <td>{{ booking.room.room_type }}</td>
+                                                        <td>{{ booking.no_of_rooms }}</td>
+                                                        <td>{{ booking.user.name|default:"Guest" }}</td>
+                                                        <td>
+                                                            {% if booking.status == "confirmed" %}
+                                                                <span class="badge badge-confirmed">Confirmed</span>
+                                                            {% elif booking.status == "checked_in" %}
+                                                                <span class="badge badge-checked-in">Check In</span>
+                                                            {% elif booking.status == "cancelled" %}
+                                                                <span class="badge badge-cancelled">Cancelled</span>
+                                                            {% elif booking.status == "completed" %}
+                                                                <span class="badge badge-completed">Completed</span>
+                                                            {% else %}
+                                                                <span class="badge badge-default">{{ booking.status }}</span>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td>
+                                                            {% if booking.payment_status == "pending" %}
+                                                                <span class="badge badge-confirmed">Pending</span>
+                                                            {% elif booking.payment_status == "paid" %}
+                                                                <span class="badge badge-checked-in">Paid</span>
+                                                            {% elif booking.payment_status == "failed" %}
+                                                                <span class="badge badge-cancelled">Failed</span>
+                                                            {% elif booking.payment_status == "refunded" %}
+                                                                <span class="badge badge-completed">Refunded</span>
+                                                            {% else %}
+                                                                <span class="badge badge-default">{{ booking.payment_status }}</span>
+                                                            {% endif %}
+                                                        </td>
+
+
+                                                        <td>{{ booking.payment_type }}</td>
+                                                        <td>{{ booking.check_in }}</td>
+                                                        <td>{{ booking.check_out }}</td>
+                                                        <td>{{ booking.guest_count }}</td>
+                                                        <td>{{ booking.child_count }}</td>
+                                                        <td>{{ booking.first_name }} {{ booking.last_name }}</td>
+                                                        <td>{{ booking.phone_number }}</td>
+                                                        <td>{{ booking.email|default:"-" }}</td>
+                                                        <td>{{ booking.base_amount|default:"-" }}</td>
+                                                        <td>{{ booking.gst_amount|default:"-" }}</td>
+                                                        <td>{{ booking.total_amount|default:"-" }}</td>
+                                                        <td>{{ booking.created_at|date:"d M Y H:i" }}</td>
+
+                                                         <td>
+                                                    <a href="{% url 'update_hotel_bookings' booking.id %}"><i class="bi bi-pencil-square text-primary" title="Edit"></i></a>
+                                                </td>
+
+                                                    </tr>
+                                                {% endfor %}
+                                            {% else %}
+                                                <tr><td colspan="11" class="text-center">No bookings found.</td></tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {% if page_obj.has_other_pages %}
+                                <nav>
+                                    <ul class="pagination justify-content-center mt-3">
+                                        {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+                                        </li>
+                                        {% else %}
+                                        <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                                        {% endif %}
+
+                                        {% for num in page_obj.paginator.page_range %}
+                                            {% if page_obj.number == num %}
+                                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                                            {% else %}
+                                            <li class="page-item"><a class="page-link" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ num }}">{{ num }}</a></li>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+                                        </li>
+                                        {% else %}
+                                        <li class="page-item disabled"><span class="page-link">Next</span></li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
+                                {% endif %}
+
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% block footer %}
+            {% include 'partials/footer.html' %}
+        {% endblock footer %}
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+    setTimeout(() => {
+        const toastElement = document.getElementById("toast");
+        if (toastElement) {
+            toastElement.classList.remove("show");
+            setTimeout(() => {
+                toastElement.remove();
+            }, 500);
+        }
+    }, 5000);
+
+    
+  
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'libs/admin-resources/jquery.vectormap/jquery-jvectormap-1.2.2.min.js' %}"></script>
+<script src="{% static 'libs/admin-resources/jquery.vectormap/maps/jquery-jvectormap-world-mill-en.js' %}"></script>
+<script src="{% static 'js/pages/allchart.js' %}"></script>
+<script src="{% static 'js/pages/dashboard.init.js' %}"></script>
+{% endblock extra_js %}

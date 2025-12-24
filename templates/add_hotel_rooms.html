@@ -1,0 +1,302 @@
+{% extends "partials/adminBase.html" %}
+{% load static %}
+
+{% block title %}Add Room{% endblock title %}
+
+{% block extra_css %}
+      <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+
+
+    <!-- plugin css -->
+    <link href="{% static 'libs/admin-resources/jquery.vectormap/jquery-jvectormap-1.2.2.css' %}" rel="stylesheet"
+          type="text/css"/>
+    <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+    />
+
+
+    <style>
+        body { background-color: #f0d28c; padding-bottom: 20px; }
+        .form-container { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .form-heading { font-size: 2rem; color: #780000; font-weight: bold; margin-bottom: 20px; }
+        .btn-primary { background-color: #780000 !important; border-color: #780000 !important; }
+        .custom-button { width: 150px; }
+
+
+          .select2-container--default .select2-selection--multiple {
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        min-height: calc(2.25rem + 2px);
+        background-color: white;
+    }
+
+    .select2-selection__choice {
+        background-color: #0d6efd;
+        border: none;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-top: 4px;
+    }
+
+    .select2-selection__choice__remove {
+        color: white;
+        margin-left: 4px;
+    }
+
+  
+
+    .select2-selection__choice__display{
+        margin-left: 9px !important;
+
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        background-color: transparent;
+        border: none;
+        border-right: 1px solid black !important;
+        border-top-left-radius: 4px;
+        border-bottom-left-radius: 4px;
+        color: black !important;
+        cursor: pointer;
+        font-size: 1em;
+        font-weight: bold;
+        padding: 0 4px;
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+
+    .select2-container .select2-selection--multiple .select2-selection__choice {
+        background-color: #3fabe1 !important;
+        border: 1px solid #3fabe1 !important;
+        border-radius: 1px;
+        padding: 0 7px;
+    }
+
+    
+
+
+    </style>
+{% endblock extra_css %}
+
+{% block content %}
+<div class="main-content">
+    <div class="page-content">
+        <div class="container-fluid">
+            <div class="row"><div class="col-12"><div class="page-title-box"><h4>Add Room</h4></div></div></div>
+            <div class="container">
+                <div class="form-container">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        {% if request.user.is_superuser %}
+
+                            <div class="mb-4">
+                                <label class="form-label">Villa:</label>
+                                {{ form.hotel }}
+                                {% if form.hotel.errors %}
+                                    <div class="text-danger">{{ form.hotel.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                        {% endif %}
+
+
+                        <div class="mb-4">
+                            <label class="form-label">Room Type:</label>
+                            {{ form.room_type }}
+                            {% if form.room_type.errors %}
+                                <div class="text-danger">{{ form.room_type.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Package:</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="text-danger">{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Description:</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger">{{ form.description.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Price per Night:</label>
+                            {{ form.price_per_night }}
+                            {% if form.price_per_night.errors %}
+                                <div class="text-danger">{{ form.price_per_night.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Max Guest Count:</label>
+                            {{ form.max_guest_count }}
+                            {% if form.max_guest_count.errors %}
+                                <div class="text-danger">{{ form.max_guest_count.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Refundable:</label>
+                            {{ form.refundable }}
+                            {% if form.refundable.errors %}
+                                <div class="text-danger">{{ form.refundable.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Meals Included:</label>
+                            {{ form.meals_included }}
+                            {% if form.meals_included.errors %}
+                                <div class="text-danger">{{ form.meals_included.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Bed Type:</label>
+                            {{ form.bed_type }}
+                            {% if form.bed_type.errors %}
+                                <div class="text-danger">{{ form.bed_type.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Capacity:</label>
+                            {{ form.capacity }}
+                            {% if form.capacity.errors %}
+                                <div class="text-danger">{{ form.capacity.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">View:</label>
+                            {{ form.view }}
+                            {% if form.view.errors %}
+                                <div class="text-danger">{{ form.view.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Amenities:</label>
+                            {{ form.room_amenities }}
+                            {% if form.room_amenities.errors %}
+                                <div class="text-danger">{{ form.room_amenities.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Room Image:</label>
+                            {{ form.main_image }}
+                            {% if form.main_image.errors %}
+                                <div class="text-danger">{{ form.main_image.errors.0 }}</div>
+                            {% endif %}
+                            <div id="imagesPreview"></div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Select Room Gallery Images:</label>
+                            <input type="file" class="form-control" id="image-upload" name="image" accept="image/*" multiple><br><br>
+                            <div id="preview" style="display: flex; gap: 10px; flex-wrap: wrap;"></div>
+                        </div>
+
+                        <h4>Gallery:</h4>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            {% for img in existing_images %}
+                                <div style="position: relative;">
+                                    <img src="{{ img.image.url }}" width="100" height="100" style="object-fit: cover;" />
+                                    <a href="{% url 'delete_hotel_room_image' img.id %}">
+                                        <button type="button" style="background: red; color: white; border: none;">✕</button>
+                                    </a>
+                                </div>
+                            {% empty %}
+                                <p>No images uploaded.</p>
+                            {% endfor %}
+                        </div>
+
+                        <div class="text-center">
+                            <input type="submit" class="btn btn-primary custom-button" value="Submit" />
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  $(document).ready(function() {
+    $('#id_amenities').select2({
+      placeholder: "Select amenities",
+      allowClear: true
+    });
+  });
+</script>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  $(document).ready(function() {
+    $('#id_room_amenities').select2({
+      placeholder: "Select amenities",
+      allowClear: true
+    });
+  });
+</script>
+
+
+
+<script>
+document.getElementById('image-upload').addEventListener('change', function (event) {
+    const preview = document.getElementById('preview');
+    preview.innerHTML = ''; // Clear old previews
+
+    const files = event.target.files;
+
+    Array.from(files).forEach(file => {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.style.width = '100px';
+            img.style.height = '100px';
+            img.style.objectFit = 'cover';
+            img.style.border = '1px solid #ccc';
+            img.style.borderRadius = '8px';
+            preview.appendChild(img);
+        };
+
+        reader.readAsDataURL(file);
+    });
+});
+</script>
+
+
+
+
+
+
+{% endblock extra_js %}

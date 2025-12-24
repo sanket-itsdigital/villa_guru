@@ -1,0 +1,39 @@
+db.sqlite3
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+warangle/firebase_key.json
+media
+.env
+# Ignore wsgi.py
+warangle/wsgi.py
+
+static/
+
+db.sqlite3
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+dentist/firebase_key.json
+media
+.env
+# Ignore wsgi.py
+dentist/wsgi.py
+
+static/
+# Ignore logs folder
+logs/
+
+# Ignore individual prod files
+firebase_key.json
+ping
+
+# Production-only files and logs
+logs/
+*.log
+firebase_key.json
+ping
+*.bak
+logs/

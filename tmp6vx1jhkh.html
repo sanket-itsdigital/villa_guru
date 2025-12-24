@@ -1,0 +1,112 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hotelier Voucher</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { font-size: 14px; padding: 30px; }
+    .section-title { font-weight: bold; margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+    .voucher-box { border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
+    .label { font-weight: 600; }
+    .btn-primary { font-weight: bold; }
+    .table td, .table th { vertical-align: middle; }
+
+    
+  </style>
+</head>
+<body>
+
+<div class="voucher-box">
+  <div class="d-flex justify-content-between">
+  <img src="/static/images/Villa_Guru.png" height="40">
+    <div class="text-end">
+      <strong>pratik gosavi</strong><br>
+      Akola City<br>
+      Waranglee, State, IN
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="row mb-1">
+    <div class="col-md-6">
+      <div class="label">PRIMARY GUEST DETAILS</div>
+      <div><strong>👤 pratik gosavi</strong></div>
+      <div>Check-in: <strong>June 15, 2025</strong></div>
+      <div>Check-out: <strong>June 16, 2025</strong></div>
+      <div>Total Guests: <strong>4</strong></div>
+    </div>
+    <div class="col-md-6 text-end">
+      <div>Booking ID: <strong>2</strong></div>
+      <div>Booked on: <strong>June 22, 2025, 4:11 a.m.</strong></div>
+      <div>Status: <strong class="text-success">Completed</strong></div>
+      <div>Payment: <strong>Paid Online</strong></div>
+      <div>Booked via: <strong>HotelApp</strong></div>
+      <div>Contact: <strong>08830265487</strong></div>
+    </div>
+  </div>
+
+
+  <div class="section-title">Room Details</div>
+  <p>
+    <strong>1 x </strong><br>
+    4 Guests | Room Only<br>
+    <strong>Inclusions:</strong> 44<br>
+    <strong>Cancellation Policy:</strong> This is a non-refundable, non-amendable tariff. Cancellations/no-shows will be charged 100%.
+  </p>
+
+  <div class="section-title">Payment</div>
+  <div class="row">
+    <div class="col-md-6">
+      <div>Property Gross Charges: ₹ <strong>4455.00</strong></div>
+    </div>
+    <div class="col-md-6 text-end">
+      <div>Payable to Property: ₹ <strong>4414.01</strong></div>
+    </div>
+  </div>
+
+  <div class="section-title">Room Wise Payment Breakup (in ₹)</div>
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Room Charges</th>
+        <th>Extra Adult/Child</th>
+        <th>Taxes</th>
+        <th>Gross Charges</th>
+        <th>Commission</th>
+        <th>Net Rate</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>June 15, 2025</td>
+        <td>4455.00</td>
+        <td>0.0</td>
+        <td>534.60</td>
+        <td>5039.50</td>
+        <td>445.50</td>
+        <td>4414.01</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-title">Final Calculation</div>
+  <table class="table table-sm table-bordered">
+    <tbody>
+      <tr><td>1. Room Charges</td><td>₹ 4455.00</td></tr>
+      <tr><td>2. Extra Adult/Child Charges</td><td>₹ 0.00</td></tr>
+      <tr><td>3. Property Taxes</td><td>₹ 534.60</td></tr>
+      <tr><td>4. Service Charges</td><td>₹ 0.00</td></tr>
+      <tr class="table-light"><td><strong>(A) Property Gross Charges</strong></td><td><strong>₹ 5039.50</strong></td></tr>
+      <tr><td>5. Commission (10%)</td><td>₹ 445.50</td></tr>
+      <tr><td>6. GST on Commission (18%)</td><td>₹ 80.19</td></tr>
+      <tr class="table-light"><td><strong>(B) Commission Charges</strong></td><td><strong>₹ </strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,71 @@
+{% extends "partials/adminBase.html" %}
+{% load static %}
+
+{% block title %}Edit Profile{% endblock title %}
+
+{% block content %}
+<div class="main-content">
+    <div class="page-content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="page-title-box">
+                        <h4>Edit Profile</h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container">
+                <div class="form-container mx-auto" style="max-width: 600px;">
+                    <form method="POST" enctype="multipart/form-data" class="bg-white p-4 shadow-sm rounded">
+                        {% csrf_token %}
+                        
+                        <div class="text-center mb-4">
+                            {% if user.profile_photo %}
+                                <img src="{{ user.profile_photo.url }}" alt="Profile Photo" class="rounded-circle" width="120" height="120">
+                            {% else %}
+                                <img src="{% static 'images/default-user.webp' %}" alt="Default Profile" class="rounded-circle" width="120" height="120">
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="first_name" class="form-label">First Name</label>
+                            <input type="text" class="form-control" name="first_name" id="first_name" value="{{ user.first_name }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="last_name" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" name="last_name" id="last_name" value="{{ user.last_name }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="last_name" class="form-label">Mobile</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                placeholder="Enter your mobile"
+                                value="{{ user.mobile|default:'' }}"
+                                name="mobile"
+                                pattern="^\d{10}$"
+                                maxlength="10"
+                                title="Enter a 10-digit mobile number"
+                                required
+                            />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="profile_photo" class="form-label">Profile Photo</label>
+                            <input type="file" class="form-control" name="profile_photo" id="profile_photo">
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'user_profile' %}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-success">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
