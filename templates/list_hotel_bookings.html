@@ -1,5 +1,7 @@
-{% extends "partials/adminBase.html" %} {% load static %} {% block title
-%}Booking List{% endblock title %} {% block extra_css %}
+{% extends "partials/adminBase.html" %} 
+{% load static %} 
+{% block title %}Booking List{% endblock title %} 
+{% block extra_css %}
 <link
   href="{% static 'libs/admin-resources/jquery.vectormap/jquery-jvectormap-1.2.2.css' %}"
   rel="stylesheet"
@@ -295,11 +297,13 @@
       </div>
     </div>
 
-    {% block footer %} {% include 'partials/footer.html' %} {% endblock footer
-    %}
+    {% block footer %} 
+    {% include 'partials/footer.html' %} 
+    {% endblock footer %}
   </div>
 </div>
-{% endblock content %} {% block extra_js %}
+{% endblock content %} 
+{% block extra_js %}
 <script>
   setTimeout(() => {
     const toastElement = document.getElementById("toast");

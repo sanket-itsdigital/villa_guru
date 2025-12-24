@@ -1,5 +1,8 @@
-{% load static %} {% load static %} {% load group_tags %} {% block left_sidebar
-%} {% block extra_css %}
+{% load static %} 
+{% load static %} 
+{% load group_tags %} 
+{% block left_sidebar %} 
+{% block extra_css %}
 
 <style>
   .has-arrow {
@@ -65,7 +68,8 @@
   }
 </style>
 
-{% endblock extra_css %} {% if request.user.is_authenticated %}
+{% endblock extra_css %} 
+{% if request.user.is_authenticated %}
 
 <!-- ========== Left Sidebar Start ========== -->
 <div class="vertical-menu">
@@ -141,8 +145,7 @@
         {% endif %}
 
         <!-- ===== Staff Section (Red) ===== -->
-        {% if request.user|has_group:"Staff" or request.user.is_superuser and
-        not request.user.is_service_provider %}
+        {% if request.user|has_group:"Staff" or request.user.is_superuser and not request.user.is_service_provider %}
 
         <li>
           <a href="javascript: void(0);" class="has-arrow">
@@ -193,9 +196,9 @@
           </ul>
         </li>
 
-        {% endif %} {% if request.user|has_group:'Staff' or
-        request.user.is_superuser or request.user.is_service_provider %} {% if
-        request.user.is_service_provider %}
+        {% endif %} 
+        {% if request.user|has_group:'Staff' or request.user.is_superuser or request.user.is_service_provider %} 
+        {% if request.user.is_service_provider %}
 
         <li>
           <a href="{% url 'view_hotel' %}">
@@ -232,8 +235,8 @@
           </ul>
         </li>
 
-        {% endif %} {% if request.user|has_group:'Staff' or
-        request.user.is_superuser %}
+        {% endif %} 
+        {% if request.user|has_group:'Staff' or request.user.is_superuser %}
 
         <li>
           <a href="javascript: void(0);" class="has-arrow">
@@ -248,8 +251,7 @@
         {% endif %}
 
         <!-- ===== CA Section (Yellow) ===== -->
-        {% if request.user|has_group:'Staff' or request.user.is_superuser or
-        request.user.is_service_provider %}
+        {% if request.user|has_group:'Staff' or request.user.is_superuser or request.user.is_service_provider %}
 
         <li>
           <a href="{% url 'list_hotel_earning' %}" class="nonnm">
@@ -264,20 +266,7 @@
           </a>
         </li>
 
-        {% comment %}
-        <li>
-          <a href="javascript: void(0);" class="has-arrow">
-            <i data-feather="bar-chart-2"></i>
-            <span>Reports</span>
-          </a>
-          <ul class="sub-menu">
-            <li><a href="#">Recent Payments</a></li>
-            <li><a href="#">Initiate Refunds</a></li>
-            <li><a href="#">Refunds</a></li>
-            <li><a href="#">Payment Reports</a></li>
-          </ul>
-        </li>
-        {% endcomment %} {% endif %}
+        {% endif %}
 
         <!-- ===== Logout ===== -->
 
@@ -327,7 +316,6 @@
   </div>
 </div>
 <!-- Left Sidebar End -->
-
 {% endif %}
 <!-- Left Sidebar End -->
 {% endblock left_sidebar %}

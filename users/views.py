@@ -347,7 +347,7 @@ import json
 
 def vendor_request(request):
 
-    data = hotel.objects.filter(is_active = False)
+    data = hotel.objects.filter(is_active = False).select_related('user', 'city', 'property_type').prefetch_related('amenities', 'rooms')
 
     context = {
         'data' : data
@@ -469,7 +469,7 @@ def register_vendor(request):
 
         except Exception as e:
             print(f"Registration failed: {e}")
-            user.delete()  # optional: rollback user if hotel fails
+            user.delete()  # optional: rollback user if villa fails
             context = { 
                 'form': form, 
                 'error': 'Something went wrong during registration. Please try again.'
@@ -605,7 +605,7 @@ def customer_user_list(request):
 
     data = User.objects.filter(is_customer = True).order_by('-date_joined')
 
-    paginator = Paginator(data, 30)  # Show 10 hotels per page
+    paginator = Paginator(data, 30)  # Show 10 villas per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -616,12 +616,12 @@ def provider_user_list(request):
 
     data = User.objects.filter(is_service_provider = True).order_by('-date_joined')
 
-    paginator = Paginator(data, 30)  # Show 10 hotels per page
+    paginator = Paginator(data, 30)  # Show 10 villas per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
 
-    return render(request, 'staff_list.html', { 'data' : page_obj})
+    return render(request, 'staff_list.djhtml', { 'data' : page_obj})
 
 
 from customer.models import *
@@ -698,7 +698,7 @@ def list_custom_user(request):
         is_service_provider=False
     ).order_by('-date_joined')
 
-    paginator = Paginator(users, 30)  # Show 10 hotels per page
+    paginator = Paginator(users, 30)  # Show 10 villas per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 

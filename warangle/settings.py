@@ -191,7 +191,8 @@ import os
 import socket
 
 # Treat as local when DEBUG is True (makes local dev easier)
-IS_LOCAL = DEBUG or socket.gethostname() in ["LAPTOP-MIDTE91B"]  # your machine name(s)
+# IS_LOCAL = DEBUG or socket.gethostname() in ["LAPTOP-MIDTE91B"]  # your machine name(s)
+IS_LOCAL = True
 
 if IS_LOCAL:
     # ✅ Use SQLite for local development

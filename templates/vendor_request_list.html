@@ -100,36 +100,50 @@ List{% endblock title %} {% block extra_css %}
                       <tr class="hotel-row" data-hotel-id="{{ hotel.id }}">
                         <td>{{ forloop.counter }}</td>
                         <td>{{ hotel.name }}</td>
-                        <td>{{ hotel.city }}</td>
-                        <td>{{ hotel.star_rating }}</td>
                         <td>
-                          {% for amenity in hotel.amenities.all %} {{
-                          amenity.name }}{% if not forloop.last %}, {% endif %}
-                          {% empty %} No amenities {% endfor %}
+                          {% if hotel.city %}{{ hotel.city.name }}{% else %}N/A{% endif %}
+                        </td>
+                        <td>
+                          {% if hotel.star_rating %}{{ hotel.star_rating }}{% else %}None{% endif %}
+                        </td>
+                        <td>
+                          {% for amenity in hotel.amenities.all %}
+                            {{ amenity.name }}{% if not forloop.last %}, {% endif %}
+                          {% empty %}
+                            No amenities
+                          {% endfor %}
                         </td>
                         <td>{{ hotel.is_featured|yesno:"Yes,No" }}</td>
                         <td>
                           {% if hotel.is_active %}
-                          <span class="text-success">&#10004;</span> {# ✅ check
-                          mark #} {% else %}
-                          <span class="text-danger">&#10006;</span> {# ❌ cross
-                          mark #} {% endif %}
+                            <span class="text-success">&#10004;</span>
+                          {% else %}
+                            <span class="text-danger">&#10006;</span>
+                          {% endif %}
                         </td>
 
                         <td>{{ hotel.created_at }}</td>
                         <td>
                           {% if hotel.main_image %}
-                          <img width="60" src="{{ hotel.main_image.url }}" />
-                          {% else %} N/A {% endif %}
+                            <img width="60" src="{{ hotel.main_image.url }}" />
+                          {% else %}N/A{% endif %}
                         </td>
                         <td>
-                          <a
-                            href="{% url 'activate_vendor_request' hotel.user.id %}"
-                            class="btn btn-outline-success btn-sm me-2"
-                            title="Activate"
-                          >
-                            <i class="bi bi-check-circle"></i>
-                          </a>
+                          {% if hotel.user %}
+                            {% if hotel.user.id %}
+                              <a
+                                href="{% url 'activate_vendor_request' hotel.user.id %}"
+                                class="btn btn-outline-success btn-sm me-2"
+                                title="Activate"
+                              >
+                                <i class="bi bi-check-circle"></i>
+                              </a>
+                            {% else %}
+                              <span class="text-muted">No User ID</span>
+                            {% endif %}
+                          {% else %}
+                            <span class="text-muted">No User</span>
+                          {% endif %}
                           <a
                             href="{% url 'update_hotel' hotel.id %}"
                             class="btn btn-outline-primary btn-sm me-2"

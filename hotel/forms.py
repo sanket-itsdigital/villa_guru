@@ -17,9 +17,9 @@ class hotel_Form(forms.ModelForm):
         fields = '__all__'
         widgets = {
             'user': forms.Select(attrs={'class': 'form-control'}),
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': "Hotel Name"}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': "Villa Name"}),
             'category': forms.Select(attrs={'class': 'form-control', 'placeholder': "Category (e.g. Budget)"}),
-            'no_of_rooms': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': "Number of Rooms"}),
+            'no_of_rooms': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': "Number of Villa"}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': "Address"}),
             'city': forms.Select(attrs={'class': 'form-control select2'}),
             'star_rating': forms.NumberInput(attrs={'class': 'form-control'}),
