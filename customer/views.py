@@ -8,15 +8,17 @@ from rest_framework import viewsets
 from .models import VillaBooking
 from .serializers import VillaBookingSerializer
 
-from datetime import timedelta
+from datetime import timedelta, date
 from rest_framework.exceptions import ValidationError
 from django.db import transaction
-from datetime import timedelta
+from decimal import Decimal
 
 import uuid
 
 import razorpay
 from django.conf import settings
+from rest_framework.response import Response
+from hotel.models import villa, villa_rooms, RoomAvailability
 
 class VillaBookingViewSet(viewsets.ModelViewSet):
     queryset = VillaBooking.objects.filter(payment_status = "paid").order_by("-id")

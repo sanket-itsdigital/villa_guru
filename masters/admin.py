@@ -6,9 +6,32 @@ from .models import *
 from .models import *
 
 admin.site.register(amenity)
-admin.site.register(coupon)
 admin.site.register(customer_address)
 admin.site.register(testimonials)
+
+
+@admin.register(coupon)
+class CouponAdmin(admin.ModelAdmin):
+    """
+    Admin interface for coupons/offers.
+    Only superusers can add, change, or delete coupons.
+    """
+    list_display = ['code', 'title', 'type', 'discount_percentage', 'discount_amount', 'is_active', 'start_date', 'end_date']
+    list_filter = ['type', 'is_active', 'start_date', 'end_date']
+    search_fields = ['code', 'title', 'description']
+    readonly_fields = []
+    
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+    
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+    
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+    
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
 
 
 @admin.register(SystemSettings)

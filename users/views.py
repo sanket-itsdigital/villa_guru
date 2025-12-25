@@ -823,7 +823,28 @@ def verify_email_change(request, uidb64, token):
 
 @login_required
 def user_profile(request):
-    return render(request, 'profile.html', {'user': request.user})
+    from masters.models import SystemSettings
+    from .forms import SystemSettingsForm
+    
+    system_settings = SystemSettings.get_settings()
+    settings_form = None
+    
+    # Only show settings form to superusers
+    if request.user.is_superuser:
+        if request.method == 'POST' and 'update_markup' in request.POST:
+            settings_form = SystemSettingsForm(request.POST, instance=system_settings)
+            if settings_form.is_valid():
+                settings_form.save()
+                messages.success(request, f'Price markup percentage updated to {system_settings.price_markup_percentage}%')
+                return redirect('user_profile')
+        else:
+            settings_form = SystemSettingsForm(instance=system_settings)
+    
+    return render(request, 'profile.html', {
+        'user': request.user,
+        'system_settings': system_settings,
+        'settings_form': settings_form
+    })
 
     
 @login_required

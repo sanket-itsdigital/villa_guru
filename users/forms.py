@@ -1,4 +1,5 @@
 from django import forms
+from masters.models import SystemSettings
 
 
 class LoginForm(forms.Form):
@@ -133,3 +134,24 @@ class ProfileEditForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'profile_photo', 'mobile']
+
+
+class SystemSettingsForm(forms.ModelForm):
+    class Meta:
+        model = SystemSettings
+        fields = ['price_markup_percentage']
+        widgets = {
+            'price_markup_percentage': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'placeholder': 'Enter percentage (e.g., 10 for 10%)'
+            })
+        }
+        labels = {
+            'price_markup_percentage': 'Price Markup Percentage (%)'
+        }
+        help_texts = {
+            'price_markup_percentage': 'Percentage to add to villa prices (e.g., 10 means 10% markup)'
+        }

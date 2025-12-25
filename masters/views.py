@@ -7,7 +7,8 @@ from masters.filters import EventFilter
 
 from .models import *
 from .forms import *
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
 
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -113,6 +114,7 @@ from django.http import JsonResponse
 
 
 @login_required(login_url='login_admin')
+@user_passes_test(lambda u: u.is_superuser, login_url='login_admin')
 def add_coupon(request):
 
     if request.method == 'POST':
@@ -121,6 +123,7 @@ def add_coupon(request):
 
         if forms.is_valid():
             forms.save()
+            messages.success(request, 'Coupon/Offer added successfully!')
             return redirect('list_coupon')
         else:
             print(forms.errors)
@@ -141,6 +144,7 @@ def add_coupon(request):
 
 
 @login_required(login_url='login_admin')
+@user_passes_test(lambda u: u.is_superuser, login_url='login_admin')
 def update_coupon(request, coupon_id):
 
     if request.method == 'POST':
@@ -151,6 +155,7 @@ def update_coupon(request, coupon_id):
 
         if forms.is_valid():
             forms.save()
+            messages.success(request, 'Coupon/Offer updated successfully!')
             return redirect('list_coupon')
         else:
             print(forms.errors)
@@ -168,14 +173,17 @@ def update_coupon(request, coupon_id):
 
 
 @login_required(login_url='login_admin')
+@user_passes_test(lambda u: u.is_superuser, login_url='login_admin')
 def delete_coupon(request, coupon_id):
 
     coupon.objects.get(id=coupon_id).delete()
+    messages.success(request, 'Coupon/Offer deleted successfully!')
 
     return HttpResponseRedirect(reverse('list_coupon'))
 
 
 @login_required(login_url='login_admin')
+@user_passes_test(lambda u: u.is_superuser, login_url='login_admin')
 def list_coupon(request):
 
     data = coupon.objects.all().order_by('-id')

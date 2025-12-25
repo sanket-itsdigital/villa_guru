@@ -261,6 +261,19 @@
         </li>
         {% endif %}
 
+        {% if request.user.is_superuser %}
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="tag"></i>
+            <span>Coupon/Offer</span>
+          </a>
+          <ul class="sub-menu">
+            <li><a href="{% url 'add_coupon' %}">Add Coupon/Offer</a></li>
+            <li><a href="{% url 'list_coupon' %}">List Coupon/Offer</a></li>
+          </ul>
+        </li>
+        {% endif %}
+
         <!-- ===== CA Section (Yellow) ===== -->
         {% if request.user|has_group:'Staff' or request.user.is_superuser or request.user.is_service_provider %}
 
