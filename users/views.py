@@ -36,10 +36,38 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import  User  # Your custom user model
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
 class SignupView(APIView):
-
+    @swagger_auto_schema(
+        operation_description="Register a new user with Firebase authentication",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['idToken', 'user_type'],
+            properties={
+                'idToken': openapi.Schema(type=openapi.TYPE_STRING, description='Firebase ID token'),
+                'user_type': openapi.Schema(type=openapi.TYPE_STRING, enum=['customer', 'doctor', 'daycare', 'service_provider'], description='User type'),
+                'name': openapi.Schema(type=openapi.TYPE_STRING, description='User full name'),
+                'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description='User email'),
+            },
+        ),
+        responses={
+            200: openapi.Response(
+                description='Registration successful',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'access': openapi.Schema(type=openapi.TYPE_STRING),
+                        'refresh': openapi.Schema(type=openapi.TYPE_STRING),
+                        'user': openapi.Schema(type=openapi.TYPE_OBJECT),
+                    }
+                )
+            ),
+            400: openapi.Response(description='Bad request'),
+        }
+    )
     def post(self, request):
         id_token = request.data.get("idToken")
         user_type = request.data.get("user_type")
@@ -160,7 +188,24 @@ User = get_user_model()
 
 class LoginAPIView(APIView):
     permission_classes = [AllowAny]
-
+    
+    @swagger_auto_schema(
+        operation_description="Login user with Firebase authentication",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['idToken'],
+            properties={
+                'idToken': openapi.Schema(type=openapi.TYPE_STRING, description='Firebase ID token'),
+                'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL),
+                'first_name': openapi.Schema(type=openapi.TYPE_STRING),
+                'last_name': openapi.Schema(type=openapi.TYPE_STRING),
+            },
+        ),
+        responses={
+            200: openapi.Response(description='Login successful'),
+            400: openapi.Response(description='Bad request'),
+        }
+    )
     def post(self, request):
         id_token = request.data.get("idToken")
         print('------------------------------------')

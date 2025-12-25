@@ -200,8 +200,7 @@ class get_coupon(ListAPIView):
     queryset = coupon.objects.all().order_by('-id')
     serializer_class = coupon_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = '__all__'  # enables filtering on all fields
-    filterset_class = couponFilter  # enables filtering on all fields
+    filterset_class = couponFilter  # enables filtering on all fields (excluding image)
 
 
 
@@ -369,7 +368,7 @@ class get_testimonials(ListAPIView):
     queryset = testimonials.objects.all().order_by('-id')
     serializer_class = testimonials_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = '__all__'  # enables filtering on all fields
+    filterset_class = TestimonialsFilter  # enables filtering on all fields
 
 
 def add_city(request):
@@ -530,7 +529,7 @@ class get_amenity(ListAPIView):
     queryset = amenity.objects.all()
     serializer_class = amenity_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = '__all__'  # enables filtering on all fields
+    filterset_class = AmenityFilter  # enables filtering on all fields (excluding image)
 
 def add_property_type(request):
 
@@ -610,7 +609,7 @@ class get_property_type(ListAPIView):
     queryset = property_type.objects.all().order_by('-id')
     serializer_class = property_type_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = '__all__'  # enables filtering on all fields
+    filterset_class = PropertyTypeFilter  # enables filtering on all fields
 
 def add_room_amenity(request):
 
@@ -690,7 +689,7 @@ class get_room_amenity(ListAPIView):
     queryset = room_amenity.objects.all().order_by('-id')
     serializer_class = room_amenity_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = '__all__'  # enables filtering on all fields
+    filterset_class = RoomAmenityFilter  # enables filtering on all fields
 
 def add_room_type(request):
 
@@ -770,7 +769,7 @@ class get_room_type(ListAPIView):
     queryset = room_type.objects.all().order_by('-id')
     serializer_class = room_type_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = '__all__'  # enables filtering on all fields
+    filterset_class = RoomTypeFilter  # enables filtering on all fields
 
 
 
@@ -858,7 +857,7 @@ class get_customer_address(ListAPIView):
     queryset = customer_address.objects.all().order_by('-id')
     serializer_class = customer_address_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = '__all__'  # enables filtering on all fields
+    filterset_class = CustomerAddressFilter  # enables filtering on all fields
 
     def get_queryset(self):
         return customer_address.objects.filter(user=self.request.user)

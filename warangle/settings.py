@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "users",
     "rest_framework",
     "corsheaders",
+    "drf_yasg",  # Swagger/OpenAPI documentation
 ]
 
 MIDDLEWARE = [
@@ -88,6 +89,7 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+    "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
 }
 
 
@@ -274,3 +276,35 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Swagger/OpenAPI Documentation Settings
+# SWAGGER_SETTINGS = {
+#     'SECURITY_DEFINITIONS': {
+#         'Bearer': {
+#             'type': 'apiKey',
+#             'name': 'Authorization',
+#             'in': 'header',
+#             'description': 'JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"'
+#         }
+#     },
+#     'USE_SESSION_AUTH': False,
+#     'JSON_EDITOR': True,
+#     'SUPPORTED_SUBMIT_METHODS': [
+#         'get',
+#         'post',
+#         'put',
+#         'delete',
+#         'patch'
+#     ],
+#     'OPERATIONS_SORTER': 'alpha',
+#     'TAGS_SORTER': 'alpha',
+#     'DOC_EXPANSION': 'none',
+#     'DEEP_LINKING': True,
+#     'SHOW_EXTENSIONS': True,
+#     'DEFAULT_MODEL_RENDERING': 'example',
+#     'VALIDATOR_URL': None,  # Disable schema validation to prevent errors
+# }
+
+# REDOC_SETTINGS = {
+#     'LAZY_RENDERING': False,
+# }
