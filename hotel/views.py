@@ -344,7 +344,7 @@ def add_hotel_rooms(request):
 
     else:
 
-        form = hotel_rooms_Form()
+        form = villa_rooms_Form()
 
         return render(request, "add_hotel_rooms.html", {"form": form})
 
