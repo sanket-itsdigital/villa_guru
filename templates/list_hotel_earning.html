@@ -93,7 +93,7 @@
           {% endfor %}
           <div class="col-md-3 mb-2 d-flex align-items-end">
             <button type="submit" class="btn btn-primary me-2">Apply</button>
-            <a href="{% url 'list_hotel_earning' %}" class="btn btn-secondary"
+            <a href="{% url 'list_villa_earning' %}" class="btn btn-secondary"
               >Reset</a
             >
 
@@ -177,7 +177,7 @@
 
                         {% comment %}
                         <td>
-                          <a href="{% url 'update_hotel_bookings' booking.id %}"
+                          <a href="{% url 'update_villa_bookings' booking.id %}"
                             ><i
                               class="bi bi-pencil-square text-primary"
                               title="Edit"

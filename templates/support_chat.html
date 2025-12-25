@@ -207,7 +207,7 @@ img{ max-width:100%;}
                 
                             <p>{{ ticket.description|truncatewords:10 }}</p>
                             <a href="{% url 'ticket_detail' ticket.id %}" style="color:green; margin-right:20px;"> View Chat</a>
-                            <a href="{% url 'update_hotel_bookings' ticket.booking.id %}"> View Booking</a>
+                            <a href="{% url 'update_villa_bookings' ticket.booking.id %}"> View Booking</a>
                         </div>
                     </div>
                 </div>

@@ -145,14 +145,14 @@ List{% endblock title %} {% block extra_css %}
                             <span class="text-muted">No User</span>
                           {% endif %}
                           <a
-                            href="{% url 'update_hotel' hotel.id %}"
+                            href="{% url 'update_villa' hotel.id %}"
                             class="btn btn-outline-primary btn-sm me-2"
                             title="Edit"
                           >
                             <i class="bi bi-pencil-square"></i>
                           </a>
                           <a
-                            href="{% url 'delete_hotel' hotel.id %}"
+                            href="{% url 'delete_villa' hotel.id %}"
                             class="btn btn-outline-danger btn-sm"
                             title="Delete"
                           >
@@ -178,7 +178,7 @@ List{% endblock title %} {% block extra_css %}
                           <strong>Capacity:</strong> {{ room.capacity }} |
                           <strong>View:</strong> {{ room.view }}
                           <a
-                            href="{% url 'update_hotel_rooms' room.id %}"
+                            href="{% url 'update_villa_rooms' room.id %}"
                             class="text-primary ms-1"
                             title="Edit Room"
                           >

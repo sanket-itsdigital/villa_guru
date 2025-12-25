@@ -192,7 +192,7 @@
             <span>Villa</span>
           </a>
           <ul class="sub-menu">
-            <li><a href="{% url 'list_hotel' %}">List Villa</a></li>
+            <li><a href="{% url 'list_villa' %}">List Villa</a></li>
           </ul>
         </li>
 
@@ -201,7 +201,7 @@
         {% if request.user.is_service_provider %}
 
         <li>
-          <a href="{% url 'view_hotel' %}">
+          <a href="{% url 'view_villa' %}">
             <i data-feather="layers"></i>
             <span data-key="t-authentication">My Villa</span>
           </a>
@@ -215,8 +215,8 @@
             <span>Villa Rooms</span>
           </a>
           <ul class="sub-menu">
-            <li><a href="{% url 'add_hotel_rooms' %}">Add Villa Rooms</a></li>
-            <li><a href="{% url 'list_hotel_rooms' %}">List Villa Rooms</a></li>
+            <li><a href="{% url 'add_villa_rooms' %}">Add Villa Rooms</a></li>
+            <li><a href="{% url 'list_villa_rooms' %}">List Villa Rooms</a></li>
           </ul>
         </li>
 
@@ -226,9 +226,9 @@
             <span>Bookings</span>
           </a>
           <ul class="sub-menu">
-            <li><a href="{% url 'list_hotel_bookings' %}">All Bookings</a></li>
+            <li><a href="{% url 'list_villa_bookings' %}">All Bookings</a></li>
             <li>
-              <a href="{% url 'list_hotel_future_bookings' %}"
+              <a href="{% url 'list_villa_future_bookings' %}"
                 >All Future Bookings</a
               >
             </li>
@@ -278,7 +278,7 @@
         {% if request.user|has_group:'Staff' or request.user.is_superuser or request.user.is_service_provider %}
 
         <li>
-          <a href="{% url 'list_hotel_earning' %}" class="nonnm">
+          <a href="{% url 'list_villa_earning' %}" class="nonnm">
             <i data-feather="dollar-sign"></i>
             <span>Earnings</span>
           </a>
