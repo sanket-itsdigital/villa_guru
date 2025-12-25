@@ -261,10 +261,11 @@ EMAIL_HOST_PASSWORD = "qxacifguvstguift"  # use App Password if using Gmail
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
-# STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+# Location where `collectstatic` will collect static files for production
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 AUTH_USER_MODEL = "users.User"
 

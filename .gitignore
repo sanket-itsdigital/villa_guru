@@ -23,6 +23,7 @@ media
 dentist/wsgi.py
 
 static/
+staticfiles/
 # Ignore logs folder
 logs/
 
