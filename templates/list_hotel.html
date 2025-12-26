@@ -100,6 +100,8 @@
                                                 <th>City</th>
                                                 <th>Star Rating</th>
                                                 <th>Ammenities</th>
+                                                <th>Price/Night</th>
+                                                <th>Markup %</th>
                                                 <th>Featured</th>
                                                 <th>Is Active</th>
                                                 <th>Go Live</th>
@@ -123,6 +125,22 @@
                                                     {% empty %}
                                                         No amenities
                                                     {% endfor %}
+                                                </td>
+                                                <td>
+                                                    {% if hotel.price_per_night %}
+                                                        ₹{{ hotel.price_per_night }}
+                                                    {% else %}
+                                                        <span class="text-muted">N/A</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if hotel.markup_percentage is not None %}
+                                                        <span class="badge bg-info text-dark">{{ hotel.markup_percentage }}%</span>
+                                                        <small class="text-muted d-block">Custom</small>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">System</span>
+                                                        <small class="text-muted d-block">Default</small>
+                                                    {% endif %}
                                                 </td>
                                                 <td>{{ hotel.is_featured|yesno:"Yes,No" }}</td>
                                                 <td> {% if hotel.is_active %}
@@ -273,7 +291,7 @@
   // Handle hotel row toggle only if clicking elsewhere
   $(".hotel-row").click(function (e) {
     // Skip if the target is inside the last cell (actions)
-    if ($(e.target).closest('td').index() === 11) return;
+    if ($(e.target).closest('td').index() === 13) return;
 
     const hotelId = $(this).data("hotel-id");
 

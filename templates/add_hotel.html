@@ -230,8 +230,28 @@
                             {% if form.price_per_night.errors %}
                                 <div class="text-danger">{{ form.price_per_night.errors.0 }}</div>
                             {% endif %}
-                            <small class="form-text text-muted">Set the price for booking the entire villa per night</small>
+                            <small class="form-text text-muted">Set the base price for booking the entire villa per night</small>
                         </div>
+
+                        {% if request.user.is_superuser %}
+                        <div class="mb-4">
+                            <label class="form-label">Custom Markup Percentage (%):</label>
+                            {% if system_settings %}
+                            <div class="alert alert-info mb-2" style="padding: 8px; font-size: 0.9rem;">
+                                <i class="bi bi-info-circle"></i> <strong>System-wide markup:</strong> {{ system_settings.price_markup_percentage }}%
+                            </div>
+                            {% endif %}
+                            {{ form.markup_percentage }}
+                            {% if form.markup_percentage.errors %}
+                                <div class="text-danger">{{ form.markup_percentage.errors.0 }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Set a custom markup percentage for this villa (e.g., 10 for 10%). 
+                                If left empty, the system-wide markup{% if system_settings %} ({{ system_settings.price_markup_percentage }}%){% endif %} will be used. 
+                                <strong>This markup will be added to the base price shown to customers.</strong>
+                            </small>
+                        </div>
+                        {% endif %}
 
                         <div class="dropdown mb-4">
   <label class="form-label d-block">Amenities:</label>

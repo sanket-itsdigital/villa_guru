@@ -173,7 +173,7 @@
           </ul>
         </li>
 
-        <li>
+        {% comment %} <li>
           <a href="javascript: void(0);" class="has-arrow">
             <i data-feather="box"></i>
             <span>Villa Amenity</span>
@@ -184,7 +184,7 @@
               <a href="{% url 'list_villa_amenity' %}">List Villa Amenity</a>
             </li>
           </ul>
-        </li>
+        </li> {% endcomment %}
 
         <li>
           <a href="javascript: void(0);" class="has-arrow">

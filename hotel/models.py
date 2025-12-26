@@ -48,6 +48,13 @@ class villa(models.Model):
     profit_margin = models.DecimalField(
         max_digits=5, decimal_places=2, null=True, blank=True
     )
+    markup_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Custom markup percentage for this villa (e.g., 10 for 10%). If not set, system-wide markup will be used.",
+    )
 
     is_featured = models.BooleanField(default=False)
     is_recommended = models.BooleanField(default=False)
@@ -124,8 +131,12 @@ class villa(models.Model):
         if not base_price:
             return None
 
-        settings = SystemSettings.get_settings()
-        markup_percentage = settings.price_markup_percentage or 0
+        # Use villa-specific markup if set, otherwise fall back to system-wide markup
+        if self.markup_percentage is not None:
+            markup_percentage = self.markup_percentage
+        else:
+            settings = SystemSettings.get_settings()
+            markup_percentage = settings.price_markup_percentage or 0
 
         if markup_percentage == 0:
             return base_price

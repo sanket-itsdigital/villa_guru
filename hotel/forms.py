@@ -28,6 +28,13 @@ class villa_Form(forms.ModelForm):
             'overall_rating': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
             'pincode': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': "Pincode"}),
             'profit_margin': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'markup_percentage': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'step': '0.01', 
+                'min': '0',
+                'max': '100',
+                'placeholder': 'Custom markup % (e.g., 10 for 10%). Leave empty to use system-wide markup.'
+            }),
             'price_per_night': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Villa price per night (for whole villa booking)'}),
             'main_image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': "Description", 'style': "padding: 10px"}),
@@ -59,6 +66,7 @@ class villa_Form(forms.ModelForm):
 
         if user and not user.is_superuser:
             self.fields.pop('profit_margin', None)
+            self.fields.pop('markup_percentage', None)  # hide markup_percentage from vendors
             self.fields.pop('is_active', None)  # hide is_active from vendors
             self.fields.pop('star_rating', None)  # hide is_active from vendors
 

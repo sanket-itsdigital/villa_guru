@@ -117,7 +117,12 @@ def register_hotel(request):
 
     else:
         form = villa_Form()
-        context = {"form": form}
+        from masters.models import SystemSettings
+        system_settings = SystemSettings.get_settings()
+        context = {
+            "form": form,
+            "system_settings": system_settings,
+        }
         return render(request, "hotel_registration.html", context)
 
 
@@ -142,7 +147,12 @@ def add_hotel(request):
 
         else:
             print(form.errors)
-            context = {"form": form}
+            from masters.models import SystemSettings
+            system_settings = SystemSettings.get_settings() if request.user.is_superuser else None
+            context = {
+                "form": form,
+                "system_settings": system_settings,
+            }
             return render(request, "add_hotel.html", context)
 
     else:
@@ -158,8 +168,12 @@ def add_hotel(request):
             print("----------434-----------")
         form = villa_Form()
 
+        from masters.models import SystemSettings
+        system_settings = SystemSettings.get_settings() if request.user.is_superuser else None
+        
         context = {
             "form": form,
+            "system_settings": system_settings,
         }
 
         return render(
@@ -188,7 +202,13 @@ def view_hotel(request):
     except villa.DoesNotExist:
         user_villa = None
 
-    context = {"data": user_villa}
+    from masters.models import SystemSettings
+    system_settings = SystemSettings.get_settings()
+    
+    context = {
+        "data": user_villa,
+        "system_settings": system_settings,
+    }
 
     return render(request, "view_hotel.html", context)
 
@@ -229,19 +249,25 @@ def update_hotel(request, villa_id):
 
         else:
             print(forms.errors)
+            from masters.models import SystemSettings
+            system_settings = SystemSettings.get_settings() if request.user.is_superuser else None
             context = {
                 "form": forms,
                 "existing_images": instance.images.all() if instance else None,
+                "system_settings": system_settings,
             }
             return render(request, "add_hotel.html", context)
 
     else:
 
         forms = villa_Form(instance=instance)
+        from masters.models import SystemSettings
+        system_settings = SystemSettings.get_settings() if request.user.is_superuser else None
 
         context = {
             "form": forms,
             "existing_images": instance.images.all() if instance else None,
+            "system_settings": system_settings,
         }
 
         return render(request, "add_hotel.html", context)
