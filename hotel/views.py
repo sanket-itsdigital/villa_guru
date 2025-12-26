@@ -231,9 +231,40 @@ def update_hotel(request, villa_id):
         )
 
         if forms.is_valid():
+            # Check if vendor is trying to change price when there are bookings
+            has_bookings = False
+            if not request.user.is_superuser:
+                from customer.models import VillaBooking
+                has_bookings = VillaBooking.objects.filter(villa=instance).exists()
+                
+                if has_bookings:
+                    # Get the original price from database
+                    original_price = villa.objects.get(id=villa_id).price_per_night
+                    new_price = forms.cleaned_data.get('price_per_night')
+                    
+                    # If price is being changed, prevent it
+                    if original_price != new_price:
+                        messages.error(
+                            request, 
+                            '⚠️ You cannot change the villa price because there are existing bookings for this villa. '
+                            'Please contact admin if you need to update the price.'
+                        )
+                        from masters.models import SystemSettings
+                        system_settings = SystemSettings.get_settings()
+                        context = {
+                            "form": forms,
+                            "existing_images": instance.images.all() if instance else None,
+                            "system_settings": system_settings,
+                            "has_bookings": True,
+                        }
+                        return render(request, "add_hotel.html", context)
+            
             hotels = forms.save(commit=False)
             if not request.user.is_superuser:
                 hotels.user = request.user  # auto-assign vendor user
+                # Restore original price if vendor tried to change it
+                if has_bookings:
+                    hotels.price_per_night = instance.price_per_night
             hotels.save()
             forms.save_m2m()
 
@@ -260,14 +291,19 @@ def update_hotel(request, villa_id):
 
     else:
 
-        forms = villa_Form(instance=instance)
+        forms = villa_Form(instance=instance, user=request.user)
         from masters.models import SystemSettings
         system_settings = SystemSettings.get_settings() if request.user.is_superuser else None
+        
+        # Check if villa has bookings
+        from customer.models import VillaBooking
+        has_bookings = VillaBooking.objects.filter(villa=instance).exists() if instance else False
 
         context = {
             "form": forms,
             "existing_images": instance.images.all() if instance else None,
             "system_settings": system_settings,
+            "has_bookings": has_bookings,
         }
 
         return render(request, "add_hotel.html", context)
@@ -1128,12 +1164,28 @@ def manage_villa_pricing(request):
                 selected_date_obj = datetime.strptime(selected_date, "%Y-%m-%d").date()
                 price_decimal = Decimal(price)
 
-                VillaPricing.objects.update_or_create(
+                # Check if villa has bookings on this date
+                from customer.models import VillaBooking
+                has_booking = VillaBooking.objects.filter(
                     villa=villa_obj,
-                    date=selected_date_obj,
-                    defaults={"price_per_night": price_decimal}
-                )
-                messages.success(request, f"Price updated for {selected_date}")
+                    status__in=["confirmed", "checked_in"],
+                    check_in__lte=selected_date_obj,
+                    check_out__gt=selected_date_obj,
+                ).exists()
+                
+                if has_booking:
+                    messages.error(
+                        request, 
+                        f'⚠️ Cannot change price for {selected_date} because there is an existing booking for this date. '
+                        'Please contact admin if you need to update the price.'
+                    )
+                else:
+                    VillaPricing.objects.update_or_create(
+                        villa=villa_obj,
+                        date=selected_date_obj,
+                        defaults={"price_per_night": price_decimal}
+                    )
+                    messages.success(request, f"Price updated for {selected_date}")
             except (ValueError, TypeError) as e:
                 messages.error(request, f"Invalid date or price: {str(e)}")
 
@@ -1208,19 +1260,40 @@ def bulk_update_villa_pricing(request):
         # Update pricing for each date in range
         current_date = from_date_obj
         updated_count = 0
+        skipped_count = 0
+        from customer.models import VillaBooking
+        
         while current_date <= to_date_obj:
-            VillaPricing.objects.update_or_create(
+            # Check if villa has bookings on this date
+            has_booking = VillaBooking.objects.filter(
                 villa=villa_obj,
-                date=current_date,
-                defaults={"price_per_night": price_decimal}
-            )
-            updated_count += 1
+                status__in=["confirmed", "checked_in"],
+                check_in__lte=current_date,
+                check_out__gt=current_date,
+            ).exists()
+            
+            if not has_booking:
+                VillaPricing.objects.update_or_create(
+                    villa=villa_obj,
+                    date=current_date,
+                    defaults={"price_per_night": price_decimal}
+                )
+                updated_count += 1
+            else:
+                skipped_count += 1
             current_date += timedelta(days=1)
 
-        messages.success(
-            request,
-            f"Pricing successfully updated for {updated_count} days from {from_date} to {to_date}."
-        )
+        if skipped_count > 0:
+            messages.warning(
+                request,
+                f"Pricing updated for {updated_count} days from {from_date} to {to_date}. "
+                f"{skipped_count} date(s) were skipped because they have existing bookings.",
+            )
+        else:
+            messages.success(
+                request,
+                f"Pricing successfully updated for {updated_count} days from {from_date} to {to_date}."
+            )
 
     return redirect("manage_villa_pricing")
 
@@ -1230,6 +1303,7 @@ def delete_villa_pricing(request, pricing_id):
     """
     Delete a specific date pricing entry.
     Only vendors can access this - not admins.
+    Prevents deletion if there are bookings for that date.
     """
     # Restrict to vendors only
     if request.user.is_superuser:
@@ -1238,8 +1312,25 @@ def delete_villa_pricing(request, pricing_id):
     
     try:
         pricing_obj = VillaPricing.objects.get(id=pricing_id, villa__user=request.user)
-        pricing_obj.delete()
-        messages.success(request, f"Pricing for {pricing_obj.date} has been deleted.")
+        
+        # Check if villa has bookings on this date
+        from customer.models import VillaBooking
+        has_booking = VillaBooking.objects.filter(
+            villa=pricing_obj.villa,
+            status__in=["confirmed", "checked_in"],
+            check_in__lte=pricing_obj.date,
+            check_out__gt=pricing_obj.date,
+        ).exists()
+        
+        if has_booking:
+            messages.error(
+                request, 
+                f'⚠️ Cannot delete pricing for {pricing_obj.date} because there is an existing booking for this date. '
+                'Please contact admin if you need to delete the pricing.'
+            )
+        else:
+            pricing_obj.delete()
+            messages.success(request, f"Pricing for {pricing_obj.date} has been deleted.")
     except VillaPricing.DoesNotExist:
         messages.error(request, "Pricing entry not found.")
 

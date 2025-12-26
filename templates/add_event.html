@@ -98,15 +98,39 @@
                         </div>
                         
                         <div class="mb-4">
-                            <label for="image" class="form-label">Image:</label>
-                            {{ form.image }}
-                            {% if form.instance.image %}
+                            <label for="feature_image" class="form-label">Feature Image (Main Image):</label>
+                            {{ form.feature_image }}
+                            {% if form.instance.feature_image %}
                                 <div class="mt-2">
-                                    <p>Current Image:</p>
-                                    <img src="{{ form.instance.image.url }}" alt="{{ form.instance.name }}" width="200" height="150" style="object-fit: cover; border-radius: 4px;">
+                                    <p>Current Feature Image:</p>
+                                    <img src="{{ form.instance.feature_image.url }}" alt="{{ form.instance.name }}" width="200" height="150" style="object-fit: cover; border-radius: 4px;">
                                 </div>
                             {% endif %}
+                            <small class="form-text text-muted">This is the main/feature image that will be displayed prominently</small>
                         </div>
+
+                        <div class="mb-4">
+                            <label for="gallery_images" class="form-label">Gallery Images (Additional Images):</label>
+                            <input type="file" class="form-control" id="gallery_images" name="gallery_images" accept="image/*" multiple>
+                            <small class="form-text text-muted">You can select multiple images for the gallery</small>
+                            <div id="galleryPreview" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;"></div>
+                        </div>
+
+                        {% if existing_images %}
+                        <div class="mb-4">
+                            <label class="form-label">Existing Gallery Images:</label>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                {% for img in existing_images %}
+                                <div style="position: relative;">
+                                    <img src="{{ img.image.url }}" alt="Gallery Image" width="150" height="150" style="object-fit: cover; border-radius: 4px; border: 2px solid #ddd;">
+                                    <a href="{% url 'delete_event_image' img.id %}" class="btn btn-sm btn-danger" style="position: absolute; top: 5px; right: 5px;" onclick="return confirm('Are you sure you want to delete this image?')">
+                                        <i class="bi bi-x"></i>
+                                    </a>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
                         
                         
                                 <!-- Submit Button -->
@@ -135,23 +159,63 @@
     <!-- apexcharts -->
     <script src="{% static 'libs/apexcharts/dist/apexcharts.min.js' %}"></script>
     <script>
-        // Image preview logic
-        document.getElementById("bannerImage").addEventListener("change", function () {
-            const file = this.files[0];
-            const preview = document.getElementById("preview");
+        // Feature image preview logic
+        const featureImageInput = document.getElementById("feature_image");
+        if (featureImageInput) {
+            featureImageInput.addEventListener("change", function () {
+                const file = this.files[0];
+                let previewDiv = document.getElementById("featurePreview");
+                
+                if (!previewDiv) {
+                    // Create preview element if it doesn't exist
+                    previewDiv = document.createElement("div");
+                    previewDiv.id = "featurePreview";
+                    previewDiv.className = "mt-2";
+                    this.parentElement.appendChild(previewDiv);
+                }
+                
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        previewDiv.innerHTML = '<p>Preview:</p><img src="' + event.target.result + '" alt="Preview" width="200" height="150" style="object-fit: cover; border-radius: 4px;">';
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    previewDiv.innerHTML = "";
+                }
+            });
+        }
 
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (event) {
-                    preview.src = event.target.result;
-                    preview.hidden = false;
-                };
-                reader.readAsDataURL(file);
-            } else {
-                preview.src = "";
-                preview.hidden = true;
-            }
-        });
+        // Gallery images preview logic
+        const galleryImagesInput = document.getElementById("gallery_images");
+        if (galleryImagesInput) {
+            galleryImagesInput.addEventListener("change", function () {
+                const files = this.files;
+                const previewContainer = document.getElementById("galleryPreview");
+                previewContainer.innerHTML = ""; // Clear previous previews
+
+                Array.from(files).forEach((file) => {
+                    if (file.type.startsWith("image/")) {
+                        const reader = new FileReader();
+                        reader.onload = function (event) {
+                            const imageDiv = document.createElement("div");
+                            imageDiv.style.position = "relative";
+                            const img = document.createElement("img");
+                            img.src = event.target.result;
+                            img.alt = file.name;
+                            img.style.width = "150px";
+                            img.style.height = "150px";
+                            img.style.objectFit = "cover";
+                            img.style.border = "2px solid #ddd";
+                            img.style.borderRadius = "5px";
+                            imageDiv.appendChild(img);
+                            previewContainer.appendChild(imageDiv);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            });
+        }
     </script>
     <script>
         // Auto-hide toast after 5 seconds

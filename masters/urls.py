@@ -30,6 +30,7 @@ urlpatterns = [
     path('add-event/', add_event, name='add_event'),
     path('update-event/<event_id>', update_event, name='update_event'),
     path('delete-event/<event_id>', delete_event, name='delete_event'),
+    path('delete-event-image/<int:image_id>/', delete_event_image, name='delete_event_image'),
     path('list-event/', list_event, name='list_event'),
     path('get-event/', get_event.as_view(), name='get_event'),
 

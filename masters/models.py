@@ -126,7 +126,7 @@ class testimonials(models.Model):
 class event(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
-    image = models.ImageField(upload_to='events/', null=True, blank=True)
+    feature_image = models.ImageField(upload_to='events/', null=True, blank=True, help_text="Main/feature image for the event")
     itinerary = models.TextField(blank=True, null=True, help_text="Event itinerary/schedule")
     amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Event price/amount")
     start_date = models.DateTimeField()
@@ -134,6 +134,15 @@ class event(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class EventImage(models.Model):
+    """Model to store multiple gallery images for an event"""
+    event = models.ForeignKey(event, related_name="gallery_images", on_delete=models.CASCADE)
+    image = models.ImageField(upload_to="events/gallery/")
+
+    def __str__(self):
+        return f"{self.event.name} - Image {self.id}"
 
 
 

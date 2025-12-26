@@ -150,8 +150,8 @@
                         </td>
                         <td>{{ i.start_date|date:"M d, Y H:i" }}</td>
                         <td>
-                          {% if i.image %}
-                            <img src="{{ i.image.url }}" alt="{{ i.name }}" width="60" height="60" style="object-fit: cover; border-radius: 4px;">
+                          {% if i.feature_image %}
+                            <img src="{{ i.feature_image.url }}" alt="{{ i.name }}" width="60" height="60" style="object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
                           {% else %}
                             <span class="text-muted">No Image</span>
                           {% endif %}

@@ -212,7 +212,14 @@ def add_event(request):
         forms = event_Form(request.POST, request.FILES)
 
         if forms.is_valid():
-            forms.save()
+            event_obj = forms.save()
+            
+            # Handle multiple gallery images
+            from .models import EventImage
+            gallery_images = request.FILES.getlist('gallery_images')
+            for img in gallery_images:
+                EventImage.objects.create(event=event_obj, image=img)
+            
             return redirect('list_event')
         else:
             print(forms.errors)
@@ -242,10 +249,22 @@ def update_event(request, event_id):
         forms = event_Form(request.POST, request.FILES, instance=instance)
 
         if forms.is_valid():
-            forms.save()
+            event_obj = forms.save()
+            
+            # Handle multiple gallery images
+            from .models import EventImage
+            gallery_images = request.FILES.getlist('gallery_images')
+            for img in gallery_images:
+                EventImage.objects.create(event=event_obj, image=img)
+            
             return redirect('list_event')
         else:
             print(forms.errors)
+            context = {
+                'form': forms,
+                'existing_images': instance.gallery_images.all() if instance else None,
+            }
+            return render(request, 'add_event.html', context)
 
     else:
 
@@ -253,10 +272,28 @@ def update_event(request, event_id):
         forms = event_Form(instance=instance)
 
         context = {
-            'form': forms
+            'form': forms,
+            'existing_images': instance.gallery_images.all() if instance else None,
         }
         return render(request, 'add_event.html', context)
 
+
+
+@login_required(login_url='login_admin')
+def delete_event_image(request, image_id):
+    """Delete a specific event gallery image"""
+    try:
+        from .models import EventImage
+        image_obj = EventImage.objects.get(id=image_id)
+        event_id = image_obj.event.id
+        image_obj.delete()
+        from django.contrib import messages
+        messages.success(request, "Image deleted successfully.")
+        return redirect('update_event', event_id=event_id)
+    except EventImage.DoesNotExist:
+        from django.contrib import messages
+        messages.error(request, "Image not found.")
+        return redirect('list_event')
 
 
 @login_required(login_url='login_admin')

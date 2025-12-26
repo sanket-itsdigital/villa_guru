@@ -226,11 +226,23 @@
 
                         <div class="mb-4">
                             <label class="form-label">Price Per Night (for whole villa booking):</label>
+                            {% if has_bookings and not request.user.is_superuser %}
+                            <div class="alert alert-warning mb-2" style="padding: 10px; font-size: 0.9rem;">
+                                <i class="bi bi-exclamation-triangle-fill"></i> 
+                                <strong>Price Locked:</strong> This villa has existing bookings. The price cannot be changed. 
+                                Please contact admin if you need to update the price.
+                            </div>
+                            {% endif %}
                             {{ form.price_per_night }}
                             {% if form.price_per_night.errors %}
                                 <div class="text-danger">{{ form.price_per_night.errors.0 }}</div>
                             {% endif %}
-                            <small class="form-text text-muted">Set the base price for booking the entire villa per night</small>
+                            <small class="form-text text-muted">
+                                Set the base price for booking the entire villa per night
+                                {% if has_bookings and not request.user.is_superuser %}
+                                <span class="text-danger">(Locked due to existing bookings)</span>
+                                {% endif %}
+                            </small>
                         </div>
 
                         {% if request.user.is_superuser %}

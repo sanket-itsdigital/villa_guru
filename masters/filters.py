@@ -15,7 +15,7 @@ class BaseFilterSet(django_filters.FilterSet):
 class EventFilter(django_filters.FilterSet):
     class Meta:
         model = event
-        exclude = ['image']  # ⛔ Exclude unsupported field
+        exclude = ['feature_image']  # ⛔ Exclude unsupported field
 
 class couponFilter(django_filters.FilterSet):
     class Meta:

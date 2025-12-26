@@ -69,6 +69,17 @@ class villa_Form(forms.ModelForm):
             self.fields.pop('markup_percentage', None)  # hide markup_percentage from vendors
             self.fields.pop('is_active', None)  # hide is_active from vendors
             self.fields.pop('star_rating', None)  # hide is_active from vendors
+            
+            # Check if villa has bookings - if yes, disable price_per_night for vendors
+            if self.instance and self.instance.pk:
+                from customer.models import VillaBooking
+                has_bookings = VillaBooking.objects.filter(villa=self.instance).exists()
+                
+                if has_bookings and 'price_per_night' in self.fields:
+                    # Make field readonly (not disabled, so value is submitted) and add styling
+                    self.fields['price_per_night'].widget.attrs['readonly'] = True
+                    self.fields['price_per_night'].widget.attrs['class'] = self.fields['price_per_night'].widget.attrs.get('class', '') + ' bg-light'
+                    self.fields['price_per_night'].help_text = '⚠️ Price cannot be changed because this villa has existing bookings. Please contact admin if you need to update the price.'
 
 
 
