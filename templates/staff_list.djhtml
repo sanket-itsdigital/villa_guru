@@ -1,6 +1,6 @@
 {% extends "partials/adminBase.html" %} 
 {% load static %} 
-{% block title %}Categories List{% endblock title %} 
+{% block title %}Villa Users List{% endblock title %} 
 {% block extra_css %}
 <!-- plugin css -->
 <link
@@ -113,20 +113,69 @@
                         <th>Mobile</th>
                         <th>Email</th>
                         <th>Active</th>
+                        <th>Villa Status</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody id="tableBody">
                       {% if data %} {% for i in data %}
                       <tr>
                         <td>{{ forloop.counter }}</td>
-                        <td>{{ i.hotel.hotel_id }}</td>
-                        <td>{{ i.hotel.name }}</td>
+                        <td>
+                          {% if i.villa %}
+                            {{ i.villa.villa_id|default:"-" }}
+                          {% else %}
+                            <span class="text-muted">No Villa</span>
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if i.villa %}
+                            {{ i.villa.name }}
+                          {% else %}
+                            <span class="text-muted">No Villa Assigned</span>
+                          {% endif %}
+                        </td>
                         <td>{{ i.first_name }} {{ i.last_name }}</td>
                         <td>{{ i.mobile }}</td>
-                        <td>{{ i.email }}</td>
-                        <td>{{ i.is_active }}</td>
+                        <td>{{ i.email|default:"-" }}</td>
+                        <td>
+                          {% if i.is_active %}
+                            <span class="badge bg-success">Active</span>
+                          {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if i.villa %}
+                            {% if i.villa.is_active %}
+                              <span class="badge bg-success">Active</span>
+                            {% else %}
+                              <span class="badge bg-warning">Inactive</span>
+                            {% endif %}
+                          {% else %}
+                            <span class="badge bg-secondary">No Villa</span>
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if i.villa %}
+                            <a href="{% url 'view_villa' %}" class="btn btn-sm btn-primary" title="View Villa" target="_blank">
+                              <i class="bi bi-eye"></i> View
+                            </a>
+                            {% if request.user.is_superuser %}
+                            <a href="{% url 'update_villa' i.villa.id %}" class="btn btn-sm btn-warning" title="Edit Villa">
+                              <i class="bi bi-pencil"></i> Edit
+                            </a>
+                            {% endif %}
+                          {% else %}
+                            <span class="text-muted">-</span>
+                          {% endif %}
+                        </td>
                       </tr>
-                      {% endfor %} {% endif %}
+                      {% endfor %} {% else %}
+                      <tr>
+                        <td colspan="9" class="text-center">No villa users found.</td>
+                      </tr>
+                      {% endif %}
                     </tbody>
                   </table>
                 </div>

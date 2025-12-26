@@ -151,8 +151,6 @@
                         <th>#</th>
                         <th>Booking ID</th>
                         <th>Villa</th>
-                        <th>Room</th>
-                        <th>Room Count</th>
                         <th>User</th>
                         <th>Status</th>
                         <th>Payment Status</th>
@@ -160,12 +158,12 @@
                         <th>Check-In</th>
                         <th>Check-Out</th>
                         <th>Guests</th>
-                        <th>Childs</th>
+                        <th>Children</th>
                         <th>Name</th>
                         <th>Phone</th>
                         <th>Email</th>
                         <th>Base Amount</th>
-                        <th>Gst Amount</th>
+                        <th>GST Amount</th>
                         <th>Total Amount</th>
                         <th>Booked At</th>
                         <th>Action</th>
@@ -176,9 +174,7 @@
                       <tr>
                         <td>{{ forloop.counter }}</td>
                         <td>{{ booking.booking_id }}</td>
-                        <td>{{ booking.hotel.name }}</td>
-                        <td>{{ booking.room.room_type }}</td>
-                        <td>{{ booking.no_of_rooms }}</td>
+                        <td>{{ booking.villa.name }}</td>
                         <td>{{ booking.user.name|default:"Guest" }}</td>
                         <td>
                           {% if booking.status == "confirmed" %}
@@ -237,7 +233,7 @@
                       </tr>
                       {% endfor %} {% else %}
                       <tr>
-                        <td colspan="11" class="text-center">
+                        <td colspan="19" class="text-center">
                           No bookings found.
                         </td>
                       </tr>

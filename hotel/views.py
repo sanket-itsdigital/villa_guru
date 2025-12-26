@@ -551,17 +551,21 @@ def export_bookings_to_excel(queryset):
     headers = [
         "Booking ID",
         "Villa",
-        "Room",
-        "Room Count",
         "User",
         "Status",
+        "Payment Status",
+        "Payment Type",
         "Check-In",
         "Check-Out",
         "Guests",
-        "Childs",
+        "Children",
         "Name",
         "Phone",
         "Email",
+        "Base Amount",
+        "GST Amount",
+        "Total Amount",
+        "Booked At",
     ]
     sheet.append(headers)
 
@@ -571,16 +575,21 @@ def export_bookings_to_excel(queryset):
             [
                 booking.booking_id,
                 booking.villa.name if booking.villa else "",
-                str(booking.room.room_type) if booking.room.room_type else "",
-                booking.no_of_rooms,
                 booking.user.first_name if booking.user else "Guest",
                 booking.status,
+                booking.payment_status,
+                booking.payment_type or "",
                 booking.check_in.strftime("%Y-%m-%d"),
                 booking.check_out.strftime("%Y-%m-%d"),
                 booking.guest_count,
                 booking.child_count,
+                f"{booking.first_name} {booking.last_name}".strip(),
                 booking.phone_number,
                 booking.email,
+                float(booking.base_amount) if booking.base_amount else 0,
+                float(booking.gst_amount) if booking.gst_amount else 0,
+                float(booking.total_amount) if booking.total_amount else 0,
+                booking.created_at.strftime("%Y-%m-%d %H:%M") if booking.created_at else "",
             ]
         )
 
@@ -769,14 +778,14 @@ def export_earning_to_excel(bookings):
     headers = [
         "Booking ID",
         "Villa",
-        "Room",
         "Guest Name",
         "Phone",
         "Email",
         "Check In",
         "Check Out",
         "Nights",
-        "No of Rooms",
+        "Guests",
+        "Children",
         "Base Amount",
         "GST",
         "TCS",
@@ -797,28 +806,24 @@ def export_earning_to_excel(bookings):
             [
                 booking.booking_id,
                 booking.villa.name if booking.villa else "",
-                (
-                    booking.room.room_type.name
-                    if booking.room and booking.room.room_type
-                    else ""
-                ),
-                f"{booking.first_name} {booking.last_name}",
+                f"{booking.first_name} {booking.last_name}".strip(),
                 booking.phone_number,
                 booking.email,
                 booking.check_in.strftime("%d-%m-%Y"),
                 booking.check_out.strftime("%d-%m-%Y"),
                 nights,
-                booking.no_of_rooms,
-                float(booking.base_amount),
-                float(booking.gst_amount),
-                float(booking.tcs_amount),
-                float(booking.tds_amount),
-                float(booking.commission_amount),
-                float(booking.commission_gst),
-                float(booking.total_amount),
-                float(booking.hotel_earning),
+                booking.guest_count,
+                booking.child_count,
+                float(booking.base_amount) if booking.base_amount else 0,
+                float(booking.gst_amount) if booking.gst_amount else 0,
+                float(booking.tcs_amount) if booking.tcs_amount else 0,
+                float(booking.tds_amount) if booking.tds_amount else 0,
+                float(booking.commission_amount) if booking.commission_amount else 0,
+                float(booking.commission_gst) if booking.commission_gst else 0,
+                float(booking.total_amount) if booking.total_amount else 0,
+                float(booking.hotel_earning) if booking.hotel_earning else 0,
                 booking.get_status_display(),
-                booking.created_at.strftime("%d-%m-%Y %H:%M"),
+                booking.created_at.strftime("%d-%m-%Y %H:%M") if booking.created_at else "",
             ]
         )
 

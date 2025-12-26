@@ -659,14 +659,13 @@ def customer_user_list(request):
 
 def provider_user_list(request):
 
-    data = User.objects.filter(is_service_provider = True).order_by('-date_joined')
+    data = User.objects.filter(is_service_provider=True).select_related('villa').order_by('-date_joined')
 
-    paginator = Paginator(data, 30)  # Show 10 villas per page
+    paginator = Paginator(data, 30)  # Show 30 users per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-
-    return render(request, 'staff_list.djhtml', { 'data' : page_obj})
+    return render(request, 'staff_list.djhtml', {'data': page_obj})
 
 
 from customer.models import VillaBooking

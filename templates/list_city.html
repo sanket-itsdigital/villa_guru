@@ -107,7 +107,6 @@
                       <tr>
                         <th>#</th>
                         <th>Name</th>
-                        <th>Image</th>
                         <th>Action</th>
                       </tr>
                     </thead>
@@ -116,16 +115,6 @@
                       <tr>
                         <td>{{ forloop.counter }}</td>
                         <td>{{ i.name }}</td>
-                        <td>
-                          {% if i.image %}
-                          <img
-                            src="{{ i.image.url }}"
-                            class="img-fluid rounded mb-3"
-                            alt="City Image"
-                            style="max-height: 60px"
-                          />
-                          {% else %} No Image {% endif %}
-                        </td>
                         <td>
                           <!-- Edit Button -->
 
@@ -149,7 +138,7 @@
                       </tr>
                       {% endfor %} {% else %}
                       <tr>
-                        <td colspan="4" class="text-center">No data found.</td>
+                        <td colspan="3" class="text-center">No data found.</td>
                       </tr>
                       {% endif %}
                     </tbody>

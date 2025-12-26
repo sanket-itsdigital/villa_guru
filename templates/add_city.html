@@ -58,7 +58,7 @@ Vaccination{% endblock title %} {% block extra_css %}
       </div>
       <div class="container">
         <div class="form-container">
-          <form method="POST" enctype="multipart/form-data">
+          <form method="POST">
             {% csrf_token %} {% if form.non_field_errors %}
             <div class="alert alert-danger">
               {% for error in form.non_field_errors %}
@@ -70,11 +70,9 @@ Vaccination{% endblock title %} {% block extra_css %}
             <div class="mb-4">
               <label for="name" class="form-label">Name:</label>
               {{ form.name }}
-            </div>
-
-            <div class="mb-4">
-              <label for="name" class="form-label">Image:</label>
-              {{ form.image }}
+              {% if form.name.errors %}
+                <div class="text-danger">{{ form.name.errors.0 }}</div>
+              {% endif %}
             </div>
 
             <div class="text-center">

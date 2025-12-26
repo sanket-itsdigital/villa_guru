@@ -124,18 +124,17 @@
                       <tr>
                         <th>#</th>
                         <th>Villa</th>
-                        <th>Room</th>
                         <th>User</th>
                         <th>Status</th>
                         <th>Check-In</th>
                         <th>Check-Out</th>
                         <th>Guests</th>
-                        <th>Childs</th>
+                        <th>Children</th>
                         <th>Name</th>
                         <th>Phone</th>
                         <th>Email</th>
                         <th>Base Amount</th>
-                        <th>Gst Amount</th>
+                        <th>GST Amount</th>
                         <th>Total Amount</th>
                         <th>Rabbit Commission</th>
                         <th>Rabbit Commission GST</th>
@@ -152,8 +151,7 @@
                       {% if data %} {% for booking in data %}
                       <tr>
                         <td>{{ forloop.counter }}</td>
-                        <td>{{ booking.hotel.name }}</td>
-                        <td>{{ booking.room.room_type }}</td>
+                        <td>{{ booking.villa.name }}</td>
                         <td>{{ booking.user.name|default:"Guest" }}</td>
                         <td>{{ booking.status }}</td>
                         <td>{{ booking.check_in }}</td>
@@ -188,7 +186,7 @@
                       </tr>
                       {% endfor %} {% else %}
                       <tr>
-                        <td colspan="11" class="text-center">
+                        <td colspan="20" class="text-center">
                           No bookings found.
                         </td>
                       </tr>

@@ -107,17 +107,16 @@
                                                 <th>Go Live</th>
                                                 <th>Created At</th>
                                                 <th>Image</th>
-                                                <th>Room</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {% for hotel in data %}
-                                            <tr class="hotel-row" data-hotel-id="{{ hotel.id }}">
+                                            <tr>
                                                 <td>{{ forloop.counter }}</td>
-                                                <td>{{ hotel.hotel_id }}</td>
+                                                <td>{{ hotel.villa_id|default:"-" }}</td>
                                                 <td>{{ hotel.name }}</td>
-                                                <td>{{ hotel.city }}</td>
+                                                <td>{% if hotel.city %}{{ hotel.city.name }}{% else %}-{% endif %}</td>
                                                 <td>{{ hotel.star_rating }}</td>
                                                 <td>
                                                     {% for amenity in hotel.amenities.all %}
@@ -157,14 +156,11 @@
                                                 <td>{{ hotel.created_at }}</td>
                                                 <td>
                                                     {% if hotel.main_image %}
-                                                        <img width="60" src="{{ hotel.main_image.url }}">
+                                                        <img width="60" src="{{ hotel.main_image.url }}" alt="{{ hotel.name }}" style="object-fit: cover; border-radius: 4px;">
                                                     {% else %}
-                                                        N/A
+                                                        <span class="text-muted">N/A</span>
                                                     {% endif %}
                                                 </td>
-                                                   <td>
-                                                            <a href="{% url 'view_villa_rooms' hotel.id %}">View</a>
-                                                    </td>
                                                 <td>
                                                    
                                                     <a href="{% url 'update_villa' hotel.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
@@ -180,24 +176,6 @@
                                                 </td>
 
                                             </tr>
-
-                                            {% for room in hotel.rooms.all %}
-                                            <tr class="room-row hotel-{{ hotel.id }}" style="display: none;">
-                                                <td colspan="11">
-                                                    <strong>Room:</strong> {{ room.get_room_type_display }} - {{ room.get_title_display }} <br>
-                                                    <strong>Price:</strong> ₹{{ room.price_per_night }} |
-                                                    <strong>Refundable:</strong> {{ room.refundable|yesno:"Yes,No" }} |
-                                                    <strong>Meals Included:</strong> {{ room.meals_included|yesno:"Yes,No" }} <br>
-                                                    <strong>Bed:</strong> {{ room.bed_type }} |
-                                                    <strong>Capacity:</strong> {{ room.capacity }} |
-                                                    <strong>View:</strong> {{ room.view }} 
-                                                    <a href="{% url 'update_villa_rooms' room.id %}" class="text-primary ms-1" title="Edit Room">
-            <i class="bi bi-pencil-square"></i>
-        </a>
-
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
                                             {% endfor %}
 
                                         </tbody>

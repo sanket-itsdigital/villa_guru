@@ -36,8 +36,6 @@ class property_type(models.Model):
 
 class city(models.Model):
     name = models.CharField(max_length=255)
-    image = models.ImageField(upload_to='city_images/')
-
 
     def __str__(self):
         return self.name
