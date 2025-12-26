@@ -196,7 +196,7 @@ Villa{% endblock title %} {% block extra_css %}
             <div class="container mt-5">
               <div class="row">
                 <!-- Villa Info -->
-                <div class="col-md-4">
+                <div class="col-md-6">
                   <div class="card shadow-sm mb-4">
                     {% if data %}
                     <p
@@ -268,23 +268,31 @@ Villa{% endblock title %} {% block extra_css %}
                     </div>
                   </div>
 
-                  {% comment %} {% if data.images.all %}
-                  <div class="image-gallery-container mb-3">
-                    <div class="image-gallery" id="hotelGallery">
-                      {% for image in data.images.all %}
-                      <img src="{{ image.image.url }}" alt="Gallery Image" />
-                      {% endfor %}
+                  <!-- Villa Gallery Images -->
+                  {% if data.images.all %}
+                  <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                      <h6 class="mb-0">Gallery Images</h6>
                     </div>
-                    {% if data.images.count > 4 %}
-                    <div
-                      class="see-more-overlay"
-                      onclick="scrollGallery('hotelGallery')"
-                    >
-                      ➡️
+                    <div class="card-body">
+                      <div class="image-gallery-container">
+                        <div class="image-gallery" id="hotelGallery">
+                          {% for image in data.images.all %}
+                          <img src="{{ image.image.url }}" alt="Gallery Image" />
+                          {% endfor %}
+                        </div>
+                        {% if data.images.count > 4 %}
+                        <div
+                          class="see-more-overlay"
+                          onclick="scrollGallery('hotelGallery')"
+                        >
+                          ➡️
+                        </div>
+                        {% endif %}
+                      </div>
                     </div>
-                    {% endif %}
                   </div>
-                  {% endif %} {% endcomment %}
+                  {% endif %}
 
                   <!-- Amenities -->
                   <div class="card shadow-sm">
@@ -310,116 +318,56 @@ Villa{% endblock title %} {% block extra_css %}
                   </div>
                 </div>
 
-                <!-- Rooms Info -->
+                <!-- Additional Villa Information -->
                 <div class="col-md-8">
-                  {% if data.rooms.all %} {% for room in data.rooms.all %}
-                  <div class="card mb-4 shadow-sm">
-                    <p
-                      style="margin: auto; padding-top: 10px; font-weight: 800"
-                    >
-                      Rooms
-                    </p>
-                    <hr
-                      style="
-                        padding: 0px;
-
-                        margin-top: 6px;
-                      "
-                    />
-
-                    <div class="row g-0">
-                      <div class="col-md-5">
-                        {% if room.main_image %}
-                        <img
-                          src="{{ room.main_image.url }}"
-                          class="img-fluid rounded-start"
-                          alt="Room Image"
-                        />
-                        {% else %}
-                        <p class="text-center p-3">No Image</p>
-                        {% endif %}
-
-                        <div style="margin: 21px">
-                          <strong>Room Amenities:</strong><br />
-                          {% for amenity in room.room_amenities.all %}
-                          <span
-                            class="badge bg-info text-dark"
-                            style="
-                              padding: 5px;
-                              background-color: #780000 !important;
-                              color: white !important;
-                              font-weight: 600;
-                            "
-                            >{{ amenity.name }}</span
-                          >
-                          {% empty %}
-                          <span class="text-muted">No amenities</span>
-                          {% endfor %}
+                  <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                      <h6 class="mb-0">Villa Details</h6>
+                    </div>
+                    <div class="card-body">
+                      <div class="row">
+                        <div class="col-md-6 mb-3">
+                          <p><strong>Property Type:</strong> {% if data.property_type %}{{ data.property_type.name }}{% else %}N/A{% endif %}</p>
+                          <p><strong>Category:</strong> {% if data.category %}{{ data.get_category_display }}{% else %}N/A{% endif %}</p>
+                          <p><strong>Address:</strong> {% if data.address %}{{ data.address }}{% else %}N/A{% endif %}</p>
+                          {% if data.landmark %}
+                          <p><strong>Landmark:</strong> {{ data.landmark }}</p>
+                          {% endif %}
+                          {% if data.pincode %}
+                          <p><strong>Pincode:</strong> {{ data.pincode }}</p>
+                          {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                          {% if data.no_of_rooms %}
+                          <p><strong>Number of Rooms:</strong> {{ data.no_of_rooms }}</p>
+                          {% endif %}
+                          {% if data.gst_number %}
+                          <p><strong>GST Number:</strong> {{ data.gst_number }}</p>
+                          {% endif %}
+                          {% if data.pan_number %}
+                          <p><strong>PAN Number:</strong> {{ data.pan_number }}</p>
+                          {% endif %}
+                          <p><strong>Status:</strong> 
+                            <span class="badge bg-{% if data.is_active %}success{% else %}secondary{% endif %}">
+                              {% if data.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                          </p>
+                          <p><strong>Go Live:</strong> 
+                            <span class="badge bg-{% if data.go_live %}success{% else %}secondary{% endif %}">
+                              {% if data.go_live %}Yes{% else %}No{% endif %}
+                            </span>
+                          </p>
                         </div>
                       </div>
-                      {% comment %} {% if room.images.all %}
-                      <div class="image-gallery-container mb-2">
-                        <div
-                          class="image-gallery"
-                          id="roomGallery{{ forloop.counter }}"
-                        >
-                          {% for image in room.images.all %}
-                          <img src="{{ image.image.url }}" alt="Room Image" />
-                          {% endfor %}
-                        </div>
-                        {% if room.images.count > 4 %}
-                        <div
-                          class="see-more-overlay"
-                          onclick="scrollGallery('roomGallery{{ forloop.counter }}')"
-                        >
-                          ➡️
-                        </div>
-                        {% endif %}
+                      
+                      {% if data.description %}
+                      <div class="mt-3">
+                        <h6>Full Description:</h6>
+                        <p>{{ data.description }}</p>
                       </div>
-                      {% endif %} {% endcomment %}
-
-                      <div class="col-md-7">
-                        <div class="card-body">
-                          <h5>
-                            {{ room.get_title_display }} ({{ room.room_type.name
-                            }})
-                          </h5>
-                          <p>
-                            <strong>Price:</strong> ₹{{ room.price_per_night }}
-                          </p>
-                          <p><strong>Capacity:</strong> {{ room.capacity }}</p>
-                          <p><strong>Bed Type:</strong> {{ room.bed_type }}</p>
-                          <p>{{ room.description|truncatewords:25 }}</p>
-                          <p>
-                            <strong>Refundable:</strong> {{
-                            room.refundable|yesno:"Yes,No" }}
-                          </p>
-                          <p>
-                            <strong>Meals Included:</strong> {{
-                            room.meals_included|yesno:"Yes,No" }}
-                          </p>
-                          <p><strong>View:</strong> {{ room.view }}</p>
-
-                          <div class="mt-3">
-                            <a
-                              href="{% url 'update_villa_rooms' room.id %}"
-                              class="btn btn-sm btn-warning"
-                              >Edit</a
-                            >
-                            <a
-                              href="{% url 'delete_villa_rooms' room.id %}"
-                              class="btn btn-sm btn-danger"
-                              onclick="return confirm('Are you sure?');"
-                              >Delete</a
-                            >
-                          </div>
-                        </div>
-                      </div>
+                      {% endif %}
                     </div>
                   </div>
-                  {% endfor %} {% else %}
-                  <p>No rooms available.</p>
-                  {% endif %}
                 </div>
               </div>
             </div>

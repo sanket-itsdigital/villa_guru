@@ -1035,7 +1035,7 @@ def update_hotel_availability(request):
                 )
 
         messages.success(request, f"Availability updated for {selected_date}")
-        return redirect("update_hotel_availability")
+        return redirect("update_villa_availability")
 
     villa_obj = villa.objects.get(user=request.user)
 
@@ -1055,17 +1055,52 @@ def update_hotel_availability(request):
             f"{entry.room.room_type}: {entry.available_count} rooms"
         )
 
-    events = [
-        {"title": "<br>".join(labels), "start": date, "color": "#007bff"}
+    # Get villa bookings to show booked dates
+    from customer.models import VillaBooking
+    from datetime import date as date_type
+    
+    bookings = VillaBooking.objects.filter(
+        villa=villa_obj,
+        status__in=["confirmed", "checked_in"]
+    )
+    
+    # Create a set of all booked dates
+    booked_dates = set()
+    booking_events = []
+    
+    for booking in bookings:
+        # Add all dates between check_in and check_out (exclusive of check_out)
+        current_date = booking.check_in
+        while current_date < booking.check_out:
+            booked_dates.add(current_date.isoformat())
+            current_date += timedelta(days=1)
+        
+        # Add booking event for the calendar
+        booking_events.append({
+            "title": f"Booked: {booking.booking_id or 'N/A'}",
+            "start": booking.check_in.isoformat(),
+            "end": booking.check_out.isoformat(),
+            "color": "#dc3545",  # Red color for booked dates
+            "display": "background",  # Show as background color
+            "allDay": True
+        })
+
+    # Create availability events (blue color)
+    availability_events = [
+        {"title": "<br>".join(labels), "start": date, "color": "#007bff", "display": "block"}
         for date, labels in grouped.items()
     ]
+
+    # Combine all events
+    all_events = booking_events + availability_events
 
     print(json.dumps(availability_data))
 
     context = {
         "rooms": villa_rooms.objects.filter(villa=villa_obj),
         "availability_json": json.dumps(availability_data),
-        "events": json.dumps(events),
+        "events": json.dumps(all_events),
+        "booked_dates_json": json.dumps(list(booked_dates)),
     }
 
     return render(request, "update_hotel_availability.html", context)
@@ -1098,11 +1133,11 @@ def update_from_to_hotel_availability(request):
             to_date_obj = datetime.strptime(to_date, "%Y-%m-%d").date()
         except (ValueError, TypeError):
             messages.error(request, "Invalid date range")
-            return redirect("update_hotel_availability")
+            return redirect("update_villa_availability")
 
         if from_date_obj > to_date_obj:
             messages.error(request, "'From' date must be before 'To' date.")
-            return redirect("update_hotel_availability")
+            return redirect("update_villa_availability")
 
         # Update villa availability (open/closed) for date range
         current_date = from_date_obj
@@ -1131,9 +1166,9 @@ def update_from_to_hotel_availability(request):
             f"Villa availability updated for {updated_count} days from {from_date} to {to_date}.",
         )
 
-        return redirect("update_hotel_availability")
+        return redirect("update_villa_availability")
 
-    return redirect("update_hotel_availability")
+    return redirect("update_villa_availability")
 
 
 @login_required(login_url="login_admin")

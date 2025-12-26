@@ -12,6 +12,11 @@
 {% block content %}
 <div class="container mt-4">
     <h4>Manage Villa Availability</h4>
+    <div class="alert alert-info mt-3">
+        <strong>Legend:</strong>
+        <span class="badge bg-danger ms-2">Red Background</span> = Villa is Booked
+        <span class="badge bg-primary ms-2">Blue Event</span> = Room Availability Set
+    </div>
 </div>
 
 <div class="main-content">
@@ -20,7 +25,7 @@
             <div class="row">
                 <div class="col-12">
                     <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-                        <h4 class="mb-sm-0 font-size-18">Manage Room Availability</h4>
+                        <h4 class="mb-sm-0 font-size-18">Manage Villa Availability</h4>
                     </div>
                 </div>
             </div>
@@ -120,43 +125,71 @@
 document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
     const availabilityData = {{ availability_json|safe }};  // ✅ This should be correct JSON like: {"2025-07-05": {"9": 5}}
+    const bookedDates = {{ booked_dates_json|safe }};  // Set of booked dates
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         height: 'auto',
-         eventContent: function() {
-        return { domNodes: [] };  // this will render no visible content
-    },
         events: {{ events|safe }},
-        dateClick: function(info) {
-    const selectedDate = info.dateStr;
-
-    document.getElementById('selected_date').value = selectedDate;
-    document.getElementById('modal_date').textContent = selectedDate;
-
-    const modal = document.getElementById('availabilityModal');
-
-    // Clear previous values (only inside modal)
-    modal.querySelectorAll('input[name^="availability_"]').forEach(input => {
-        input.value = "";
-    });
-
-    const dayData = availabilityData[selectedDate];
-    console.log("Selected:", selectedDate);
-    console.log("DayData:", dayData);
-
-    if (dayData) {
-        for (const roomId in dayData) {
-            const input = modal.querySelector(`input[name="availability_${roomId}"]`);
-            if (input) {
-                input.value = dayData[roomId];
+        eventDidMount: function(info) {
+            // Style booked dates with red background
+            if (info.event.display === 'background' && info.event.color === '#dc3545') {
+                info.el.style.backgroundColor = '#dc3545';
+                info.el.style.opacity = '0.6';
+                info.el.style.border = '2px solid #dc3545';
             }
+        },
+        dayCellDidMount: function(info) {
+            // Check if this date is booked and add visual indicator
+            const dateStr = info.dateStr;
+            if (bookedDates.includes(dateStr)) {
+                info.el.style.backgroundColor = '#ffebee';
+                info.el.style.border = '2px solid #dc3545';
+                info.el.style.borderRadius = '4px';
+                info.el.title = 'Villa is booked on this date';
+            }
+        },
+        eventContent: function(info) {
+            // Hide background events from showing text, but keep the background color
+            if (info.event.display === 'background') {
+                return { html: '' };
+            }
+            return { html: info.event.title };
+        },
+        dateClick: function(info) {
+            const selectedDate = info.dateStr;
+            
+            // Check if date is booked
+            if (bookedDates.includes(selectedDate)) {
+                alert('⚠️ This date is already booked. You cannot change availability for booked dates.');
+                return;
+            }
+
+            document.getElementById('selected_date').value = selectedDate;
+            document.getElementById('modal_date').textContent = selectedDate;
+
+            const modal = document.getElementById('availabilityModal');
+
+            // Clear previous values (only inside modal)
+            modal.querySelectorAll('input[name^="availability_"]').forEach(input => {
+                input.value = "";
+            });
+
+            const dayData = availabilityData[selectedDate];
+            console.log("Selected:", selectedDate);
+            console.log("DayData:", dayData);
+
+            if (dayData) {
+                for (const roomId in dayData) {
+                    const input = modal.querySelector(`input[name="availability_${roomId}"]`);
+                    if (input) {
+                        input.value = dayData[roomId];
+                    }
+                }
+            }
+
+            new bootstrap.Modal(modal).show();
         }
-    }
-
-    new bootstrap.Modal(modal).show();
-}
-
     });
 
     calendar.render();
