@@ -611,21 +611,20 @@ class get_property_type(ListAPIView):
     filter_backends = [DjangoFilterBackend]
     filterset_class = PropertyTypeFilter  # enables filtering on all fields
 
-def add_room_amenity(request):
+def add_villa_amenity(request):
 
     if request.method == "POST":
 
-        forms = room_amenity_Form(request.POST, request.FILES)
-
+        forms = villa_amenity_Form(request.POST, request.FILES)
         if forms.is_valid():
             forms.save()
-            return redirect('list_room_amenity')
+            return redirect('list_villa_amenity')
         else:
             print(forms.errors)
             context = {
                 'form': forms
             }
-            return render(request, 'add_room_amenity.html', context)
+            return render(request, 'add_villa_amenity.html', context)
 
 
     else:
@@ -634,78 +633,76 @@ def add_room_amenity(request):
 
 
 
-        return render(request, 'add_room_amenity.html', { 'form' : room_amenity_Form()})
+        return render(request, 'add_villa_amenity.html', { 'form' : villa_amenity_Form()})
+def update_villa_amenity(request, villa_amenity_id):
 
-def update_room_amenity(request, room_amenity_id):
-
-    instance = room_amenity.objects.get(id = room_amenity_id)
+    instance = villa_amenity.objects.get(id = villa_amenity_id)
 
     if request.method == "POST":
 
-        forms = room_amenity_Form(request.POST, request.FILES, instance=instance)
+        forms = villa_amenity_Form(request.POST, request.FILES, instance=instance)
 
         if forms.is_valid():
             forms.save()
-            return redirect('list_room_amenity')
+            return redirect('list_villa_amenity')
         else:
             print(forms.errors)
             context = {
                 'form': forms
             }
-            return render(request, 'add_room_amenity.html', context)
+            return render(request, 'add_villa_amenity.html', context)
 
     else:
 
         # create first row using admin then editing only
 
-        forms = room_amenity_Form(instance=instance)
+        forms = villa_amenity_Form(instance=instance)
 
         context = {
                 'form': forms
             }
 
-        return render(request, 'add_room_amenity.html', context)
+        return render(request, 'add_villa_amenity.html', context)
 
 
-def list_room_amenity(request):
+def list_villa_amenity(request):
+    data = villa_amenity.objects.all().order_by('-id')
 
-    data = room_amenity.objects.all().order_by('-id')
-
-    return render(request, 'list_room_amenity.html', {'data' : data})
+    return render(request, 'list_villa_amenity.html', {'data' : data})
 
 
-def delete_room_amenity(request, room_amenity_id):
+def delete_villa_amenity(request, villa_amenity_id):
 
-    data = room_amenity.objects.get(id = room_amenity_id).delete()
+    data = villa_amenity.objects.get(id = villa_amenity_id).delete()
 
-    return redirect('list_room_amenity')
+    return redirect('list_villa_amenity')
 
 
 from django.views import View
 
 
 
-class get_room_amenity(ListAPIView):
-    queryset = room_amenity.objects.all().order_by('-id')
-    serializer_class = room_amenity_serializer
+class get_villa_amenity(ListAPIView):
+    queryset = villa_amenity.objects.all().order_by('-id')
+    serializer_class = villa_amenity_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_class = RoomAmenityFilter  # enables filtering on all fields
+    filterset_class = VillaAmenityFilter  # enables filtering on all fields
 
-def add_room_type(request):
+def add_villa_type(request):
 
     if request.method == "POST":
 
-        forms = room_type_Form(request.POST, request.FILES)
-
+        forms = villa_type_Form(request.POST, request.FILES)
+        
         if forms.is_valid():
             forms.save()
-            return redirect('list_room_type')
+            return redirect('list_villa_type')
         else:
             print(forms.errors)
             context = {
                 'form': forms
             }
-            return render(request, 'add_room_type.html', context)
+            return render(request, 'add_villa_type.html', context)
 
 
     else:
@@ -714,62 +711,59 @@ def add_room_type(request):
 
 
 
-        return render(request, 'add_room_type.html', { 'form' : room_type_Form()})
+        return render(request, 'add_villa_type.html', { 'form' : villa_type_Form()})
 
-def update_room_type(request, room_type_id):
+def update_villa_type(request, villa_type_id):
 
-    instance = room_type.objects.get(id = room_type_id)
-
+    instance = villa_type.objects.get(id = villa_type_id)
     if request.method == "POST":
 
-        forms = room_type_Form(request.POST, request.FILES, instance=instance)
+        forms = villa_type_Form(request.POST, request.FILES, instance=instance)
 
         if forms.is_valid():
             forms.save()
-            return redirect('list_room_type')
+            return redirect('list_villa_type')
         else:
             print(forms.errors)
             context = {
                 'form': forms
             }
-            return render(request, 'add_room_type.html', context)
+            return render(request, 'add_villa_type.html', context)
 
     else:
 
         # create first row using admin then editing only
 
-        forms = room_type_Form(instance=instance)
+        forms = villa_type_Form(instance=instance)
 
         context = {
                 'form': forms
             }
 
-        return render(request, 'add_room_type.html', context)
+        return render(request, 'add_villa_type.html', context)
 
 
-def list_room_type(request):
+def list_villa_type(request):
+    data = villa_type.objects.all().order_by('-id')
 
-    data = room_type.objects.all().order_by('-id')
-
-    return render(request, 'list_room_type.html', {'data' : data})
+    return render(request, 'list_villa_type.html', {'data' : data})
 
 
-def delete_room_type(request, room_type_id):
+def delete_villa_type(request, villa_type_id):
 
-    data = room_type.objects.get(id = room_type_id).delete()
+    data = villa_type.objects.get(id = villa_type_id).delete()
 
-    return redirect('list_room_type')
-
+    return redirect('list_villa_type')
 
 from django.views import View
 
 
 
-class get_room_type(ListAPIView):
-    queryset = room_type.objects.all().order_by('-id')
-    serializer_class = room_type_serializer
+class get_villa_type(ListAPIView):
+    queryset = villa_type.objects.all().order_by('-id')
+    serializer_class = villa_type_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_class = RoomTypeFilter  # enables filtering on all fields
+    filterset_class = VillaTypeFilter  # enables filtering on all fields
 
 
 

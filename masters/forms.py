@@ -86,9 +86,9 @@ class city_Form(forms.ModelForm):
         }
         
         
-class room_amenity_Form(forms.ModelForm):
+class villa_amenity_Form(forms.ModelForm):
     class Meta:
-        model = room_amenity
+        model = villa_amenity
         fields = '__all__'
         widgets = {
            
@@ -98,9 +98,9 @@ class room_amenity_Form(forms.ModelForm):
 
         }
         
-class room_type_Form(forms.ModelForm):
+class villa_type_Form(forms.ModelForm):
     class Meta:
-        model = room_type
+        model = villa_type
         fields = '__all__'
         widgets = {
            

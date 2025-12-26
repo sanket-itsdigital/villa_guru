@@ -57,17 +57,17 @@ urlpatterns = [
     path('delete-property-type/<property_type_id>', delete_property_type, name='delete_property_type'),  # create or fetch list of admins
     path('get-property-type/', get_property_type.as_view() , name='get_property_type '), 
 
-    path('add-room_amenity/', add_room_amenity, name='add_room_amenity'),  # create or fetch list of admins
-    path('update-room_amenity/<room_amenity_id>', update_room_amenity, name='update_room_amenity'),  # create or fetch list of admins
-    path('list-room_amenity/', list_room_amenity, name='list_room_amenity'),  # create or fetch list of admins
-    path('delete-room_amenity/<room_amenity_id>', delete_room_amenity, name='delete_room_amenity'),  # create or fetch list of admins
-    path('get-room_amenity/', get_room_amenity.as_view() , name='get_room_amenity '), 
+    path('add-villa_amenity/', add_villa_amenity, name='add_villa_amenity'),  # create or fetch list of admins
+    path('update-villa_amenity/<villa_amenity_id>', update_villa_amenity, name='update_villa_amenity'),  # create or fetch list of admins
+    path('list-villa_amenity/', list_villa_amenity, name='list_villa_amenity'),  # create or fetch list of admins
+    path('delete-villa_amenity/<villa_amenity_id>', delete_villa_amenity, name='delete_villa_amenity'),  # create or fetch list of admins
+    path('get-villa_amenity/', get_villa_amenity.as_view() , name='get_villa_amenity '), 
     
-    path('add-room-type/', add_room_type, name='add_room_type'),  # create or fetch list of admins
-    path('update-room-type/<room_type_id>', update_room_type, name='update_room_type'),  # create or fetch list of admins
-    path('list-room-type/', list_room_type, name='list_room_type'),  # create or fetch list of admins
-    path('delete-room-type/<room_type_id>', delete_room_type, name='delete_room_type'),  # create or fetch list of admins
-    path('get-room-type/', get_room_type.as_view() , name='get_room_type '), 
+    path('add-villa-type/', add_villa_type, name='add_villa_type'),  # create or fetch list of admins
+    path('update-villa-type/<villa_type_id>', update_villa_type, name='update_villa_type'),  # create or fetch list of admins
+    path('list-villa-type/', list_villa_type, name='list_villa_type'),  # create or fetch list of admins
+    path('delete-villa-type/<villa_type_id>', delete_villa_type, name='delete_villa_type'),  # create or fetch list of admins
+    path('get-villa-type/', get_villa_type.as_view() , name='get_villa_type '), 
     
   
     # path('add-customer-address/', add_customer_address.as_view(), name='add_customer_address'),  # create or fetch list of admins

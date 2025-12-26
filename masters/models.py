@@ -43,7 +43,7 @@ class city(models.Model):
         return self.name
 
 
-class room_amenity(models.Model):
+class villa_amenity(models.Model):
     name = models.CharField(max_length=255)
 
     def __str__(self):
@@ -51,6 +51,13 @@ class room_amenity(models.Model):
 
 
 class room_type(models.Model):
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
+
+
+class villa_type(models.Model):
     name = models.CharField(max_length=255)
 
     def __str__(self):

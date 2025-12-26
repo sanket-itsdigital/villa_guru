@@ -1,6 +1,7 @@
 from django import forms
 from .models import *
 from masters.models import *
+from decimal import Decimal
 
 class villa_Form(forms.ModelForm):
    
@@ -65,11 +66,11 @@ class villa_Form(forms.ModelForm):
 
 class villa_rooms_Form(forms.ModelForm):
 
-    room_amenities = forms.ModelMultipleChoiceField(
-    queryset=room_amenity.objects.all(),
+    villa_amenities = forms.ModelMultipleChoiceField(
+    queryset=villa_amenity.objects.all(),
     widget=forms.SelectMultiple(attrs={
         'class': 'form-select select2',  # important class!
-        'id': 'id_room_amenities'
+        'id': 'id_villa_amenities'
     }),
         required=False
     )
@@ -90,6 +91,26 @@ class villa_rooms_Form(forms.ModelForm):
             'bed_type': forms.TextInput(attrs={'class': 'form-control'}),
             'capacity': forms.TextInput(attrs={'class': 'form-control'}),
             'view': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class VillaPricingForm(forms.ModelForm):
+    class Meta:
+        model = VillaPricing
+        fields = ['date', 'price_per_night']
+        widgets = {
+            'date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+                'required': True
+            }),
+            'price_per_night': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': 'Enter price per night',
+                'required': True
+            }),
         }
 
 

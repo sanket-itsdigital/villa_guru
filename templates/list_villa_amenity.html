@@ -90,7 +90,7 @@
           <div
             class="page-title-box d-sm-flex align-items-center justify-content-between"
           >
-            <h4 class="mb-sm-0 font-size-18">List Room Amenity</h4>
+            <h4 class="mb-sm-0 font-size-18">List Villa Amenity</h4>
           </div>
         </div>
       </div>
@@ -121,7 +121,7 @@
                           <!-- remove Button -->
 
                           <a
-                            href="{% url 'update_room_amenity' i.id %}"
+                            href="{% url 'update_villa_amenity' i.id %}"
                             class="btn btn-sm btn-outline-primary"
                             title="Edit"
                           >
@@ -129,7 +129,7 @@
                           </a>
 
                           <a
-                            href="{% url 'delete_room_amenity' i.id %}"
+                            href="{% url 'delete_villa_amenity' i.id %}"
                             class="btn btn-sm btn-outline-danger"
                             title="Delete"
                             onclick="return confirm('Are you sure you want to delete this ?');"

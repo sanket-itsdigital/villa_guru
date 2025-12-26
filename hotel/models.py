@@ -102,25 +102,48 @@ class villa(models.Model):
         else:
             super().save(*args, **kwargs)
 
-    def get_marked_up_price(self):
+    def get_marked_up_price(self, date=None):
         """
         Calculate the price with admin-configured markup percentage.
+        If date is provided, check for date-specific pricing first.
         Returns the original price if no markup is set.
         """
         from masters.models import SystemSettings
+        from decimal import Decimal
 
-        if not self.price_per_night:
+        # Check for date-specific pricing first
+        if date:
+            try:
+                date_pricing = VillaPricing.objects.get(villa=self, date=date)
+                base_price = date_pricing.price_per_night
+            except VillaPricing.DoesNotExist:
+                base_price = self.price_per_night
+        else:
+            base_price = self.price_per_night
+
+        if not base_price:
             return None
 
         settings = SystemSettings.get_settings()
         markup_percentage = settings.price_markup_percentage or 0
 
         if markup_percentage == 0:
-            return self.price_per_night
+            return base_price
 
         # Calculate: original_price * (1 + markup_percentage/100)
-        marked_up_price = self.price_per_night * (1 + markup_percentage / 100)
+        marked_up_price = base_price * (1 + markup_percentage / 100)
         return round(marked_up_price, 2)
+    
+    def get_price_for_date(self, date):
+        """
+        Get the base price for a specific date (without markup).
+        Returns the date-specific price if exists, otherwise returns default price_per_night.
+        """
+        try:
+            date_pricing = VillaPricing.objects.get(villa=self, date=date)
+            return date_pricing.price_per_night
+        except VillaPricing.DoesNotExist:
+            return self.price_per_night
 
     def __str__(self):
         return self.name
@@ -187,8 +210,8 @@ class villa_rooms(models.Model):
     )  # e.g., "1 Queen Bed + 1 Double Bed"
     capacity = models.CharField(max_length=100, blank=True)  # e.g., "2 Adults, 1 Child"
     view = models.CharField(max_length=100, blank=True)  # e.g., "Beach View"
-    room_amenities = models.ManyToManyField(
-        "masters.room_amenity", blank=True
+    villa_amenities = models.ManyToManyField(
+        "masters.villa_amenity", blank=True
     )  # Optional: for extra features
 
     def __str__(self):
@@ -226,3 +249,28 @@ class RoomAvailability(models.Model):
 
     def __str__(self):
         return f"{self.room} - {self.date} - {self.available_count} available"
+
+
+class VillaPricing(models.Model):
+    """
+    Model to store date-specific pricing for villas.
+    Allows vendors to set different prices for different dates.
+    """
+    villa = models.ForeignKey("hotel.villa", on_delete=models.CASCADE, related_name="date_pricing")
+    date = models.DateField()
+    price_per_night = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Price per night for this specific date"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("villa", "date")
+        ordering = ["date"]
+        verbose_name = "Villa Pricing"
+        verbose_name_plural = "Villa Pricings"
+
+    def __str__(self):
+        return f"{self.villa.name} - {self.date} - ₹{self.price_per_night}"

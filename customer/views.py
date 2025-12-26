@@ -18,7 +18,7 @@ import uuid
 import razorpay
 from django.conf import settings
 from rest_framework.response import Response
-from hotel.models import villa, villa_rooms, RoomAvailability
+from hotel.models import villa, villa_rooms
 
 class VillaBookingViewSet(viewsets.ModelViewSet):
     queryset = VillaBooking.objects.filter(payment_status = "paid").order_by("-id")
@@ -30,38 +30,10 @@ class VillaBookingViewSet(viewsets.ModelViewSet):
 
         with transaction.atomic():
             booking = serializer.save(user=self.request.user)
-            print(f"➡️  Booking saved: {booking.pk}, Rooms: {booking.no_of_rooms}")
+            print(f"➡️  Booking saved: {booking.pk}, Villa: {booking.villa.name}")
 
-            # --- Room availability handling (only for room-based bookings) ---
-            if booking.room:
-                # Room-based booking: check and update room availability
-                room = booking.room
-                check_in = booking.check_in
-                check_out = booking.check_out
-                quantity = booking.no_of_rooms
-
-                total_days = (check_out - check_in).days
-                booking_dates = [check_in + timedelta(days=i) for i in range(total_days)]
-
-                availabilities = RoomAvailability.objects.select_for_update().filter(
-                    room=room,
-                    date__in=booking_dates
-                )
-
-                if availabilities.count() != total_days:
-                    raise ValidationError("Some dates are missing availability records.")
-
-                insufficient = [a.date for a in availabilities if a.available_count < quantity]
-                if insufficient:
-                    date_str = ", ".join(str(d) for d in insufficient)
-                    raise ValidationError(f"Only limited rooms available on: {date_str}")
-
-                for avail in availabilities:
-                    avail.available_count -= quantity
-                    avail.save()
-            else:
-                # Villa-level booking: whole villa is booked, no room availability check needed
-                print(f"✅ Villa-level booking: {booking.villa.name} booked as whole villa")
+            # Villa-level booking: whole villa is booked
+            print(f"✅ Villa-level booking: {booking.villa.name} booked as whole villa")
 
             # --- ✅ Create Razorpay order here ---
             client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))

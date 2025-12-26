@@ -98,7 +98,7 @@ def register_hotel(request):
                     for img in request.FILES.getlist("image"):
                         VillaImage.objects.create(villa=villa_obj, image=img)
 
-                    return redirect("list_hotel")
+                    return redirect("list_villa")
                 else:
                     # Validation failed — raise exception to rollback user
                     raise Exception(f"Form invalid: {form.errors}")
@@ -138,7 +138,7 @@ def add_hotel(request):
             for img in request.FILES.getlist("image"):
                 VillaImage.objects.create(villa=villa_obj, image=img)
 
-            return redirect("list_hotel")
+            return redirect("list_villa")
 
         else:
             print(form.errors)
@@ -194,13 +194,18 @@ def view_hotel(request):
 
 
 @login_required(login_url="login_admin")
-def update_hotel(request, hotel_id):
-
-    instance = villa.objects.get(id=hotel_id)
+def update_hotel(request, villa_id):
+    # Allow both admin and vendor to update villa
+    # Admin can update any villa, vendor can only update their own
+    if request.user.is_superuser:
+        instance = villa.objects.get(id=villa_id)
+    else:
+        # Vendor can only update their own villa
+        instance = villa.objects.get(id=villa_id, user=request.user)
 
     if request.method == "POST":
 
-        instance = villa.objects.get(id=hotel_id)
+        instance = villa.objects.get(id=villa_id)
         forms = villa_Form(
             request.POST, request.FILES, instance=instance, user=request.user
         )
@@ -216,11 +221,11 @@ def update_hotel(request, hotel_id):
                 VillaImage.objects.create(villa=instance, image=img)
 
             if request.user.is_superuser:
-                return redirect("list_hotel")
+                return redirect("list_villa")
 
             else:
 
-                return redirect("view_hotel")
+                return redirect("view_villa")
 
         else:
             print(forms.errors)
@@ -247,9 +252,9 @@ from django.db import transaction
 
 
 @login_required(login_url="login_admin")
-def delete_hotel(request, hotel_id):
+def delete_hotel(request, villa_id):
 
-    villa_instance = get_object_or_404(villa, id=hotel_id)
+    villa_instance = get_object_or_404(villa, id=villa_id)
 
     try:
         with transaction.atomic():
@@ -259,7 +264,7 @@ def delete_hotel(request, hotel_id):
         # Optionally: log or show error
         print("Error deleting hotel:", e)
 
-    return HttpResponseRedirect(reverse("list_hotel"))
+    return HttpResponseRedirect(reverse("list_villa"))
 
 
 from django.db.models import Prefetch
@@ -310,6 +315,10 @@ def delete_hotel_image(request, image_id):
 
 @login_required(login_url="login_admin")
 def add_hotel_rooms(request):
+    # Room management is no longer used - only whole villa bookings are supported
+    if request.user.is_service_provider and not request.user.is_superuser:
+        messages.info(request, "Room management is no longer available. All bookings are for whole villas only.")
+        return redirect("view_villa")
 
     if request.method == "POST":
 
@@ -351,6 +360,11 @@ def add_hotel_rooms(request):
 
 @login_required(login_url="login_admin")
 def update_hotel_rooms(request, hotel_rooms_id):
+    # Room management is no longer used - only whole villa bookings are supported
+    if request.user.is_service_provider and not request.user.is_superuser:
+        messages.info(request, "Room management is no longer available. All bookings are for whole villas only.")
+        return redirect("view_villa")
+    
     instance = get_object_or_404(villa_rooms, id=hotel_rooms_id)
 
     if request.method == "POST":
@@ -388,6 +402,10 @@ def update_hotel_rooms(request, hotel_rooms_id):
 
 @login_required(login_url="login_admin")
 def delete_hotel_rooms(request, hotel_rooms_id):
+    # Room management is no longer used - only whole villa bookings are supported
+    if request.user.is_service_provider and not request.user.is_superuser:
+        messages.info(request, "Room management is no longer available. All bookings are for whole villas only.")
+        return redirect("view_villa")
 
     villa_rooms.objects.get(id=hotel_rooms_id).delete()
 
@@ -396,6 +414,10 @@ def delete_hotel_rooms(request, hotel_rooms_id):
 
 @login_required(login_url="login_admin")
 def view_hotel_rooms(request, hotel_id):
+    # Room management is no longer used - only whole villa bookings are supported
+    if request.user.is_service_provider and not request.user.is_superuser:
+        messages.info(request, "Room management is no longer available. All bookings are for whole villas only.")
+        return redirect("view_villa")
 
     villa_instance = villa.objects.get(id=hotel_id)
     data = villa_rooms.objects.filter(villa__id=hotel_id)
@@ -421,6 +443,10 @@ def delete_hotel_room_image(request, image_id):
 
 @login_required(login_url="login_admin")
 def list_hotel_rooms(request):
+    # Room management is no longer used - only whole villa bookings are supported
+    if request.user.is_service_provider and not request.user.is_superuser:
+        messages.info(request, "Room management is no longer available. All bookings are for whole villas only.")
+        return redirect("view_villa")
 
     if request.user.is_superuser:
         data = villa.objects.prefetch_related(
@@ -918,7 +944,15 @@ from collections import defaultdict
 
 @login_required
 def update_hotel_availability(request):
-
+    """
+    Update villa availability.
+    Only vendors can access this - not admins.
+    """
+    # Restrict to vendors only
+    if request.user.is_superuser:
+        messages.info(request, "Availability management is only available for vendors.")
+        return redirect("list_villa")
+    
     villa_obj = villa.objects.get(user=request.user)
 
     if request.method == "POST":
@@ -943,7 +977,7 @@ def update_hotel_availability(request):
 
     villa_obj = villa.objects.get(user=request.user)
 
-    raw_availability = RoomAvailability.objects.filter(room__hotel=hotel_obj)
+    raw_availability = RoomAvailability.objects.filter(room__villa=villa_obj)
 
     # Build JSON: { "2025-07-05": { "8": 5, "9": 3 } }
     availability_data = defaultdict(dict)
@@ -982,6 +1016,15 @@ import json
 
 @login_required
 def update_from_to_hotel_availability(request):
+    """
+    Bulk update villa availability for date range.
+    Only vendors can access this - not admins.
+    """
+    # Restrict to vendors only
+    if request.user.is_superuser:
+        messages.info(request, "Availability management is only available for vendors.")
+        return redirect("list_villa")
+    
     villa_obj = villa.objects.get(user=request.user)
 
     if request.method == "POST":
@@ -999,51 +1042,179 @@ def update_from_to_hotel_availability(request):
             messages.error(request, "'From' date must be before 'To' date.")
             return redirect("update_hotel_availability")
 
-        failed_updates = defaultdict(list)
-
-        for room in villa_rooms.objects.filter(villa=villa_obj):
-            field_name = f"availability_{room.id}"
-            count = request.POST.get(field_name)
-
-            if count is not None and count != "":
-                new_count = int(count)
-
-                current_date = from_date_obj
-                while current_date <= to_date_obj:
-                    # Count confirmed bookings on this date
-                    confirmed_count = VillaBooking.objects.filter(
-                        hotel=hotel_obj,
-                        room=room,
-                        status="confirmed",
-                        check_in__lte=current_date,
-                        check_out__gte=current_date,
-                    ).count()
-
-                    if new_count < confirmed_count:
-                        failed_updates[room.room_type].append(current_date)
-                    else:
-                        RoomAvailability.objects.update_or_create(
-                            room=room,
-                            date=current_date,
-                            defaults={"available_count": new_count},
-                        )
-
-                    current_date += timedelta(days=1)
-
-        if failed_updates:
-            for room_type, dates in failed_updates.items():
-                date_strs = ", ".join(d.strftime("%Y-%m-%d") for d in dates)
-                messages.warning(
-                    request,
-                    f"Could not update availability for '{room_type}' on: {date_strs} "
-                    f"due to existing confirmed bookings.",
-                )
-        else:
-            messages.success(
-                request,
-                f"Availability successfully updated from {from_date} to {to_date}.",
+        # Update villa availability (open/closed) for date range
+        current_date = from_date_obj
+        updated_count = 0
+        
+        while current_date <= to_date_obj:
+            # Check if villa has bookings on this date
+            has_booking = VillaBooking.objects.filter(
+                villa=villa_obj,
+                status__in=["confirmed", "checked_in"],
+                check_in__lte=current_date,
+                check_out__gt=current_date,
+            ).exists()
+            
+            # Set villa as closed if it has a booking, open otherwise
+            VillaAvailability.objects.update_or_create(
+                villa=villa_obj,
+                date=current_date,
+                defaults={"is_open": not has_booking},
             )
+            updated_count += 1
+            current_date += timedelta(days=1)
+
+        messages.success(
+            request,
+            f"Villa availability updated for {updated_count} days from {from_date} to {to_date}.",
+        )
 
         return redirect("update_hotel_availability")
 
     return redirect("update_hotel_availability")
+
+
+@login_required(login_url="login_admin")
+def manage_villa_pricing(request):
+    """
+    Main view for managing villa pricing with calendar interface.
+    Similar to availability management but for pricing.
+    Only vendors can access this - not admins.
+    """
+    # Restrict to vendors only
+    if request.user.is_superuser:
+        messages.info(request, "Pricing management is only available for vendors.")
+        return redirect("list_villa")
+    
+    try:
+        villa_obj = villa.objects.get(user=request.user)
+    except villa.DoesNotExist:
+        messages.error(request, "You are not linked to any villa.")
+        return redirect("vendor_dashboard")
+
+    if request.method == "POST":
+        # Handle single date pricing update
+        selected_date = request.POST.get("selected_date")
+        price = request.POST.get("price_per_night")
+
+        if selected_date and price:
+            try:
+                selected_date_obj = datetime.strptime(selected_date, "%Y-%m-%d").date()
+                price_decimal = Decimal(price)
+
+                VillaPricing.objects.update_or_create(
+                    villa=villa_obj,
+                    date=selected_date_obj,
+                    defaults={"price_per_night": price_decimal}
+                )
+                messages.success(request, f"Price updated for {selected_date}")
+            except (ValueError, TypeError) as e:
+                messages.error(request, f"Invalid date or price: {str(e)}")
+
+        return redirect("manage_villa_pricing")
+
+    # Get existing pricing data
+    raw_pricing = VillaPricing.objects.filter(villa=villa_obj)
+
+    # Build JSON: { "2025-07-05": 1500.00 }
+    pricing_data = {}
+    for entry in raw_pricing:
+        pricing_data[entry.date.isoformat()] = float(entry.price_per_night)
+
+    # Build events for calendar display
+    events = []
+    for entry in raw_pricing:
+        events.append({
+            "title": f"₹{entry.price_per_night}",
+            "start": entry.date.isoformat(),
+            "color": "#28a745"
+        })
+
+    context = {
+        "villa": villa_obj,
+        "default_price": villa_obj.price_per_night or 0,
+        "pricing_json": json.dumps(pricing_data),
+        "events": json.dumps(events),
+        "pricing_list": raw_pricing.order_by("-date")[:50],  # Show last 50 entries
+    }
+
+    return render(request, "manage_villa_pricing.html", context)
+
+
+@login_required(login_url="login_admin")
+def bulk_update_villa_pricing(request):
+    """
+    Bulk update pricing for a date range.
+    Only vendors can access this - not admins.
+    """
+    # Restrict to vendors only
+    if request.user.is_superuser:
+        messages.info(request, "Pricing management is only available for vendors.")
+        return redirect("list_villa")
+    
+    try:
+        villa_obj = villa.objects.get(user=request.user)
+    except villa.DoesNotExist:
+        messages.error(request, "You are not linked to any villa.")
+        return redirect("vendor_dashboard")
+
+    if request.method == "POST":
+        from_date = request.POST.get("from_date")
+        to_date = request.POST.get("to_date")
+        price = request.POST.get("price_per_night")
+
+        if not all([from_date, to_date, price]):
+            messages.error(request, "All fields are required.")
+            return redirect("manage_villa_pricing")
+
+        try:
+            from_date_obj = datetime.strptime(from_date, "%Y-%m-%d").date()
+            to_date_obj = datetime.strptime(to_date, "%Y-%m-%d").date()
+            price_decimal = Decimal(price)
+        except (ValueError, TypeError) as e:
+            messages.error(request, f"Invalid date or price: {str(e)}")
+            return redirect("manage_villa_pricing")
+
+        if from_date_obj > to_date_obj:
+            messages.error(request, "'From' date must be before 'To' date.")
+            return redirect("manage_villa_pricing")
+
+        # Update pricing for each date in range
+        current_date = from_date_obj
+        updated_count = 0
+        while current_date <= to_date_obj:
+            VillaPricing.objects.update_or_create(
+                villa=villa_obj,
+                date=current_date,
+                defaults={"price_per_night": price_decimal}
+            )
+            updated_count += 1
+            current_date += timedelta(days=1)
+
+        messages.success(
+            request,
+            f"Pricing successfully updated for {updated_count} days from {from_date} to {to_date}."
+        )
+
+    return redirect("manage_villa_pricing")
+
+
+@login_required(login_url="login_admin")
+def delete_villa_pricing(request, pricing_id):
+    """
+    Delete a specific date pricing entry.
+    Only vendors can access this - not admins.
+    """
+    # Restrict to vendors only
+    if request.user.is_superuser:
+        messages.info(request, "Pricing management is only available for vendors.")
+        return redirect("list_villa")
+    
+    try:
+        pricing_obj = VillaPricing.objects.get(id=pricing_id, villa__user=request.user)
+        pricing_obj.delete()
+        messages.success(request, f"Pricing for {pricing_obj.date} has been deleted.")
+    except VillaPricing.DoesNotExist:
+        messages.error(request, "Pricing entry not found.")
+
+    return redirect("manage_villa_pricing")

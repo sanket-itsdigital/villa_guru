@@ -134,11 +134,11 @@
         <li>
           <a href="javascript: void(0);" class="has-arrow">
             <i data-feather="box"></i>
-            <span>Room Type</span>
+            <span>Villa Type</span>
           </a>
           <ul class="sub-menu">
-            <li><a href="{% url 'add_room_type' %}">Add Room Type</a></li>
-            <li><a href="{% url 'list_room_type' %}">List Room Type</a></li>
+            <li><a href="{% url 'add_villa_type' %}">Add Villa Type</a></li>
+            <li><a href="{% url 'list_villa_type' %}">List Villa Type</a></li>
           </ul>
         </li>
 
@@ -176,12 +176,12 @@
         <li>
           <a href="javascript: void(0);" class="has-arrow">
             <i data-feather="box"></i>
-            <span>Room Amenity</span>
+            <span>Villa Amenity</span>
           </a>
           <ul class="sub-menu">
-            <li><a href="{% url 'add_room_amenity' %}">Add Room Amenity</a></li>
+            <li><a href="{% url 'add_villa_amenity' %}">Add Villa Amenity</a></li>
             <li>
-              <a href="{% url 'list_room_amenity' %}">List Room Amenity</a>
+              <a href="{% url 'list_villa_amenity' %}">List Villa Amenity</a>
             </li>
           </ul>
         </li>
@@ -209,16 +209,18 @@
 
         {% endif %}
 
+        {% if request.user.is_service_provider and not request.user.is_superuser %}
         <li>
           <a href="javascript: void(0);" class="has-arrow">
-            <i data-feather="layout"></i>
-            <span>Villa Rooms</span>
+            <i data-feather="dollar-sign"></i>
+            <span>Pricing & Availability</span>
           </a>
           <ul class="sub-menu">
-            <li><a href="{% url 'add_villa_rooms' %}">Add Villa Rooms</a></li>
-            <li><a href="{% url 'list_villa_rooms' %}">List Villa Rooms</a></li>
+            <li><a href="{% url 'manage_villa_pricing' %}">Manage Dynamic Pricing</a></li>
+            <li><a href="{% url 'update_villa_availability' %}">Manage Availability</a></li>
           </ul>
         </li>
+        {% endif %}
 
         <li>
           <a href="javascript: void(0);" class="has-arrow">

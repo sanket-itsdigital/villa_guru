@@ -16,14 +16,14 @@ class city_serializer(serializers.ModelSerializer):
         model = city
         fields = '__all__'
 
-class room_amenity_serializer(serializers.ModelSerializer):
+class villa_amenity_serializer(serializers.ModelSerializer):
     class Meta:
-        model = room_amenity
+        model = villa_amenity
         fields = '__all__'
 
-class room_type_serializer(serializers.ModelSerializer):
+class villa_type_serializer(serializers.ModelSerializer):
     class Meta:
-        model = room_type
+        model = villa_type
         fields = '__all__'
 
 

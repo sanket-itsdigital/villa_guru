@@ -1,6 +1,7 @@
 # filters.py
 import django_filters
 from hotel.models import villa, villa_rooms
+from masters.models import villa_amenity
 
 class VillaRoomFilter(django_filters.FilterSet):
     room_type = django_filters.NumberFilter(field_name='room_type__id')
@@ -15,11 +16,11 @@ class VillaRoomFilter(django_filters.FilterSet):
     capacity = django_filters.CharFilter(lookup_expr='icontains')
     view = django_filters.CharFilter(lookup_expr='icontains')
 
-    # 👇 Many-to-many: room amenities by ID
-    room_amenities = django_filters.ModelMultipleChoiceFilter(
-        field_name='room_amenities__id',
+    # 👇 Many-to-many: villa amenities by ID
+    villa_amenities = django_filters.ModelMultipleChoiceFilter(
+        field_name='villa_amenities__id',
         to_field_name='id',
-        queryset=villa_rooms._meta.get_field('room_amenities').related_model.objects.all()
+        queryset=villa_amenity.objects.all()
     )
 
     class Meta:
@@ -34,5 +35,5 @@ class VillaRoomFilter(django_filters.FilterSet):
             'bed_type',
             'capacity',
             'view',
-            'room_amenities',
+            'villa_amenities',
         ]

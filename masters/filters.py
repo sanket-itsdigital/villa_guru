@@ -53,17 +53,15 @@ class PropertyTypeFilter(django_filters.FilterSet):
         fields = '__all__'  # property_type has no ImageField
 
 
-class RoomAmenityFilter(django_filters.FilterSet):
+class VillaAmenityFilter(django_filters.FilterSet):
     class Meta:
-        model = room_amenity
-        fields = '__all__'  # room_amenity has no ImageField
+        model = villa_amenity
+        fields = '__all__'  # villa_amenity has no ImageField
 
-
-class RoomTypeFilter(django_filters.FilterSet):
+class VillaTypeFilter(django_filters.FilterSet):
     class Meta:
-        model = room_type
-        fields = '__all__'  # room_type has no ImageField
-
+        model = villa_type
+        fields = '__all__'  # villa_type has no ImageField
 
 class CustomerAddressFilter(django_filters.FilterSet):
     class Meta:

@@ -71,6 +71,21 @@ urlpatterns = [
         update_from_to_hotel_availability,
         name="update_from_to_villa_availability",
     ),
+    path(
+        "pricing/manage/",
+        manage_villa_pricing,
+        name="manage_villa_pricing",
+    ),
+    path(
+        "pricing/bulk-update/",
+        bulk_update_villa_pricing,
+        name="bulk_update_villa_pricing",
+    ),
+    path(
+        "pricing/delete/<int:pricing_id>/",
+        delete_villa_pricing,
+        name="delete_villa_pricing",
+    ),
 ] + router.urls
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
