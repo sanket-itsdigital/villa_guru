@@ -1,8 +1,8 @@
 # filters.py
 import django_filters
-from hotel.models import hotel, hotel_rooms
+from hotel.models import villa, villa_rooms
 
-class HotelRoomFilter(django_filters.FilterSet):
+class VillaRoomFilter(django_filters.FilterSet):
     room_type = django_filters.NumberFilter(field_name='room_type__id')
     title = django_filters.CharFilter(lookup_expr='icontains')
     price_min = django_filters.NumberFilter(field_name='price_per_night', lookup_expr='gte')
@@ -19,11 +19,11 @@ class HotelRoomFilter(django_filters.FilterSet):
     room_amenities = django_filters.ModelMultipleChoiceFilter(
         field_name='room_amenities__id',
         to_field_name='id',
-        queryset=hotel_rooms._meta.get_field('room_amenities').related_model.objects.all()
+        queryset=villa_rooms._meta.get_field('room_amenities').related_model.objects.all()
     )
 
     class Meta:
-        model = hotel_rooms
+        model = villa_rooms
         fields = [
             'room_type',
             'title',

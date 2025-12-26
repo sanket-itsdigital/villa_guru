@@ -5,22 +5,24 @@ from django.shortcuts import get_object_or_404, render
 
 
 from rest_framework import viewsets
-from .models import HotelBooking
-from .serializers import HotelBookingSerializer
+from .models import VillaBooking
+from .serializers import VillaBookingSerializer
 
-from datetime import timedelta
+from datetime import timedelta, date
 from rest_framework.exceptions import ValidationError
 from django.db import transaction
-from datetime import timedelta
+from decimal import Decimal
 
 import uuid
 
 import razorpay
 from django.conf import settings
+from rest_framework.response import Response
+from hotel.models import villa, villa_rooms, RoomAvailability
 
-class HotelBookingViewSet(viewsets.ModelViewSet):
-    queryset = HotelBooking.objects.filter(payment_status = "paid").order_by("-id")
-    serializer_class = HotelBookingSerializer
+class VillaBookingViewSet(viewsets.ModelViewSet):
+    queryset = VillaBooking.objects.filter(payment_status = "paid").order_by("-id")
+    serializer_class = VillaBookingSerializer
 
     def perform_create(self, serializer):
         request_id = uuid.uuid4()
@@ -30,31 +32,36 @@ class HotelBookingViewSet(viewsets.ModelViewSet):
             booking = serializer.save(user=self.request.user)
             print(f"➡️  Booking saved: {booking.pk}, Rooms: {booking.no_of_rooms}")
 
-            # --- Room availability handling (your existing logic) ---
-            room = booking.room
-            check_in = booking.check_in
-            check_out = booking.check_out
-            quantity = booking.no_of_rooms
+            # --- Room availability handling (only for room-based bookings) ---
+            if booking.room:
+                # Room-based booking: check and update room availability
+                room = booking.room
+                check_in = booking.check_in
+                check_out = booking.check_out
+                quantity = booking.no_of_rooms
 
-            total_days = (check_out - check_in).days
-            booking_dates = [check_in + timedelta(days=i) for i in range(total_days)]
+                total_days = (check_out - check_in).days
+                booking_dates = [check_in + timedelta(days=i) for i in range(total_days)]
 
-            availabilities = RoomAvailability.objects.select_for_update().filter(
-                room=room,
-                date__in=booking_dates
-            )
+                availabilities = RoomAvailability.objects.select_for_update().filter(
+                    room=room,
+                    date__in=booking_dates
+                )
 
-            if availabilities.count() != total_days:
-                raise ValidationError("Some dates are missing availability records.")
+                if availabilities.count() != total_days:
+                    raise ValidationError("Some dates are missing availability records.")
 
-            insufficient = [a.date for a in availabilities if a.available_count < quantity]
-            if insufficient:
-                date_str = ", ".join(str(d) for d in insufficient)
-                raise ValidationError(f"Only limited rooms available on: {date_str}")
+                insufficient = [a.date for a in availabilities if a.available_count < quantity]
+                if insufficient:
+                    date_str = ", ".join(str(d) for d in insufficient)
+                    raise ValidationError(f"Only limited rooms available on: {date_str}")
 
-            for avail in availabilities:
-                avail.available_count -= quantity
-                avail.save()
+                for avail in availabilities:
+                    avail.available_count -= quantity
+                    avail.save()
+            else:
+                # Villa-level booking: whole villa is booked, no room availability check needed
+                print(f"✅ Villa-level booking: {booking.villa.name} booked as whole villa")
 
             # --- ✅ Create Razorpay order here ---
             client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
@@ -79,28 +86,42 @@ class HotelBookingViewSet(viewsets.ModelViewSet):
             print(f"✅ Razorpay order created: {order['id']} for booking {booking.id}")
 
     def get_queryset(self):
-        return HotelBooking.objects.filter(payment_status__in = ["paid", "pending"], user=self.request.user).order_by('-id')
+        return VillaBooking.objects.filter(payment_status__in = ["paid", "pending"], user=self.request.user).order_by('-id')
 
 
 
 from rest_framework.views import APIView
 
-class HotelBookingRecalculateAPIView(APIView):
+class VillaBookingRecalculateAPIView(APIView):
     def post(self, request):
         try:
             room_id = request.data.get("room_id")
+            hotel_id = request.data.get("hotel_id")
             check_in = request.data.get("check_in")
             check_out = request.data.get("check_out")
             no_of_rooms = int(request.data.get("no_of_rooms", 1))
 
-            if not room_id or not check_in or not check_out:
-                return Response({"error": "room_id, check_in, check_out are required"}, status=400)
+            if not check_in or not check_out:
+                return Response({"error": "check_in and check_out are required"}, status=400)
 
-            room = hotel_rooms.objects.get(id=room_id)
-            price_per_night = room.price_per_night
-
-            nights = (date.fromisoformat(check_out) - date.fromisoformat(check_in)).days or 1
-            base = price_per_night * nights * no_of_rooms
+            # Determine pricing: room-based or villa-based
+            if room_id:
+                # Room-based pricing (legacy)
+                room = villa_rooms.objects.get(id=room_id)
+                price_per_night = room.price_per_night
+                nights = (date.fromisoformat(check_out) - date.fromisoformat(check_in)).days or 1
+                base = price_per_night * nights * no_of_rooms
+            elif hotel_id:
+                # Villa-based pricing (whole villa)
+                villa_obj = villa.objects.get(id=hotel_id)
+                if not villa_obj.price_per_night:
+                    return Response({"error": "Villa does not have a price set"}, status=400)
+                # Use marked-up price for customer display
+                price_per_night = villa_obj.get_marked_up_price() or villa_obj.price_per_night
+                nights = (date.fromisoformat(check_out) - date.fromisoformat(check_in)).days or 1
+                base = price_per_night * nights  # Whole villa, no_of_rooms not used
+            else:
+                return Response({"error": "Either room_id or hotel_id is required"}, status=400)
 
             gst_percent = Decimal('0.05') if price_per_night < 7500 else Decimal('0.12')
             gst = base * gst_percent
@@ -109,10 +130,9 @@ class HotelBookingRecalculateAPIView(APIView):
             tcs = base * Decimal('0.005')
             tds = base * Decimal('0.001')
 
-
             return Response({
                 "nights": nights,
-                "room_price_per_night": price_per_night,
+                "price_per_night": price_per_night,
                 "base_amount": base,
                 "gst_amount": gst,
                 "total_amount": subtotal,
@@ -129,13 +149,13 @@ class HotelBookingRecalculateAPIView(APIView):
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from hotel.models import hotel
+from hotel.models import villa
 from hotel.filters import *
 from .serializers import *
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
-from hotel.models import hotel, hotel_rooms
-from .filters import HotelRoomFilter
+from hotel.models import villa, villa_rooms
+from .filters import VillaRoomFilter
 
 
 from django.views.decorators.csrf import csrf_exempt
@@ -165,13 +185,13 @@ def terms_condition(request):
 
 
 
-class HotelListAPIView(generics.ListAPIView):
-    serializer_class = HotelSerializer
+class VillaListAPIView(generics.ListAPIView):
+    serializer_class = VillaSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_class = HotelFilter
+    filterset_class = VillaFilter
 
     def get_queryset(self):
-        return hotel.objects.annotate(
+        return villa.objects.annotate(
             room_count=Count('rooms')
         ).filter(
             go_live=True,
@@ -185,27 +205,27 @@ class HotelListAPIView(generics.ListAPIView):
         return kwargs
 
 
-class HotelDetailAPIView(generics.RetrieveAPIView):
-    queryset = hotel.objects.all().order_by('-id')
-    serializer_class = HotelSerializer  # this one includes rooms and images
+class VillaDetailAPIView(generics.RetrieveAPIView):
+    queryset = villa.objects.all().order_by('-id')
+    serializer_class = VillaSerializer  # this one includes rooms and images
     lookup_url_kwarg = 'hotel_id'
 
 
 
-class HotelRoomListAPIView(generics.ListAPIView):
-    serializer_class = HotelRoomSerializer
+class VillaRoomListAPIView(generics.ListAPIView):
+    serializer_class = VillaRoomSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_class = HotelRoomFilter
+    filterset_class = VillaRoomFilter
 
     def get_queryset(self):
         hotel_id = self.kwargs.get('hotel_id')
-        return hotel_rooms.objects.filter(hotel_id=hotel_id)
+        return villa_rooms.objects.filter(villa_id=hotel_id)
 
 
 
-class HotelRoomDetailAPIView(generics.RetrieveAPIView):
-    queryset = hotel_rooms.objects.all().order_by('-id')
-    serializer_class = HotelRoomSerializer
+class VillaRoomDetailAPIView(generics.RetrieveAPIView):
+    queryset = villa_rooms.objects.all().order_by('-id')
+    serializer_class = VillaRoomSerializer
     lookup_url_kwarg = 'room_id'  # matches your URL param
 
 
@@ -220,9 +240,9 @@ from datetime import datetime
 
 
 class AvailableRoomsAPIView(generics.ListAPIView):
-    serializer_class = HotelRoomSerializer
+    serializer_class = VillaRoomSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_class = HotelRoomFilter
+    filterset_class = VillaRoomFilter
 
     def get_queryset(self):
         from_date_str = self.request.query_params.get('from_date')
@@ -263,10 +283,10 @@ class AvailableRoomsAPIView(generics.ListAPIView):
             .values_list('room', flat=True)
         )
 
-        qs = hotel_rooms.objects.filter(id__in=available_room_ids)
+        qs = villa_rooms.objects.filter(id__in=available_room_ids)
 
         # Apply other filters
-        filterset = HotelRoomFilter(self.request.GET, queryset=qs)
+        filterset = VillaRoomFilter(self.request.GET, queryset=qs)
         return filterset.qs
     
 
@@ -274,7 +294,7 @@ class AvailableRoomsAPIView(generics.ListAPIView):
 
     
 
-class AvailableHotelsAPIView(APIView):
+class AvailableVillasAPIView(APIView):
     def get(self, request):
         city = request.query_params.get('city')
         check_in = request.query_params.get('check_in')
@@ -296,7 +316,7 @@ class AvailableHotelsAPIView(APIView):
             return Response({"error": "check_in cannot be in the past."}, status=400)
 
         # Step 1: Get all rooms from hotels in the given city
-        rooms = hotel_rooms.objects.select_related('hotel').filter(hotel__city=city)
+        rooms = villa_rooms.objects.select_related('villa').filter(villa__city=city)
 
         # Step 2: Get all availabilities for the room/date range
         room_ids = rooms.values_list('id', flat=True)
@@ -320,9 +340,9 @@ class AvailableHotelsAPIView(APIView):
         valid_room_ids = [room_id for room_id, dates in room_to_dates.items() if required_dates.issubset(dates)]
 
         # Step 5: Get unique hotels from those rooms
-        available_hotels = hotel.objects.filter(rooms__id__in=valid_room_ids).distinct()
+        available_villas = villa.objects.filter(rooms__id__in=valid_room_ids).distinct()
 
-        return Response(HotelSerializer(available_hotels, many=True).data)
+        return Response(VillaSerializer(available_villas, many=True).data)
 
 
 
@@ -333,8 +353,8 @@ class CancelBookingAPIView(APIView):
 
     def post(self, request, booking_id):
         try:
-            booking = HotelBooking.objects.get(id=booking_id, user=request.user)
-        except HotelBooking.DoesNotExist:
+            booking = VillaBooking.objects.get(id=booking_id, user=request.user)
+        except VillaBooking.DoesNotExist:
             return Response({'error': 'Booking not found or unauthorized'}, status=404)
 
         if booking.status == 'cancelled':
@@ -415,25 +435,25 @@ class TicketMessageViewSet(viewsets.ViewSet):
 
 
 
-class FavouriteHotelViewSet(viewsets.ModelViewSet):
-    queryset = favouritehotel.objects.all().order_by('-id')
-    serializer_class = FavouriteHotelSerializer
+class FavouriteVillaViewSet(viewsets.ModelViewSet):
+    queryset = favouritevilla.objects.all().order_by('-id')
+    serializer_class = FavouriteVillaSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
         user = self.request.user
-        hotel = serializer.validated_data['hotel']
+        villa_obj = serializer.validated_data['villa']
         
-        if favouritehotel.objects.filter(user=user, hotel=hotel).exists():
-            raise ValidationError("You have already added this hotel to favourites.")
+        if favouritevilla.objects.filter(user=user, villa=villa_obj).exists():
+            raise ValidationError("You have already added this villa to favourites.")
         
         serializer.save(user=user)
 
     def get_queryset(self):
         # Optionally filter by current user
         if self.request.user.is_authenticated:
-            return favouritehotel.objects.filter(user=self.request.user)
-        return favouritehotel.objects.none()
+            return favouritevilla.objects.filter(user=self.request.user)
+        return favouritevilla.objects.none()
 
 
 
@@ -447,7 +467,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .models import HotelBooking, PaymentTransaction
+from .models import VillaBooking, PaymentTransaction
 
 logger = logging.getLogger(__name__)
 
@@ -468,7 +488,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 import razorpay
-from .models import HotelBooking, PaymentTransaction
+from .models import VillaBooking, PaymentTransaction
 
 # ✅ Custom logger (defined in settings.LOGGING)
 logger = logging.getLogger("razorpay_webhook")
@@ -548,9 +568,9 @@ def razorpay_booking_webhook(request):
             return Response({"error": "Booking ID missing"}, status=400)
 
         try:
-            booking = HotelBooking.objects.get(id=booking_id)
-        except HotelBooking.DoesNotExist:
-            log(f"❌ HotelBooking {booking_id} not found")
+            booking = VillaBooking.objects.get(id=booking_id)
+        except VillaBooking.DoesNotExist:
+            log(f"❌ VillaBooking {booking_id} not found")
             return Response({"error": "Booking not found"}, status=404)
 
         status_map = {

@@ -1,6 +1,6 @@
 # filters.py
 import django_filters
-from customer.models import HotelBooking
+from customer.models import VillaBooking
 from .models import *
 from masters.models import *
 from users.models import *
@@ -8,18 +8,18 @@ from django import forms
 
 
     
-class HotelFilter(django_filters.FilterSet):
+class VillaFilter(django_filters.FilterSet):
     
     
     name = django_filters.CharFilter(
         field_name='name',
         lookup_expr='icontains',
-        label='Hotel Name'
+        label='Villa Name'
     )
 
-    hotel_id = django_filters.CharFilter(
+    villa_id = django_filters.CharFilter(
         lookup_expr='icontains',
-        label='Hotel ID'
+        label='Villa ID'
     )
 
     user = django_filters.ModelChoiceFilter(
@@ -28,7 +28,7 @@ class HotelFilter(django_filters.FilterSet):
     )
 
     category = django_filters.ChoiceFilter(
-        choices=hotel.HOTEL_CATEGORY_CHOICES,
+        choices=villa.VILLA_CATEGORY_CHOICES,
         label='Category'
     )
 
@@ -85,9 +85,9 @@ class HotelFilter(django_filters.FilterSet):
     )
 
     class Meta:
-        model = hotel
+        model = villa
         fields = [
-            'name', 'hotel_id', 'user', 'category', 'property_type',
+            'name', 'villa_id', 'user', 'category', 'property_type',
             'city', 'amenities', 'pincode', 'star_rating',
             'overall_rating', 'is_featured', 'is_recommended',
             'is_active', 'go_live'
@@ -108,27 +108,27 @@ class HotelFilter(django_filters.FilterSet):
   
 
 
-class HotelRoomFilter(django_filters.FilterSet):
+class VillaRoomFilter(django_filters.FilterSet):
  
 
-    hotel_id = django_filters.CharFilter(
-        label='Hotel ID',
-        method='filter_hotel_id',
+    villa_id = django_filters.CharFilter(
+        label='Villa ID',
+        method='filter_villa_id',
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
 
-    hotel = django_filters.ModelChoiceFilter(
-        queryset=hotel.objects.all(),
-        empty_label="All hotels",
+    villa = django_filters.ModelChoiceFilter(
+        queryset=villa.objects.all(),
+        empty_label="All Villas",
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
     class Meta:
-        model = hotel_rooms
-        fields = ['hotel', 'hotel_id']  # ✅ include hotel_id here!
+        model = villa_rooms
+        fields = ['villa', 'villa_id']  # ✅ include villa_id here!
 
-    def filter_hotel_id(self, queryset, name, value):
-        return queryset.filter(hotel__hotel_id__icontains=value)
+    def filter_villa_id(self, queryset, name, value):
+        return queryset.filter(villa__villa_id__icontains=value)
 
     def __init__(self, *args, **kwargs):
         request = kwargs.pop('request', None)
@@ -139,12 +139,12 @@ class HotelRoomFilter(django_filters.FilterSet):
     
 
 
-class HotelBookingFilter(django_filters.FilterSet):
+class VillaBookingFilter(django_filters.FilterSet):
     
     
-    hotel = django_filters.ModelChoiceFilter(
-        queryset= hotel.objects.all(),
-        empty_label="All Hotels",
+    villa = django_filters.ModelChoiceFilter(
+        queryset= villa.objects.all(),
+        empty_label="All Villas",
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
@@ -176,15 +176,15 @@ class HotelBookingFilter(django_filters.FilterSet):
     )
 
     class Meta:
-        model = HotelBooking
-        fields = ['user', 'hotel', 'check_in', 'check_out']
+        model = VillaBooking
+        fields = ['user', 'villa', 'check_in', 'check_out']
 
 
     def __init__(self, *args, **kwargs):
         request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
 
-        # Hide hotel filter for non-admins
+        # Hide villa filter for non-admins
         if request and not request.user.is_superuser:
-            self.filters.pop('hotel', None)
+            self.filters.pop('villa', None)
             self.filters.pop('user', None)

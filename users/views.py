@@ -36,10 +36,38 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import  User  # Your custom user model
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
 class SignupView(APIView):
-
+    @swagger_auto_schema(
+        operation_description="Register a new user with Firebase authentication",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['idToken', 'user_type'],
+            properties={
+                'idToken': openapi.Schema(type=openapi.TYPE_STRING, description='Firebase ID token'),
+                'user_type': openapi.Schema(type=openapi.TYPE_STRING, enum=['customer', 'doctor', 'daycare', 'service_provider'], description='User type'),
+                'name': openapi.Schema(type=openapi.TYPE_STRING, description='User full name'),
+                'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description='User email'),
+            },
+        ),
+        responses={
+            200: openapi.Response(
+                description='Registration successful',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'access': openapi.Schema(type=openapi.TYPE_STRING),
+                        'refresh': openapi.Schema(type=openapi.TYPE_STRING),
+                        'user': openapi.Schema(type=openapi.TYPE_OBJECT),
+                    }
+                )
+            ),
+            400: openapi.Response(description='Bad request'),
+        }
+    )
     def post(self, request):
         id_token = request.data.get("idToken")
         user_type = request.data.get("user_type")
@@ -160,7 +188,24 @@ User = get_user_model()
 
 class LoginAPIView(APIView):
     permission_classes = [AllowAny]
-
+    
+    @swagger_auto_schema(
+        operation_description="Login user with Firebase authentication",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['idToken'],
+            properties={
+                'idToken': openapi.Schema(type=openapi.TYPE_STRING, description='Firebase ID token'),
+                'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL),
+                'first_name': openapi.Schema(type=openapi.TYPE_STRING),
+                'last_name': openapi.Schema(type=openapi.TYPE_STRING),
+            },
+        ),
+        responses={
+            200: openapi.Response(description='Login successful'),
+            400: openapi.Response(description='Bad request'),
+        }
+    )
     def post(self, request):
         id_token = request.data.get("idToken")
         print('------------------------------------')
@@ -347,7 +392,7 @@ import json
 
 def vendor_request(request):
 
-    data = hotel.objects.filter(is_active = False)
+    data = villa.objects.filter(is_active = False).select_related('user', 'city', 'property_type').prefetch_related('amenities', 'rooms')
 
     context = {
         'data' : data
@@ -376,25 +421,25 @@ def activate_vendor_request(request, user_id):
 
     user_instance.save()
 
-    hotel_instance = hotel.objects.get(user = user_instance)
-    hotel_instance.is_active = True
+    villa_instance = villa.objects.get(user = user_instance)
+    villa_instance.is_active = True
 
-    hotel_instance.save()
+    villa_instance.save()
 
-    msg =  'Hi, Your account is activated login and completed your profile' + str(hotel_instance.id)
+    msg =  'Hi, Your account is activated login and completed your profile' + str(villa_instance.id)
 
     send_test_email(request, 'Your account is actiated', msg, user_instance)
 
     return redirect('vendor_request')
 
 
-from hotel.forms import *
+from hotel.forms import villa_Form
 
 def register_vendor(request):
 
     if request.method == 'POST':
 
-        form = hotel_Form(request.POST, request.FILES)  # ⬅️ Preserve submitted data
+        form = villa_Form(request.POST, request.FILES)  # ⬅️ Preserve submitted data
 
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
@@ -451,14 +496,14 @@ def register_vendor(request):
                 form.fields.pop('profit_margin')
 
             if form.is_valid():
-                hotel = form.save(commit=False)
+                villa_obj = form.save(commit=False)
                 if not request.user.is_superuser:
-                    hotel.user = user  # auto-assign vendor user
-                hotel.save()
+                    villa_obj.user = user  # auto-assign vendor user
+                villa_obj.save()
                 form.save_m2m()
 
                 for img in request.FILES.getlist('image'):
-                    HotelImage.objects.create(hotel=hotel, image=img)
+                    VillaImage.objects.create(villa=villa_obj, image=img)
 
                 return render(request, 'hotel_registration_succful.html')
 
@@ -469,7 +514,7 @@ def register_vendor(request):
 
         except Exception as e:
             print(f"Registration failed: {e}")
-            user.delete()  # optional: rollback user if hotel fails
+            user.delete()  # optional: rollback user if villa fails
             context = { 
                 'form': form, 
                 'error': 'Something went wrong during registration. Please try again.'
@@ -479,7 +524,7 @@ def register_vendor(request):
     else:
 
     
-        form = hotel_Form()
+        form = villa_Form()
 
         context = { 
                 'form': form, 
@@ -605,7 +650,7 @@ def customer_user_list(request):
 
     data = User.objects.filter(is_customer = True).order_by('-date_joined')
 
-    paginator = Paginator(data, 30)  # Show 10 hotels per page
+    paginator = Paginator(data, 30)  # Show 10 villas per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -616,21 +661,21 @@ def provider_user_list(request):
 
     data = User.objects.filter(is_service_provider = True).order_by('-date_joined')
 
-    paginator = Paginator(data, 30)  # Show 10 hotels per page
+    paginator = Paginator(data, 30)  # Show 10 villas per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
 
-    return render(request, 'staff_list.html', { 'data' : page_obj})
+    return render(request, 'staff_list.djhtml', { 'data' : page_obj})
 
 
-from customer.models import *
-from hotel.models import *
+from customer.models import VillaBooking
+from hotel.models import villa, VillaImage
 
 
 def user_booking_history(request, user_id):
 
-    data = HotelBooking.objects.filter(user__id = user_id)
+    data = VillaBooking.objects.filter(user__id = user_id)
 
     user_instance = User.objects.get(id = user_id)
 
@@ -641,11 +686,11 @@ def user_booking_history(request, user_id):
 
 def hotel_booking_history(request, user_id):
 
-    data = HotelBooking.objects.filter(hotel__user__id = user_id)
+    data = VillaBooking.objects.filter(villa__user__id = user_id)
 
-    hotel_instance = hotel.objects.get(user__id = user_id)
+    villa_instance = villa.objects.get(user__id = user_id)
 
-    return render(request, 'hotel_booking_history.html', { 'data' : data, 'hotel_instance' : hotel_instance})
+    return render(request, 'hotel_booking_history.html', { 'data' : data, 'hotel_instance' : villa_instance})
 
 
 
@@ -698,7 +743,7 @@ def list_custom_user(request):
         is_service_provider=False
     ).order_by('-date_joined')
 
-    paginator = Paginator(users, 30)  # Show 10 hotels per page
+    paginator = Paginator(users, 30)  # Show 10 villas per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -823,7 +868,28 @@ def verify_email_change(request, uidb64, token):
 
 @login_required
 def user_profile(request):
-    return render(request, 'profile.html', {'user': request.user})
+    from masters.models import SystemSettings
+    from .forms import SystemSettingsForm
+    
+    system_settings = SystemSettings.get_settings()
+    settings_form = None
+    
+    # Only show settings form to superusers
+    if request.user.is_superuser:
+        if request.method == 'POST' and 'update_markup' in request.POST:
+            settings_form = SystemSettingsForm(request.POST, instance=system_settings)
+            if settings_form.is_valid():
+                settings_form.save()
+                messages.success(request, f'Price markup percentage updated to {system_settings.price_markup_percentage}%')
+                return redirect('user_profile')
+        else:
+            settings_form = SystemSettingsForm(instance=system_settings)
+    
+    return render(request, 'profile.html', {
+        'user': request.user,
+        'system_settings': system_settings,
+        'settings_form': settings_form
+    })
 
     
 @login_required

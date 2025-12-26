@@ -80,7 +80,7 @@
         {% endfor %}
         <div class="col-md-3 mb-2 d-flex align-items-end">
             <button type="submit" class="btn btn-primary me-2">Apply</button>
-            <a href="{% url 'list_hotel' %}" class="btn btn-secondary">Reset</a>
+            <a href="{% url 'list_villa' %}" class="btn btn-secondary">Reset</a>
         </div>
     </div>
 </form>
@@ -145,15 +145,15 @@
                                                     {% endif %}
                                                 </td>
                                                    <td>
-                                                            <a href="{% url 'view_hotel_rooms' hotel.id %}">View</a>
+                                                            <a href="{% url 'view_villa_rooms' hotel.id %}">View</a>
                                                     </td>
                                                 <td>
                                                    
-                                                    <a href="{% url 'update_hotel' hotel.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                                    <a href="{% url 'update_villa' hotel.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
                                                         <i class="bi bi-pencil-square"></i> Edit
                                                     </a>
 
-                                                    <a href="{% url 'delete_hotel' hotel.id %}" 
+                                                    <a href="{% url 'delete_villa' hotel.id %}" 
                                                     class="btn btn-sm btn-outline-danger" 
                                                     title="Delete"
                                                     onclick="return confirm('Are you sure you want to delete this Villa?');">
@@ -173,7 +173,7 @@
                                                     <strong>Bed:</strong> {{ room.bed_type }} |
                                                     <strong>Capacity:</strong> {{ room.capacity }} |
                                                     <strong>View:</strong> {{ room.view }} 
-                                                    <a href="{% url 'update_hotel_rooms' room.id %}" class="text-primary ms-1" title="Edit Room">
+                                                    <a href="{% url 'update_villa_rooms' room.id %}" class="text-primary ms-1" title="Edit Room">
             <i class="bi bi-pencil-square"></i>
         </a>
 

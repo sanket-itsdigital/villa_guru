@@ -68,6 +68,44 @@
                         <a href="{% url 'edit_user_profile' %}" class="btn btn-outline-success me-2">Edit Profile</a>
                     </div>
                 </div>
+
+                <!-- Admin Settings Section -->
+                {% if user.is_superuser and settings_form %}
+                <div class="form-container mt-4">
+                    <h5 class="mb-3">Admin Settings - Price Markup</h5>
+                    <div class="alert alert-info">
+                        <strong>Current Markup:</strong> {{ system_settings.price_markup_percentage }}%
+                        <br>
+                        <small>This percentage is automatically added to all villa prices shown to customers.</small>
+                    </div>
+                    
+                    <form method="post" action="{% url 'user_profile' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="update_markup" value="1">
+                        <div class="mb-3">
+                            <label for="{{ settings_form.price_markup_percentage.id_for_label }}" class="form-label">
+                                {{ settings_form.price_markup_percentage.label }}
+                            </label>
+                            {{ settings_form.price_markup_percentage }}
+                            {% if settings_form.price_markup_percentage.help_text %}
+                                <small class="form-text text-muted">{{ settings_form.price_markup_percentage.help_text }}</small>
+                            {% endif %}
+                            {% if settings_form.price_markup_percentage.errors %}
+                                <div class="text-danger">
+                                    {{ settings_form.price_markup_percentage.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Markup Percentage</button>
+                    </form>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <strong>Example:</strong> If a vendor sets villa price as ₹100 and markup is 10%, customers will see ₹110.
+                        </small>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

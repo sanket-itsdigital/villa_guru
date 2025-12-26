@@ -5,5 +5,5 @@ from django.contrib import admin
 
 from .models import *
 
-admin.site.register(hotel)
-admin.site.register(hotel_rooms)
+admin.site.register(villa)
+admin.site.register(villa_rooms)

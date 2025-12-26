@@ -419,7 +419,7 @@
                             {% for img in existing_images %}
                                 <div style="position: relative;">
                                     <img src="{{ img.image.url }}" width="100" height="100" style="object-fit: cover;" />
-                                    <a href="{% url 'delete_hotel_image' img.id %}">
+                                    <a href="{% url 'delete_villa_image' img.id %}">
                                         <button type="button" style="background: red; color: white; border: none;">✕</button>
                                     </a>
                                 </div>

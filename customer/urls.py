@@ -8,15 +8,15 @@ from django.conf.urls.static import static
 
 
 
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import SimpleRouter
 
-router = DefaultRouter()
-router.register(r'hotel-bookings', HotelBookingViewSet, basename='sdfdssdsa')
+router = SimpleRouter()
+router.register(r'villa-bookings', VillaBookingViewSet, basename='sdfdssdsa')
 
 router.register('tickets', SupportTicketViewSet, basename='tickets')
 router.register('ticket-messages', TicketMessageViewSet, basename='ticket-messages')
 
-router.register(r'favourite-hotels', FavouriteHotelViewSet, basename='favouritehotel')
+router.register(r'favourite-villas', FavouriteVillaViewSet, basename='favouritevilla')
 
 urlpatterns = [
 
@@ -26,17 +26,17 @@ urlpatterns = [
     path('privacy-policy/', privacy_policy, name='privacy_policy'),
     path('terms-condition/', terms_condition, name='terms_condition'),
 
-    path('hotel-prebooking-bookings/', HotelBookingRecalculateAPIView.as_view(), name='HotelBookingRecalculateAPIView'),
+    path('villa-prebooking-bookings/', VillaBookingRecalculateAPIView.as_view(), name='VillaBookingRecalculateAPIView'),
 
-    path('hotels/', HotelListAPIView.as_view(), name='hotel-list'),
-    path('hotels/<int:hotel_id>/', HotelDetailAPIView.as_view(), name='hotel-detail'),
+    path('villas/', VillaListAPIView.as_view(), name='villa-list'),
+    path('villas/<int:villa_id>/', VillaDetailAPIView.as_view(), name='villa-detail'),
 
-    path('hotels/<int:hotel_id>/rooms/', HotelRoomListAPIView.as_view(), name='hotel-room-list'),
-    path('room/<int:room_id>/', HotelRoomDetailAPIView.as_view(), name='room-detail'),
+    path('villas/<int:villa_id>/rooms/', VillaRoomListAPIView.as_view(), name='villa-room-list'),
+    path('room/<int:room_id>/', VillaRoomDetailAPIView.as_view(), name='room-detail'),
 
     path('available-rooms/', AvailableRoomsAPIView.as_view(), name='available-rooms'),
 
-    path('available-hotels/', AvailableHotelsAPIView.as_view(), name='available-hotels'),
+    path('available-villas/', AvailableVillasAPIView.as_view(), name='available-villas'),
 
     path('cancel-booking/<int:booking_id>/', CancelBookingAPIView.as_view(), name='cancel_booking'),
     path('booking/webhook/', razorpay_booking_webhook, name='razorpay_booking_webhook'),

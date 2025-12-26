@@ -52,6 +52,9 @@ class amenity_Form(forms.ModelForm):
            
             'name': forms.TextInput(attrs={
                 'class': 'form-control', 'id': 'name'
+            }),
+            'image': forms.FileInput(attrs={
+                'class': 'form-control', 'id': 'image', 'accept': 'image/*'
             })
 
         }
@@ -112,12 +115,14 @@ class room_type_Form(forms.ModelForm):
 class event_Form(forms.ModelForm):
     class Meta:
         model = event
-        fields = ['name', 'image', 'description', 'start_date']
+        fields = ['name', 'image', 'description', 'itinerary', 'amount', 'start_date']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control description-box'}),
-            'image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
-            'start_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'id': 'name'}),
+            'description': forms.Textarea(attrs={'class': 'form-control description-box', 'id': 'description', 'rows': 5}),
+            'itinerary': forms.Textarea(attrs={'class': 'form-control description-box', 'id': 'itinerary', 'rows': 5, 'placeholder': 'Enter event itinerary/schedule'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control', 'id': 'amount', 'step': '0.01', 'min': '0', 'placeholder': '0.00'}),
+            'image': forms.ClearableFileInput(attrs={'class': 'form-control', 'id': 'image', 'accept': 'image/*'}),
+            'start_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local', 'id': 'start_date'}),
 
         }
 

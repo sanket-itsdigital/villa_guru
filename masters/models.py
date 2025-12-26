@@ -20,6 +20,7 @@ from users.models import User
 
 class amenity(models.Model):
     name = models.CharField(max_length=255)
+    image = models.ImageField(upload_to='amenities/', null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -118,7 +119,9 @@ class testimonials(models.Model):
 class event(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
-    image = models.ImageField(upload_to='doctor_images/')
+    image = models.ImageField(upload_to='events/', null=True, blank=True)
+    itinerary = models.TextField(blank=True, null=True, help_text="Event itinerary/schedule")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Event price/amount")
     start_date = models.DateTimeField()
     date_created = models.DateTimeField(auto_now_add=True)
 
@@ -138,4 +141,32 @@ class home_banner(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class SystemSettings(models.Model):
+    """
+    System-wide settings that can be configured by admin.
+    Only one instance should exist (singleton pattern).
+    """
+    price_markup_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        help_text="Percentage markup to add to villa prices (e.g., 10 for 10%)"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "System Settings"
+        verbose_name_plural = "System Settings"
+
+    def __str__(self):
+        return f"Price Markup: {self.price_markup_percentage}%"
+
+    @classmethod
+    def get_settings(cls):
+        """Get or create the singleton settings instance"""
+        settings, created = cls.objects.get_or_create(pk=1)
+        return settings
     

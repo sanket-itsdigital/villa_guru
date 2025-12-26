@@ -7,7 +7,8 @@ from masters.filters import EventFilter
 
 from .models import *
 from .forms import *
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
 
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -113,6 +114,7 @@ from django.http import JsonResponse
 
 
 @login_required(login_url='login_admin')
+@user_passes_test(lambda u: u.is_superuser, login_url='login_admin')
 def add_coupon(request):
 
     if request.method == 'POST':
@@ -121,6 +123,7 @@ def add_coupon(request):
 
         if forms.is_valid():
             forms.save()
+            messages.success(request, 'Coupon/Offer added successfully!')
             return redirect('list_coupon')
         else:
             print(forms.errors)
@@ -141,6 +144,7 @@ def add_coupon(request):
 
 
 @login_required(login_url='login_admin')
+@user_passes_test(lambda u: u.is_superuser, login_url='login_admin')
 def update_coupon(request, coupon_id):
 
     if request.method == 'POST':
@@ -151,6 +155,7 @@ def update_coupon(request, coupon_id):
 
         if forms.is_valid():
             forms.save()
+            messages.success(request, 'Coupon/Offer updated successfully!')
             return redirect('list_coupon')
         else:
             print(forms.errors)
@@ -168,14 +173,17 @@ def update_coupon(request, coupon_id):
 
 
 @login_required(login_url='login_admin')
+@user_passes_test(lambda u: u.is_superuser, login_url='login_admin')
 def delete_coupon(request, coupon_id):
 
     coupon.objects.get(id=coupon_id).delete()
+    messages.success(request, 'Coupon/Offer deleted successfully!')
 
     return HttpResponseRedirect(reverse('list_coupon'))
 
 
 @login_required(login_url='login_admin')
+@user_passes_test(lambda u: u.is_superuser, login_url='login_admin')
 def list_coupon(request):
 
     data = coupon.objects.all().order_by('-id')
@@ -192,8 +200,7 @@ class get_coupon(ListAPIView):
     queryset = coupon.objects.all().order_by('-id')
     serializer_class = coupon_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = '__all__'  # enables filtering on all fields
-    filterset_class = couponFilter  # enables filtering on all fields
+    filterset_class = couponFilter  # enables filtering on all fields (excluding image)
 
 
 
@@ -361,7 +368,7 @@ class get_testimonials(ListAPIView):
     queryset = testimonials.objects.all().order_by('-id')
     serializer_class = testimonials_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = '__all__'  # enables filtering on all fields
+    filterset_class = TestimonialsFilter  # enables filtering on all fields
 
 
 def add_city(request):
@@ -522,7 +529,7 @@ class get_amenity(ListAPIView):
     queryset = amenity.objects.all()
     serializer_class = amenity_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = '__all__'  # enables filtering on all fields
+    filterset_class = AmenityFilter  # enables filtering on all fields (excluding image)
 
 def add_property_type(request):
 
@@ -602,7 +609,7 @@ class get_property_type(ListAPIView):
     queryset = property_type.objects.all().order_by('-id')
     serializer_class = property_type_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = '__all__'  # enables filtering on all fields
+    filterset_class = PropertyTypeFilter  # enables filtering on all fields
 
 def add_room_amenity(request):
 
@@ -682,7 +689,7 @@ class get_room_amenity(ListAPIView):
     queryset = room_amenity.objects.all().order_by('-id')
     serializer_class = room_amenity_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = '__all__'  # enables filtering on all fields
+    filterset_class = RoomAmenityFilter  # enables filtering on all fields
 
 def add_room_type(request):
 
@@ -762,7 +769,7 @@ class get_room_type(ListAPIView):
     queryset = room_type.objects.all().order_by('-id')
     serializer_class = room_type_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = '__all__'  # enables filtering on all fields
+    filterset_class = RoomTypeFilter  # enables filtering on all fields
 
 
 
@@ -850,7 +857,7 @@ class get_customer_address(ListAPIView):
     queryset = customer_address.objects.all().order_by('-id')
     serializer_class = customer_address_serializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = '__all__'  # enables filtering on all fields
+    filterset_class = CustomerAddressFilter  # enables filtering on all fields
 
     def get_queryset(self):
         return customer_address.objects.filter(user=self.request.user)

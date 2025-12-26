@@ -31,7 +31,7 @@
       .main {
         padding: 2rem;
         height: 100vh;
-        background: linear-gradient(145deg, #ecf6fc 0%, #1a82c5 100%);
+        background: linear-gradient(145deg, #ecf6fc 0%, #780000 100%);
       }
 
       .main-container {
@@ -44,7 +44,7 @@
       .logo {
         font-size: 2rem;
         font-weight: bold;
-        color: #1a82c5;
+        color: #780000;
         margin-bottom: 0.8rem;
       }
 
@@ -219,7 +219,7 @@
       }
 
       .input-group:focus-within {
-        border-color: #1a82c5;
+        border-color: #780000;
         box-shadow: 0 0 0 0.1rem rgba(22, 173, 248, 0.438);
       }
 
@@ -301,7 +301,7 @@
       }
 
       .right-panel::-webkit-scrollbar-thumb {
-        background: #1a82c5;
+        background: #780000;
         border-radius: 4px;
       }
 
@@ -312,20 +312,26 @@
   </head>
   <body>
     <div class="main">
-      <div class="logo">  <a href="{% url 'dashboard' %}" class="logo logo-light" >
-                            <span class="logo-lg">
-                                <img src="{% static 'images/trans_logo.png'%}" alt="" height="55" width="147" style="
-   
-    width: 200px;">
-                            </span>
-                        </a></div>
+      <div class="logo">
+        <a href="{% url 'dashboard' %}" class="logo logo-light">
+          <span class="logo-lg">
+            <img
+              src="{% static 'images/Villa_Guru.png'%}"
+              alt=""
+              height="55"
+              width="147"
+              style="width: 200px"
+            />
+          </span>
+        </a>
+      </div>
       <div class="main-container">
         <!-- Left Panel - Fixed Content -->
         <div class="left-panel">
           <div>
             <div class="benefits-section">
               <h2>
-                Save time, delight your guests... Let Rabbitstay handle the
+                Save time, delight your guests... Let Villa Guru handle the
                 rest!
               </h2>
               <p>
@@ -356,14 +362,7 @@
             </div>
           </div>
 
-          {% comment %} <div class="testimonial">
-            <p>
-              "We've been surprised by the high amount of overseas visitors
-              discovering us, that has been a real bonus since using Little
-              Hotelier"
-            </p>
-            <div class="author">- The Hyatt, Hyd</div>
-          </div> {% endcomment %}
+          
         </div>
 
         <!-- Right Panel - Scrollable Form -->
@@ -374,50 +373,19 @@
                 Congratulations on taking the first step to simplifying your
                 operations.
               </h1>
-              {% comment %} <p>
-                Simply fill in our form and one of our friendly team members
-                will be in touch within the next business day to answer all of
-                your questions!
-              </p> {% endcomment %}
-
-              <!-- <div class="contact-info">
-              <div class="contact-item">
-                <i class="fas fa-user"></i>
-                <span>Mohan</span>
-              </div>
-              <div class="contact-item">
-                <i class="fas fa-user"></i>
-                <span>Aa</span>
-              </div>
-            </div> -->
-
-              <!-- <div class="contact-info">
-              <div class="contact-item">
-                <i class="fas fa-envelope"></i>
-                <span>mohanarjun221@gmail.com</span>
-              </div>
-              <div class="contact-item">
-                <i class="fas fa-phone"></i>
-                <span>+91 9908075746</span>
-              </div>
-            </div> -->
+               
             </div>
 
-
             <form method="POST" enctype="multipart/form-data">
-
-
-              {% csrf_token %}
-
-              {% if messages %}
-                <div class="messages">
-                    {% for message in messages %}
-                        <p style="color: red;">{{ message }}</p>
-                    {% endfor %}
-                </div>
-            {% endif %}
-            {% if error %}<div class="messages"> <p style="color: red;">{{ error }}</p></div>{% endif %}
-
+              {% csrf_token %} {% if messages %}
+              <div class="messages">
+                {% for message in messages %}
+                <p style="color: red">{{ message }}</p>
+                {% endfor %}
+              </div>
+              {% endif %} {% if error %}
+              <div class="messages"><p style="color: red">{{ error }}</p></div>
+              {% endif %}
 
               <!-- Personal Details Form -->
               <div class="form-section">
@@ -465,8 +433,8 @@
                         class="form-control"
                         placeholder="Email"
                         id="email"
-                      value="{{ email|default:'' }}"
-                      name="email"
+                        value="{{ email|default:'' }}"
+                        name="email"
                         required
                       />
                     </div>
@@ -487,12 +455,13 @@
                         title="Enter a 10-digit mobile number"
                         required
                       />
-
                     </div>
                   </div>
                   <div class="col-md-6 mb-3">
                     <div class="input-group">
-                      <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                      <span class="input-group-text"
+                        ><i class="fas fa-lock"></i
+                      ></span>
                       <input
                         type="password"
                         class="form-control"
@@ -506,7 +475,9 @@
 
                   <div class="col-md-6 mb-3">
                     <div class="input-group">
-                      <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                      <span class="input-group-text"
+                        ><i class="fas fa-lock"></i
+                      ></span>
                       <input
                         type="password"
                         class="form-control"
@@ -516,15 +487,16 @@
                         required
                       />
                     </div>
-                    <small id="password-note" class="text-danger d-block mt-1"></small>
+                    <small
+                      id="password-note"
+                      class="text-danger d-block mt-1"
+                    ></small>
                   </div>
-
                 </div>
                 <div class="step-indicator">Step 1 of 5</div>
               </div>
-           
 
-              <!-- Hotel Details Form -->
+              <!-- villa Details Form -->
               <div class="form-section">
                 <h5 class="section-title">Villa Details</h5>
                 <div class="mb-3">
@@ -532,10 +504,9 @@
                     <span class="input-group-text"
                       ><i class="fas fa-hotel"></i
                     ></span>
-                    {{ form.name }}
-                              {% if form.name.errors %}
-                              <div class="text-danger">{{ form.name.errors.0 }}</div>
-                                  {% endif %}
+                    {{ form.name }} {% if form.name.errors %}
+                    <div class="text-danger">{{ form.name.errors.0 }}</div>
+                    {% endif %}
                   </div>
                 </div>
                 <div class="row">
@@ -544,10 +515,11 @@
                       <span class="input-group-text"
                         ><i class="fas fa-list"></i
                       ></span>
-                      {{ form.category }}
-                              {% if form.category.errors %}
-                                  <div class="text-danger">{{ form.category.errors.0 }}</div>
-                              {% endif %}
+                      {{ form.category }} {% if form.category.errors %}
+                      <div class="text-danger">
+                        {{ form.category.errors.0 }}
+                      </div>
+                      {% endif %}
                     </div>
                   </div>
                   <div class="col-md-6 mb-3">
@@ -555,10 +527,11 @@
                       <span class="input-group-text"
                         ><i class="fas fa-door-open"></i
                       ></span>
-                      {{ form.no_of_rooms }}
-                              {% if form.no_of_rooms.errors %}
-                                  <div class="text-danger">{{ form.no_of_rooms.errors.0 }}</div>
-                              {% endif %}
+                      {{ form.no_of_rooms }} {% if form.no_of_rooms.errors %}
+                      <div class="text-danger">
+                        {{ form.no_of_rooms.errors.0 }}
+                      </div>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -567,10 +540,9 @@
                     <span class="input-group-text"
                       ><i class="fas fa-map-marker-alt"></i
                     ></span>
-                    {{ form.address }}
-                              {% if form.address.errors %}
-                                  <div class="text-danger">{{ form.address.errors.0 }}</div>
-                              {% endif %}
+                    {{ form.address }} {% if form.address.errors %}
+                    <div class="text-danger">{{ form.address.errors.0 }}</div>
+                    {% endif %}
                   </div>
                 </div>
                 <div class="row">
@@ -579,10 +551,9 @@
                       <span class="input-group-text"
                         ><i class="fas fa-city"></i
                       ></span>
-                      {{ form.city }}
-                              {% if form.city.errors %}
-                                  <div class="text-danger">{{ form.city.errors.0 }}</div>
-                              {% endif %}
+                      {{ form.city }} {% if form.city.errors %}
+                      <div class="text-danger">{{ form.city.errors.0 }}</div>
+                      {% endif %}
                     </div>
                   </div>
                   <div class="col-md-6 mb-3">
@@ -590,10 +561,11 @@
                       <span class="input-group-text"
                         ><i class="fas fa-map-pin"></i
                       ></span>
-                      {{ form.landmark }}
-                              {% if form.landmark.errors %}
-                                  <div class="text-danger">{{ form.landmark.errors.0 }}</div>
-                              {% endif %}
+                      {{ form.landmark }} {% if form.landmark.errors %}
+                      <div class="text-danger">
+                        {{ form.landmark.errors.0 }}
+                      </div>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
@@ -603,45 +575,43 @@
                       <span class="input-group-text"
                         ><i class="fas fa-mail-bulk"></i
                       ></span>
-                        {{ form.pincode }}
-                              {% if form.pincode.errors %}
-                                  <div class="text-danger">{{ form.pincode.errors.0 }}</div>
-                              {% endif %}
+                      {{ form.pincode }} {% if form.pincode.errors %}
+                      <div class="text-danger">{{ form.pincode.errors.0 }}</div>
+                      {% endif %}
                     </div>
                   </div>
                   <!-- Amenities Dropdown -->
-<div class="col-md-6 mb-3">
-  <div class="dropdown w-100">
-    <button
-      class="btn input-group dropdown-toggle w-100 d-flex justify-content-between align-items-center"
-      style="height: 50px"
-      type="button"
-      data-bs-toggle="dropdown"
-      aria-expanded="false"
-    >
-      <span id="selectedAmenities">Select Amenities</span>
-    </button>
-    <ul
-      class="dropdown-menu p-2 w-100"
-      style="max-height: 200px; overflow-y: auto"
-    >
-      {% for amenity in form.fields.amenities.queryset %}
-        <li>
-          <label class="form-check-label w-100">
-            <input
-              class="form-check-input me-2 amenity-checkbox"
-              type="checkbox"
-              name="amenities"
-              value="{{ amenity.id }}"
-            />
-            {{ amenity.name }}
-          </label>
-        </li>
-      {% endfor %}
-    </ul>
-  </div>
-</div>
-
+                  <div class="col-md-6 mb-3">
+                    <div class="dropdown w-100">
+                      <button
+                        class="btn input-group dropdown-toggle w-100 d-flex justify-content-between align-items-center"
+                        style="height: 50px"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                      >
+                        <span id="selectedAmenities">Select Amenities</span>
+                      </button>
+                      <ul
+                        class="dropdown-menu p-2 w-100"
+                        style="max-height: 200px; overflow-y: auto"
+                      >
+                        {% for amenity in form.fields.amenities.queryset %}
+                        <li>
+                          <label class="form-check-label w-100">
+                            <input
+                              class="form-check-input me-2 amenity-checkbox"
+                              type="checkbox"
+                              name="amenities"
+                              value="{{ amenity.id }}"
+                            />
+                            {{ amenity.name }}
+                          </label>
+                        </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -652,28 +622,28 @@
                   <span class="input-group-text"
                     ><i class="fas fa-file-invoice"></i
                   ></span>
-                  {{ form.gst_number }}
-                              {% if form.gst_number.errors %}
-                                  <div class="text-danger">{{ form.gst_number.errors.0 }}</div>
-                              {% endif %}
+                  {{ form.gst_number }} {% if form.gst_number.errors %}
+                  <div class="text-danger">{{ form.gst_number.errors.0 }}</div>
+                  {% endif %}
                 </div>
                 <div class="mb-3 input-group">
                   <span class="input-group-text"
                     ><i class="fas fa-upload"></i
                   ></span>
-                  {{ form.gst_certificate }}
-                              {% if form.gst_certificate.errors %}
-                                  <div class="text-danger">{{ form.gst_certificate.errors.0 }}</div>
-                              {% endif %}
+                  {{ form.gst_certificate }} 
+                  {% if form.gst_certificate.errors %}
+                    <div class="text-danger">
+                      {{ form.gst_certificate.errors.0 }}
+                    </div>
+                  {% endif %}
                 </div>
                 <div class="mb-3 input-group">
                   <span class="input-group-text"
                     ><i class="fas fa-id-card"></i
                   ></span>
-                  {{ form.pan_number }}
-                              {% if form.pan_number.errors %}
-                                  <div class="text-danger">{{ form.pan_number.errors.0 }}</div>
-                              {% endif %}
+                  {{ form.pan_number }} {% if form.pan_number.errors %}
+                  <div class="text-danger">{{ form.pan_number.errors.0 }}</div>
+                  {% endif %}
                 </div>
                 <div class="step-indicator">Step 3 of 5</div>
               </div>
@@ -685,109 +655,109 @@
                   <span class="input-group-text"
                     ><i class="fas fa-user"></i
                   ></span>
-                  {{ form.account_holder_name }}
-                              {% if form.account_holder_name.errors %}
-                                  <div class="text-danger">{{ form.account_holder_name.errors.0 }}</div>
-                              {% endif %}
+                  {{ form.account_holder_name }} 
+                  {% if form.account_holder_name.errors %}
+                    <div class="text-danger">
+                      {{ form.account_holder_name.errors.0 }}
+                    </div>
+                  {% endif %}
                 </div>
                 <div class="mb-3 input-group">
                   <span class="input-group-text"
                     ><i class="fas fa-hashtag"></i
                   ></span>
-                  {{ form.account_number }}
-                                  {% if form.account_number.errors %}
-                                      <div class="text-danger">{{ form.account_number.errors.0 }}</div>
-                                  {% endif %}
+                  {{ form.account_number }} {% if form.account_number.errors %}
+                  <div class="text-danger">
+                    {{ form.account_number.errors.0 }}
+                  </div>
+                  {% endif %}
                 </div>
                 <div class="mb-3 input-group">
                   <span class="input-group-text"
                     ><i class="fas fa-code-branch"></i
                   ></span>
-                  {{ form.ifsc_code }}
-                                  {% if form.ifsc_code.errors %}
-                                      <div class="text-danger">{{ form.ifsc_code.errors.0 }}</div>
-                                  {% endif %}
+                  {{ form.ifsc_code }} {% if form.ifsc_code.errors %}
+                  <div class="text-danger">{{ form.ifsc_code.errors.0 }}</div>
+                  {% endif %}
                 </div>
                 <div class="mb-3 input-group">
                   <span class="input-group-text"
                     ><i class="fas fa-university"></i
                   ></span>
-                  {{ form.bank_name }}
-                                  {% if form.bank_name.errors %}
-                                      <div class="text-danger">{{ form.bank_name.errors.0 }}</div>
-                                  {% endif %}
+                  {{ form.bank_name }} {% if form.bank_name.errors %}
+                  <div class="text-danger">{{ form.bank_name.errors.0 }}</div>
+                  {% endif %}
                 </div>
                 <div class="mb-3 input-group">
                   <span class="input-group-text"
                     ><i class="fas fa-file-upload"></i
                   ></span>
-                  {{ form.bank_document }}
-                                  {% if form.bank_document.errors %}
-                                      <div class="text-danger">{{ form.bank_document.errors.0 }}</div>
-                                  {% endif %}
+                  {{ form.bank_document }} {% if form.bank_document.errors %}
+                  <div class="text-danger">
+                    {{ form.bank_document.errors.0 }}
+                  </div>
+                  {% endif %}
                 </div>
                 <div class="step-indicator">Step 4 of 5</div>
               </div>
 
-              <!-- About Hotel -->
+              <!-- About villa -->
               <div class="form-section">
                 <h5 class="section-title">About Villa</h5>
                 <div class="mb-3 input-group">
-                  {{ form.description }}
-                  {% if form.description.errors %}
-                      <div class="text-danger">{{ form.description.errors.0 }}</div>
+                  {{ form.description }} {% if form.description.errors %}
+                  <div class="text-danger">{{ form.description.errors.0 }}</div>
                   {% endif %}
                 </div>
-              
-                 <!-- Hotel Image Upload -->
-              <p>Villa Image</p>
-              <div class="input-group mb-3">
-                <span class="input-group-text"
-                  ><i class="fas fa-image"></i
-                ></span>
-                {{ form.main_image }}
-                    {% if form.main_image.errors %}
-                        <div class="text-danger">{{ form.main_image.errors.0 }}</div>
-                    {% endif %}
-              </div>
-              <div id="hotelImagePreview" class="mb-3"></div>
 
-              <!-- Gallery Image Upload -->
-              <p>Gallery Images</p>
-              <div class="input-group mb-3">
-                <span class="input-group-text"
-                  ><i class="fas fa-images"></i
-                ></span>
-                <input type="file" class="form-control" id="image-upload" name="image" accept="image/*" multiple><br><br>
+                <!-- villa Image Upload -->
+                <p>Villa Image</p>
+                <div class="input-group mb-3">
+                  <span class="input-group-text"
+                    ><i class="fas fa-image"></i
+                  ></span>
+                  {{ form.main_image }} {% if form.main_image.errors %}
+                  <div class="text-danger">{{ form.main_image.errors.0 }}</div>
+                  {% endif %}
+                </div>
+                <div id="hotelImagePreview" class="mb-3"></div>
 
-                
-              </div>
-              <div class="row">
-             <div
-              id="galleryImagesPreview"
-              class="row row-cols-2 row-cols-sm-3 row-cols-md-4 g-3 mt-2"
-            ></div>
-
-
-
-              </div>
+                <!-- Gallery Image Upload -->
+                <p>Gallery Images</p>
+                <div class="input-group mb-3">
+                  <span class="input-group-text"
+                    ><i class="fas fa-images"></i
+                  ></span>
+                  <input
+                    type="file"
+                    class="form-control"
+                    id="image-upload"
+                    name="image"
+                    accept="image/*"
+                    multiple
+                  /><br /><br />
+                </div>
+                <div class="row">
+                  <div
+                    id="galleryImagesPreview"
+                    class="row row-cols-2 row-cols-sm-3 row-cols-md-4 g-3 mt-2"
+                  ></div>
+                </div>
                 <div class="step-indicator">Step 5 of 5</div>
-
               </div>
 
               <button type="submit" class="btn-next">Submit</button>
             </form>
-            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
- 
- 
+
     <script>
-      // Hotel Image Preview
+      // villa Image Preview
       document
         .getElementById("id_main_image")
         .addEventListener("change", function (e) {
@@ -806,28 +776,27 @@
 
       // Gallery Images Preview
       document
-  .getElementById("image-upload")
-  .addEventListener("change", function (e) {
-    const preview = document.getElementById("galleryImagesPreview");
-    preview.innerHTML = "";
-    Array.from(e.target.files).forEach((file) => {
-      if (file && file.type.startsWith("image/")) {
-        const col = document.createElement("div");
-        col.className = "col";
+        .getElementById("image-upload")
+        .addEventListener("change", function (e) {
+          const preview = document.getElementById("galleryImagesPreview");
+          preview.innerHTML = "";
+          Array.from(e.target.files).forEach((file) => {
+            if (file && file.type.startsWith("image/")) {
+              const col = document.createElement("div");
+              col.className = "col";
 
-        const img = document.createElement("img");
-        img.src = URL.createObjectURL(file);
-        img.classList.add("img-thumbnail");
-        img.style.width = "100%";
-        img.style.height = "auto";
-        img.style.objectFit = "cover";
+              const img = document.createElement("img");
+              img.src = URL.createObjectURL(file);
+              img.classList.add("img-thumbnail");
+              img.style.width = "100%";
+              img.style.height = "auto";
+              img.style.objectFit = "cover";
 
-        col.appendChild(img);
-        preview.appendChild(col);
-      }
-    });
-  });
-
+              col.appendChild(img);
+              preview.appendChild(col);
+            }
+          });
+        });
 
       // Display Select Amenities
       const checkboxes = document.querySelectorAll(".amenity-checkbox");
@@ -845,27 +814,25 @@
       });
     </script>
 
-<script>
-  const password = document.getElementById('password');
-  const confirmPassword = document.getElementById('confirm_password');
-  const note = document.getElementById('password-note');
+    <script>
+      const password = document.getElementById("password");
+      const confirmPassword = document.getElementById("confirm_password");
+      const note = document.getElementById("password-note");
 
-  function checkPasswordMatch() {
-    if (confirmPassword.value === "") {
-      note.textContent = "";
-    } else if (password.value !== confirmPassword.value) {
-      note.textContent = "Passwords do not match";
-    } else {
-      note.textContent = "Passwords match";
-      note.classList.remove("text-danger");
-      note.classList.add("text-success");
-    }
-  }
+      function checkPasswordMatch() {
+        if (confirmPassword.value === "") {
+          note.textContent = "";
+        } else if (password.value !== confirmPassword.value) {
+          note.textContent = "Passwords do not match";
+        } else {
+          note.textContent = "Passwords match";
+          note.classList.remove("text-danger");
+          note.classList.add("text-success");
+        }
+      }
 
-  password.addEventListener('input', checkPasswordMatch);
-  confirmPassword.addEventListener('input', checkPasswordMatch);
-</script>
-
- 
+      password.addEventListener("input", checkPasswordMatch);
+      confirmPassword.addEventListener("input", checkPasswordMatch);
+    </script>
   </body>
 </html>

@@ -7,8 +7,8 @@ from django.db.models import Count
 # from petprofile.models import *
 
 
-from customer.models import *
-from hotel.models import *
+from customer.models import VillaBooking
+from hotel.models import villa
 from masters.models import *
 from django.db.models import Sum
 
@@ -20,21 +20,21 @@ import json
 
 
 def get_booking_percent_by_city():
-    total_bookings = HotelBooking.objects.count()
+    total_bookings = VillaBooking.objects.count()
 
     if total_bookings == 0:
         return {}
 
-    # Assuming hotel model has a `city` field
+    # Assuming villa model has a `city` field
     city_data = (
-        HotelBooking.objects
-        .values('hotel__city__name')
+        VillaBooking.objects
+        .values('villa__city__name')
         .annotate(city_count=Count('id'))
     )
 
     # Format output with percentage
     result = {
-        entry['hotel__city__name']: round((entry['city_count'] / total_bookings) * 100, 2)
+        entry['villa__city__name']: round((entry['city_count'] / total_bookings) * 100, 2)
         for entry in city_data
     }
 
@@ -57,7 +57,7 @@ def get_monthly_booking_data():
         month = month_date.month
         year = month_date.year
 
-        count = HotelBooking.objects.filter(created_at__year=year, created_at__month=month).count()
+        count = VillaBooking.objects.filter(created_at__year=year, created_at__month=month).count()
         data[month_name[month]] = count
 
     # Reverse to make chronological (oldest to newest)
@@ -70,10 +70,10 @@ def dashboard(request):
     if request.user.is_superuser:
        
        
-        bookings_count = HotelBooking.objects.count()
-        hotels_count = hotel.objects.count()
+        bookings_count = VillaBooking.objects.count()
+        hotels_count = villa.objects.count()
         city_count = city.objects.count()
-        total_collection = HotelBooking.objects.filter(status="completed").aggregate(total=Sum('total_amount'))['total'] or 0
+        total_collection = VillaBooking.objects.filter(status="completed").aggregate(total=Sum('total_amount'))['total'] or 0
 
         result = get_booking_percent_by_city()
 
@@ -88,8 +88,8 @@ def dashboard(request):
         city_count = None
         result = None
 
-        bookings_count = HotelBooking.objects.filter(hotel__user = request.user).count()
-        total_collection = HotelBooking.objects.filter(hotel__user = request.user, status="completed").aggregate(total=Sum('total_amount'))['total'] or 0
+        bookings_count = VillaBooking.objects.filter(villa__user = request.user).count()
+        total_collection = VillaBooking.objects.filter(villa__user = request.user, status="completed").aggregate(total=Sum('total_amount'))['total'] or 0
 
         monthly_data = get_monthly_booking_data()
         months = list(monthly_data.keys())

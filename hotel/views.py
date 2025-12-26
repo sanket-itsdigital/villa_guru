@@ -31,7 +31,7 @@ def vendor_dashboard(request):
 def register_hotel(request):
 
     if request.method == "POST":
-        form = hotel_Form()
+        form = villa_Form()
         context = {"form": form}
 
         first_name = request.POST.get("first_name")
@@ -86,17 +86,17 @@ def register_hotel(request):
                     is_active=False,
                 )
 
-                form = hotel_Form(request.POST, request.FILES, user=request.user)
+                form = villa_Form(request.POST, request.FILES, user=request.user)
 
                 if form.is_valid():
-                    hotel = form.save(commit=False)
+                    villa_obj = form.save(commit=False)
                     if not request.user.is_superuser:
-                        hotel.user = user
-                    hotel.save()
+                        villa_obj.user = user
+                    villa_obj.save()
                     form.save_m2m()
 
                     for img in request.FILES.getlist("image"):
-                        HotelImage.objects.create(hotel=hotel, image=img)
+                        VillaImage.objects.create(villa=villa_obj, image=img)
 
                     return redirect("list_hotel")
                 else:
@@ -116,7 +116,7 @@ def register_hotel(request):
             )
 
     else:
-        form = hotel_Form()
+        form = villa_Form()
         context = {"form": form}
         return render(request, "hotel_registration.html", context)
 
@@ -126,17 +126,17 @@ def add_hotel(request):
 
     if request.method == "POST":
 
-        form = hotel_Form(request.POST, request.FILES, user=request.user)
+        form = villa_Form(request.POST, request.FILES, user=request.user)
 
         if form.is_valid():
-            hotel = form.save(commit=False)
+            villa_obj = form.save(commit=False)
             if not request.user.is_superuser:
-                hotel.user = request.user  # auto-assign vendor user
-            hotel.save()
+                villa_obj.user = request.user  # auto-assign vendor user
+            villa_obj.save()
             form.save_m2m()  # Save the many-to-many relationships
 
             for img in request.FILES.getlist("image"):
-                HotelImage.objects.create(hotel=hotel, image=img)
+                VillaImage.objects.create(villa=villa_obj, image=img)
 
             return redirect("list_hotel")
 
@@ -156,7 +156,7 @@ def add_hotel(request):
         elif request.user.is_service_provider:
 
             print("----------434-----------")
-        form = hotel_Form()
+        form = villa_Form()
 
         context = {
             "form": form,
@@ -165,25 +165,30 @@ def add_hotel(request):
         return render(
             request,
             "add_hotel.html",
+            context
         )
 
 
 @login_required(login_url="login_admin")
 def view_hotel(request):
-
+    from django.db.models import Prefetch
+    
     try:
-        user_hotel = hotel.objects.prefetch_related(
+        user_villa = villa.objects.select_related(
+            'user', 'city', 'property_type'
+        ).prefetch_related(
+            'amenities',
             Prefetch(
                 "rooms",
-                queryset=hotel_rooms.objects.select_related(
+                queryset=villa_rooms.objects.select_related(
                     "room_type"
                 ).prefetch_related("room_amenities"),
             )
         ).get(user=request.user)
-    except hotel.DoesNotExist:
-        user_hotel = None
+    except villa.DoesNotExist:
+        user_villa = None
 
-    context = {"data": user_hotel}  # wrapped in a list if template expects iterable
+    context = {"data": user_villa}
 
     return render(request, "view_hotel.html", context)
 
@@ -191,12 +196,12 @@ def view_hotel(request):
 @login_required(login_url="login_admin")
 def update_hotel(request, hotel_id):
 
-    instance = hotel.objects.get(id=hotel_id)
+    instance = villa.objects.get(id=hotel_id)
 
     if request.method == "POST":
 
-        instance = hotel.objects.get(id=hotel_id)
-        forms = hotel_Form(
+        instance = villa.objects.get(id=hotel_id)
+        forms = villa_Form(
             request.POST, request.FILES, instance=instance, user=request.user
         )
 
@@ -208,7 +213,7 @@ def update_hotel(request, hotel_id):
             forms.save_m2m()
 
             for img in request.FILES.getlist("image"):
-                HotelImage.objects.create(hotel=instance, image=img)
+                VillaImage.objects.create(villa=instance, image=img)
 
             if request.user.is_superuser:
                 return redirect("list_hotel")
@@ -227,7 +232,7 @@ def update_hotel(request, hotel_id):
 
     else:
 
-        forms = hotel_Form(instance=instance)
+        forms = villa_Form(instance=instance)
 
         context = {
             "form": forms,
@@ -244,12 +249,12 @@ from django.db import transaction
 @login_required(login_url="login_admin")
 def delete_hotel(request, hotel_id):
 
-    hotel_instance = get_object_or_404(hotel, id=hotel_id)
+    villa_instance = get_object_or_404(villa, id=hotel_id)
 
     try:
         with transaction.atomic():
-            hotel_instance.user.delete()  # Delete related user
-            hotel_instance.delete()  # Delete hotel
+            villa_instance.user.delete()  # Delete related user
+            villa_instance.delete()  # Delete villa
     except Exception as e:
         # Optionally: log or show error
         print("Error deleting hotel:", e)
@@ -263,16 +268,16 @@ from django.db.models import Prefetch
 @login_required(login_url="login_admin")
 def list_hotel(request):
 
-    data = hotel.objects.prefetch_related(
+    data = villa.objects.prefetch_related(
         Prefetch(
             "rooms",
-            queryset=hotel_rooms.objects.select_related("room_type").prefetch_related(
+            queryset=villa_rooms.objects.select_related("room_type").prefetch_related(
                 "room_amenities"
             ),
         )
     ).order_by("-id")
 
-    filterset = HotelFilter(request.GET, queryset=data, request=request)
+    filterset = VillaFilter(request.GET, queryset=data, request=request)
     filtered_bookings = filterset.qs
 
     # Paginate
@@ -291,16 +296,16 @@ def list_hotel(request):
 
 @login_required(login_url="login_admin")
 def delete_hotel_image(request, image_id):
-    image = get_object_or_404(HotelImage, id=image_id)
+    image = get_object_or_404(VillaImage, id=image_id)
 
-    hotel_id = image.hotel.id  # To redirect back to edit page
+    villa_id = image.villa.id  # To redirect back to edit page
     image.delete()
 
     print("-----------------------------------------")
 
-    print(hotel_id)
+    print(villa_id)
 
-    return redirect("update_hotel", hotel_id=hotel_id)
+    return redirect("update_hotel", hotel_id=villa_id)
 
 
 @login_required(login_url="login_admin")
@@ -308,7 +313,7 @@ def add_hotel_rooms(request):
 
     if request.method == "POST":
 
-        form = hotel_rooms_Form(request.POST, request.FILES)
+        form = villa_rooms_Form(request.POST, request.FILES)
 
         if form.is_valid():
             instance = form.save(commit=False)
@@ -319,16 +324,16 @@ def add_hotel_rooms(request):
             else:
                 # Vendor: assign hotel based on the user
                 try:
-                    user_hotel = hotel.objects.get(user=request.user)
-                    instance.hotel = user_hotel
-                except hotel.DoesNotExist:
+                    user_villa = villa.objects.get(user=request.user)
+                    instance.villa = user_villa
+                except villa.DoesNotExist:
                     return HttpResponse("You are not linked to any hotel.", status=403)
 
             instance.save()
             form.save_m2m()
 
             for img in request.FILES.getlist("image"):
-                hotel_roomsImage.objects.create(hotel_rooms=instance, image=img)
+                villa_roomsImage.objects.create(villa_rooms=instance, image=img)
 
             return redirect("list_hotel_rooms")
 
@@ -339,17 +344,17 @@ def add_hotel_rooms(request):
 
     else:
 
-        form = hotel_rooms_Form()
+        form = villa_rooms_Form()
 
         return render(request, "add_hotel_rooms.html", {"form": form})
 
 
 @login_required(login_url="login_admin")
 def update_hotel_rooms(request, hotel_rooms_id):
-    instance = get_object_or_404(hotel_rooms, id=hotel_rooms_id)
+    instance = get_object_or_404(villa_rooms, id=hotel_rooms_id)
 
     if request.method == "POST":
-        form = hotel_rooms_Form(request.POST, request.FILES, instance=instance)
+        form = villa_rooms_Form(request.POST, request.FILES, instance=instance)
 
         if form.is_valid():
             room = form.save(commit=False)
@@ -357,9 +362,9 @@ def update_hotel_rooms(request, hotel_rooms_id):
             # Ensure the correct hotel is assigned if user is not a superuser
             if not request.user.is_superuser:
                 try:
-                    user_hotel = hotel.objects.get(user=request.user)
-                    room.hotel = user_hotel
-                except hotel.DoesNotExist:
+                    user_villa = villa.objects.get(user=request.user)
+                    room.villa = user_villa
+                except villa.DoesNotExist:
                     return HttpResponse("You are not linked to any hotel.", status=403)
 
             room.save()
@@ -372,7 +377,7 @@ def update_hotel_rooms(request, hotel_rooms_id):
         else:
             print(form.errors)
     else:
-        form = hotel_rooms_Form(instance=instance)
+        form = villa_rooms_Form(instance=instance)
 
     context = {
         "form": form,
@@ -384,7 +389,7 @@ def update_hotel_rooms(request, hotel_rooms_id):
 @login_required(login_url="login_admin")
 def delete_hotel_rooms(request, hotel_rooms_id):
 
-    hotel_rooms.objects.get(id=hotel_rooms_id).delete()
+    villa_rooms.objects.get(id=hotel_rooms_id).delete()
 
     return HttpResponseRedirect(reverse("list_hotel_rooms"))
 
@@ -392,42 +397,42 @@ def delete_hotel_rooms(request, hotel_rooms_id):
 @login_required(login_url="login_admin")
 def view_hotel_rooms(request, hotel_id):
 
-    hotel_instance = hotel.objects.get(id=hotel_id)
-    data = hotel_rooms.objects.filter(hotel__id=hotel_id)
+    villa_instance = villa.objects.get(id=hotel_id)
+    data = villa_rooms.objects.filter(villa__id=hotel_id)
 
-    context = {"data": data, "hote_name": hotel_instance.name}
+    context = {"data": data, "hote_name": villa_instance.name}
 
     return render(request, "list_hotel_rooms.html", context)
 
 
 @login_required(login_url="login_admin")
 def delete_hotel_room_image(request, image_id):
-    image = get_object_or_404(hotel_roomsImage, id=image_id)
+    image = get_object_or_404(villa_roomsImage, id=image_id)
 
-    hotel_rooms_id = image.hotel_rooms.id  # To redirect back to edit page
+    villa_rooms_id = image.villa_rooms.id  # To redirect back to edit page
     image.delete()
 
     print("-----------------------------------------")
 
-    print(hotel_rooms_id)
+    print(villa_rooms_id)
 
-    return redirect("update_hotel_rooms", hotel_rooms_id=hotel_rooms_id)
+    return redirect("update_hotel_rooms", hotel_rooms_id=villa_rooms_id)
 
 
 @login_required(login_url="login_admin")
 def list_hotel_rooms(request):
 
     if request.user.is_superuser:
-        data = hotel.objects.prefetch_related(
+        data = villa.objects.prefetch_related(
             Prefetch(
                 "rooms",
-                queryset=hotel_rooms.objects.select_related(
+                queryset=villa_rooms.objects.select_related(
                     "room_type"
                 ).prefetch_related("room_amenities"),
             )
         )
 
-        filterset = HotelFilter(request.GET, queryset=data, request=request)
+        filterset = VillaFilter(request.GET, queryset=data, request=request)
         filtered_bookings = filterset.qs
 
         context = {"data": filtered_bookings, "filterset": filterset}
@@ -436,10 +441,10 @@ def list_hotel_rooms(request):
 
     else:
 
-        hotel_instance = hotel.objects.get(user=request.user)
-        data = hotel_rooms.objects.filter(hotel=hotel_instance)
+        villa_instance = villa.objects.get(user=request.user)
+        data = villa_rooms.objects.filter(villa=villa_instance)
 
-        context = {"data": data, "hote_name": hotel_instance.name}
+        context = {"data": data, "hote_name": villa_instance.name}
 
         return render(request, "list_hotel_rooms.html", context)
 
@@ -452,12 +457,12 @@ import openpyxl
 def export_bookings_to_excel(queryset):
     workbook = openpyxl.Workbook()
     sheet = workbook.active
-    sheet.title = "Hotel Bookings"
+    sheet.title = "Villa Bookings"
 
     # Header row
     headers = [
         "Booking ID",
-        "Hotel",
+        "Villa",
         "Room",
         "Room Count",
         "User",
@@ -477,7 +482,7 @@ def export_bookings_to_excel(queryset):
         sheet.append(
             [
                 booking.booking_id,
-                booking.hotel.name if booking.hotel else "",
+                booking.villa.name if booking.villa else "",
                 str(booking.room.room_type) if booking.room.room_type else "",
                 booking.no_of_rooms,
                 booking.user.first_name if booking.user else "Guest",
@@ -504,12 +509,12 @@ def export_bookings_to_excel(queryset):
 def list_hotel_bookings(request):
     # queryset = HotelBooking.objects.filter(payment_status = "paid").order_by('-id') if request.user.is_superuser else HotelBooking.objects.filter(hotel__user=request.user, payment_status = "paid").order_by('-id')
     queryset = queryset = (
-        HotelBooking.objects.all().order_by("-id")
+        VillaBooking.objects.all().order_by("-id")
         if request.user.is_superuser
-        else HotelBooking.objects.filter(hotel__user=request.user).order_by("-id")
+        else VillaBooking.objects.filter(villa__user=request.user).order_by("-id")
     )
 
-    filterset = HotelBookingFilter(request.GET, queryset=queryset, request=request)
+    filterset = VillaBookingFilter(request.GET, queryset=queryset, request=request)
     filtered_bookings = filterset.qs
 
     # ✅ Check if "export" is requested
@@ -541,16 +546,16 @@ def list_hotel_future_bookings(request):
 
     today = date.today()
 
-    base_queryset = HotelBooking.objects.filter(
+    base_queryset = VillaBooking.objects.filter(
         check_in__gt=today, payment_status="paid"
     )
 
     if request.user.is_superuser:
         queryset = base_queryset
     else:
-        queryset = base_queryset.filter(hotel__user=request.user)
+        queryset = base_queryset.filter(villa__user=request.user)
 
-    filterset = HotelBookingFilter(request.GET, queryset=queryset, request=request)
+    filterset = VillaBookingFilter(request.GET, queryset=queryset, request=request)
     filtered_bookings = filterset.qs
 
     paginator = Paginator(filtered_bookings, 30)  # Show 10 hotels per page
@@ -607,17 +612,17 @@ def update_hotel_bookings(request, booking_id):
 
     if request.user.is_superuser:
 
-        instance = HotelBooking.objects.get(id=booking_id)
+        instance = VillaBooking.objects.get(id=booking_id)
 
     else:
 
-        instance = HotelBooking.objects.get(hotel__user=request.user, id=booking_id)
+        instance = VillaBooking.objects.get(villa__user=request.user, id=booking_id)
 
     if request.method == "POST":
 
         print("--------------------")
 
-        form = HotelBookingStatusForm(request.POST, instance=instance)
+        form = VillaBookingStatusForm(request.POST, instance=instance)
 
         print("--------------------")
 
@@ -642,7 +647,7 @@ def update_hotel_bookings(request, booking_id):
 
     else:
 
-        form = HotelBookingStatusForm(instance=instance, user=request.user)
+        form = VillaBookingStatusForm(instance=instance, user=request.user)
 
         context = {"form": form}
         return render(request, "update_hotel_bookings.html", context)
@@ -670,12 +675,12 @@ def export_earning_to_excel(bookings):
     # Create workbook & sheet
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Hotel Earnings"
+    ws.title = "Villa Earnings"
 
     # Header row
     headers = [
         "Booking ID",
-        "Hotel",
+        "Villa",
         "Room",
         "Guest Name",
         "Phone",
@@ -691,7 +696,7 @@ def export_earning_to_excel(bookings):
         "Commission",
         "Commission GST",
         "Total Amount",
-        "Hotel Earning",
+        "Villa Earning",
         "Status",
         "Created At",
     ]
@@ -703,7 +708,7 @@ def export_earning_to_excel(bookings):
         ws.append(
             [
                 booking.booking_id,
-                booking.hotel.name if booking.hotel else "",
+                booking.villa.name if booking.villa else "",
                 (
                     booking.room.room_type.name
                     if booking.room and booking.room.room_type
@@ -745,7 +750,7 @@ def export_earning_to_excel(bookings):
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-    response["Content-Disposition"] = 'attachment; filename="hotel_earnings.xlsx"'
+    response["Content-Disposition"] = 'attachment; filename="villa_earnings.xlsx"'
     wb.save(response)
     return response
 
@@ -754,14 +759,14 @@ def export_earning_to_excel(bookings):
 def list_hotel_earning(request):
 
     queryset = (
-        HotelBooking.objects.filter(payment_status="paid").order_by("-id")
+        VillaBooking.objects.filter(payment_status="paid").order_by("-id")
         if request.user.is_superuser
-        else HotelBooking.objects.filter(
-            hotel__user=request.user, payment_status="paid"
+        else VillaBooking.objects.filter(
+            villa__user=request.user, payment_status="paid"
         ).order_by("-id")
     )
 
-    filterset = HotelBookingFilter(request.GET, queryset=queryset, request=request)
+    filterset = VillaBookingFilter(request.GET, queryset=queryset, request=request)
     filtered_bookings = filterset.qs
     if "export" in request.GET:
         return export_earning_to_excel(filtered_bookings)
@@ -854,9 +859,9 @@ import requests
 
 
 def generate_invoice_pdf(request, booking_id):
-    booking = get_object_or_404(HotelBooking, id=booking_id)
+    booking = get_object_or_404(VillaBooking, id=booking_id)
     print("------------------------")
-    print(booking.hotel.user.email)
+    print(booking.villa.user.email)
     # Generate base64 logo for the template
     with open(
         os.path.join(settings.BASE_DIR, "static/images/Villa_Guru.png"), "rb"
@@ -885,14 +890,14 @@ def generate_invoice_pdf(request, booking_id):
 
     pdf_bytes = response.content
     print("------------------------")
-    print(booking.hotel.user.email)
+    print(booking.villa.user.email)
     # Compose email
     email = EmailMessage(
         subject=subject,
         body="Hi, attached pdf for invoice",
         from_email="Rabbitstay221@gmail.com",
-        # to=[booking.hotel.user.email],
-        to=[booking.hotel.user.email],
+        # to=[booking.villa.user.email],
+        to=[booking.villa.user.email],
     )
     email.attach(f"invoice_{booking.id}.pdf", pdf_bytes, "application/pdf")
     email.send()
@@ -914,13 +919,13 @@ from collections import defaultdict
 @login_required
 def update_hotel_availability(request):
 
-    hotel_obj = hotel.objects.get(user=request.user)
+    villa_obj = villa.objects.get(user=request.user)
 
     if request.method == "POST":
         selected_date = request.POST.get("selected_date")
         selected_date_obj = datetime.strptime(selected_date, "%Y-%m-%d").date()
 
-        for room in hotel_rooms.objects.filter(hotel=hotel_obj):
+        for room in villa_rooms.objects.filter(villa=villa_obj):
             field_name = f"availability_{room.id}"
             count = request.POST.get(field_name)
 
@@ -936,7 +941,7 @@ def update_hotel_availability(request):
         messages.success(request, f"Availability updated for {selected_date}")
         return redirect("update_hotel_availability")
 
-    hotel_obj = hotel.objects.get(user=request.user)
+    villa_obj = villa.objects.get(user=request.user)
 
     raw_availability = RoomAvailability.objects.filter(room__hotel=hotel_obj)
 
@@ -962,7 +967,7 @@ def update_hotel_availability(request):
     print(json.dumps(availability_data))
 
     context = {
-        "rooms": hotel_rooms.objects.filter(hotel=hotel_obj),
+        "rooms": villa_rooms.objects.filter(villa=villa_obj),
         "availability_json": json.dumps(availability_data),
         "events": json.dumps(events),
     }
@@ -977,7 +982,7 @@ import json
 
 @login_required
 def update_from_to_hotel_availability(request):
-    hotel_obj = hotel.objects.get(user=request.user)
+    villa_obj = villa.objects.get(user=request.user)
 
     if request.method == "POST":
         from_date = request.POST.get("from_date")
@@ -996,7 +1001,7 @@ def update_from_to_hotel_availability(request):
 
         failed_updates = defaultdict(list)
 
-        for room in hotel_rooms.objects.filter(hotel=hotel_obj):
+        for room in villa_rooms.objects.filter(villa=villa_obj):
             field_name = f"availability_{room.id}"
             count = request.POST.get(field_name)
 
@@ -1006,7 +1011,7 @@ def update_from_to_hotel_availability(request):
                 current_date = from_date_obj
                 while current_date <= to_date_obj:
                     # Count confirmed bookings on this date
-                    confirmed_count = HotelBooking.objects.filter(
+                    confirmed_count = VillaBooking.objects.filter(
                         hotel=hotel_obj,
                         room=room,
                         status="confirmed",

@@ -15,51 +15,51 @@ from datetime import date, timedelta
     
 
 
-class HotelImageSerializer(serializers.ModelSerializer):
+class VillaImageSerializer(serializers.ModelSerializer):
     class Meta:
-        model = HotelImage
+        model = VillaImage
         fields = ['id', 'image']
 
 
-class HotelRoomImageSerializer(serializers.ModelSerializer):
+class VillaRoomImageSerializer(serializers.ModelSerializer):
     class Meta:
-        model = hotel_roomsImage
+        model = villa_roomsImage
         fields = ['id', 'image']
 
 
 from masters.serializers import room_amenity_serializer
 
-class HotelRoomSerializer(serializers.ModelSerializer):
-    hotel_details = serializers.SerializerMethodField()  # to avoid recursive nesting issues
+class VillaRoomSerializer(serializers.ModelSerializer):
+    villa_details = serializers.SerializerMethodField()  # to avoid recursive nesting issues
     room_type_name = serializers.CharField(source='room_type.name', read_only=True)
-    images = HotelRoomImageSerializer(many=True, read_only=True)  # room images
+    images = VillaRoomImageSerializer(many=True, read_only=True)  # room images
     room_amenity_details = room_amenity_serializer(source = "room_amenities", many=True)
 
     class Meta:
-        model = hotel_rooms
+        model = villa_rooms
         fields = [
             'id', 'room_type', 'room_type_name', 'title', 'price_per_night', 'max_guest_count',
             'refundable', 'meals_included', 'capacity', 'view', 'bed_type', 'room_amenity_details',
-            'images', 'hotel_details'
+            'images', 'villa_details'
         ]
-        read_only_fields = ['hotel_details', 'booking_id', 'room_amenity_details']
+        read_only_fields = ['villa_details', 'booking_id', 'room_amenity_details']
 
-    def get_hotel_details(self, obj):
-        # avoid full hotel -> rooms -> hotel recursion
+    def get_villa_details(self, obj):
+        # avoid full villa -> rooms -> villa recursion
         return {
-            'id': obj.hotel.id,
-            'name': obj.hotel.name,
-            'hotel_id': obj.hotel.hotel_id,
-            'city': obj.hotel.city.name if obj.hotel.city else None,
-            'address': obj.hotel.address,
+            'id': obj.villa.id,
+            'name': obj.villa.name,
+            'villa_id': obj.villa.villa_id,
+            'city': obj.villa.city.name if obj.villa.city else None,
+            'address': obj.villa.address,
         }
 
 
 from masters.serializers import *
 
-class HotelSerializer(serializers.ModelSerializer):
-    rooms = HotelRoomSerializer(many=True, read_only=True)
-    images = HotelImageSerializer(many=True, read_only=True)
+class VillaSerializer(serializers.ModelSerializer):
+    rooms = VillaRoomSerializer(many=True, read_only=True)
+    images = VillaImageSerializer(many=True, read_only=True)
     city = serializers.StringRelatedField()  # or use CitySerializer if needed
     amenities = amenity_serializer(many=True, read_only=True)  # or use AmenitySerializer
     property_type = property_type_serializer(many=True, read_only=True)  # or use AmenitySerializer
@@ -67,18 +67,20 @@ class HotelSerializer(serializers.ModelSerializer):
 
     min_price = serializers.SerializerMethodField()
     max_price = serializers.SerializerMethodField()
+    price_per_night = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    marked_up_price_per_night = serializers.SerializerMethodField()
 
     class Meta:
-        model = hotel
+        model = villa
         fields = [
-            'id', 'name', 'hotel_id', 'user', 'category', 'no_of_rooms',
+            'id', 'name', 'villa_id', 'user', 'category', 'no_of_rooms',
             'amenities', 'address', 'city', 'landmark', 'pincode',
             'star_rating', 'overall_rating', 'main_image', 'profit_margin',
             'is_featured', 'description', 'is_active', 'created_at',
             'gst_number', 'gst_certificate', 'pan_number',
             'account_holder_name', 'account_number', 'ifsc_code', 'bank_name', 'bank_document',
             'rooms', 'images', 'is_recommended', 'property_type',
-
+            'price_per_night', 'marked_up_price_per_night',
             'min_price', 'max_price'
         ]
 
@@ -89,6 +91,13 @@ class HotelSerializer(serializers.ModelSerializer):
     def get_max_price(self, obj):
         prices = obj.rooms.values_list('price_per_night', flat=True)
         return max(prices) if prices else None
+
+    def get_marked_up_price_per_night(self, obj):
+        """
+        Return the price with admin-configured markup percentage.
+        This is the price that customers will see.
+        """
+        return obj.get_marked_up_price()
     
 
 
@@ -118,21 +127,21 @@ class TicketMessageSerializer(serializers.ModelSerializer):
 
 
     
-class HotelBookingSerializer(serializers.ModelSerializer):
+class VillaBookingSerializer(serializers.ModelSerializer):
     
     room = serializers.PrimaryKeyRelatedField(
-        queryset=hotel_rooms.objects.all(), write_only=True
+        queryset=villa_rooms.objects.all(), write_only=True, required=False, allow_null=True
     )
-    hotel = serializers.PrimaryKeyRelatedField(
-        queryset=hotel.objects.all(), write_only=True
+    villa = serializers.PrimaryKeyRelatedField(
+        queryset=villa.objects.all(), write_only=True
     )
 
     # Read-only nested output
-    room_details = HotelRoomSerializer(source='room', read_only=True)
-    hotel_details = HotelSerializer(source='hotel', read_only=True)
+    room_details = VillaRoomSerializer(source='room', read_only=True)
+    villa_details = VillaSerializer(source='villa', read_only=True)
 
     class Meta:
-        model = HotelBooking
+        model = VillaBooking
         exclude = ['user']
 
     def __init__(self, *args, **kwargs):
@@ -144,12 +153,13 @@ class HotelBookingSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         room = data.get('room')
+        villa = data.get('villa')
         check_in = data.get('check_in')
         check_out = data.get('check_out')
         quantity = data.get('no_of_rooms', 1)
 
-        if not room or not check_in or not check_out:
-            raise serializers.ValidationError("Room, check-in, and check-out are required.")
+        if not check_in or not check_out:
+            raise serializers.ValidationError("Check-in and check-out are required.")
 
         if check_in < date.today():
             raise serializers.ValidationError("Check-in cannot be in the past.")
@@ -157,31 +167,39 @@ class HotelBookingSerializer(serializers.ModelSerializer):
         if check_in >= check_out:
             raise serializers.ValidationError("Check-out must be after check-in.")
 
-        num_days = (check_out - check_in).days
-        booking_dates = [check_in + timedelta(days=i) for i in range(num_days)]
+        # If room is provided, validate room availability (legacy room booking)
+        if room:
+            num_days = (check_out - check_in).days
+            booking_dates = [check_in + timedelta(days=i) for i in range(num_days)]
 
-        availabilities = RoomAvailability.objects.filter(
-            room=room,
-            date__in=booking_dates
-        )
+            availabilities = RoomAvailability.objects.filter(
+                room=room,
+                date__in=booking_dates
+            )
 
-        availability_map = {a.date: a.available_count for a in availabilities}
+            availability_map = {a.date: a.available_count for a in availabilities}
 
-        insufficient_dates = [
-            d for d in booking_dates if availability_map.get(d, 0) < quantity
-        ]
+            insufficient_dates = [
+                d for d in booking_dates if availability_map.get(d, 0) < quantity
+            ]
 
-        if insufficient_dates:
-            dates_str = ", ".join(str(d) for d in insufficient_dates)
-            raise serializers.ValidationError(f"Only limited rooms available on: {dates_str}")
+            if insufficient_dates:
+                dates_str = ", ".join(str(d) for d in insufficient_dates)
+                raise serializers.ValidationError(f"Only limited rooms available on: {dates_str}")
+        elif villa:
+            # Villa-level booking: validate villa has price
+            if not villa.price_per_night:
+                raise serializers.ValidationError("Villa does not have a price set. Please set villa price per night.")
+        else:
+            raise serializers.ValidationError("Either room or villa must be provided for booking.")
 
         return data
 
 
         
 
-class FavouriteHotelSerializer(serializers.ModelSerializer):
+class FavouriteVillaSerializer(serializers.ModelSerializer):
     class Meta:
-        model = favouritehotel
-        fields = ['id', 'user', 'hotel']  # Include 'user' but make it read-only
+        model = favouritevilla
+        fields = ['id', 'user', 'villa']  # Include 'user' but make it read-only
         read_only_fields = ['user']  

@@ -90,7 +90,7 @@
           <div
             class="page-title-box d-sm-flex align-items-center justify-content-between"
           >
-            <h4 class="mb-sm-0 font-size-18">List Customer Users</h4>
+            <h4 class="mb-sm-0 font-size-18">Villa Users List</h4>
           </div>
         </div>
       </div>
@@ -107,58 +107,38 @@
                     <thead>
                       <tr>
                         <th>#</th>
-                        <th>Name</th>
+                        <th>Villa ID</th>
+                        <th>Villa Name</th>
+                        <th>Manager Name</th>
                         <th>Mobile</th>
                         <th>Email</th>
-                        <th>Type</th>
-                        <th>Group</th>
-                        <th>History</th>
+                        <th>Active</th>
                       </tr>
                     </thead>
                     <tbody id="tableBody">
-                      {% if data %}
-                        {% for i in data %}
-                        <tr>
-                          <td>{{ forloop.counter }}</td>
-                          <td>{{ i.first_name }} {{ i.last_name }}</td>
-                          <td>{{ i.mobile }}</td>
-                          <td>{{ i.email }}</td>
-                          <td>
-                            {% if i.is_customer %}Customer{% elif i.is_service_provider %}Provider{% else %}-{% endif %}
-                          </td>
-                          <td>
-                            {% with i.groups.all|first as group %}
-                              {% if group %}{{ group.name }}{% else %}-{% endif %}
-                            {% endwith %}
-                          </td>
-                          <td>
-                            {% if i.is_customer %}
-                              <a href="{% url 'user_booking_history' i.id %}" class="btn btn-sm btn-outline-primary">View History</a>
-                            {% elif i.is_service_provider %}
-                              <a href="{% url 'hotel_booking_history' i.id %}" class="btn btn-sm btn-outline-primary">View History</a>
-                            {% else %}
-                              <span class="text-muted">-</span>
-                            {% endif %}
-                          </td>
-                        </tr>
-                        {% endfor %}
-                      {% else %}
-                        <tr>
-                          <td colspan="7" class="text-center">No customer users found.</td>
-                        </tr>
-                      {% endif %}
+                      {% if data %} {% for i in data %}
+                      <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ i.hotel.hotel_id }}</td>
+                        <td>{{ i.hotel.name }}</td>
+                        <td>{{ i.first_name }} {{ i.last_name }}</td>
+                        <td>{{ i.mobile }}</td>
+                        <td>{{ i.email }}</td>
+                        <td>{{ i.is_active }}</td>
+                      </tr>
+                      {% endfor %} {% endif %}
                     </tbody>
                   </table>
                 </div>
 
-                {% if data.has_other_pages %}
+                {% if page_obj.has_other_pages %}
                 <nav>
                   <ul class="pagination justify-content-center mt-3">
-                    {% if data.has_previous %}
+                    {% if page_obj.has_previous %}
                     <li class="page-item">
                       <a
                         class="page-link"
-                        href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ data.previous_page_number }}"
+                        href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}"
                         >Previous</a
                       >
                     </li>
@@ -166,27 +146,24 @@
                     <li class="page-item disabled">
                       <span class="page-link">Previous</span>
                     </li>
-                    {% endif %}
-                    {% for num in data.paginator.page_range %}
-                      {% if data.number == num %}
-                      <li class="page-item active">
-                        <span class="page-link">{{ num }}</span>
-                      </li>
-                      {% else %}
-                      <li class="page-item">
-                        <a
-                          class="page-link"
-                          href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ num }}"
-                          >{{ num }}</a
-                        >
-                      </li>
-                      {% endif %}
-                    {% endfor %}
-                    {% if data.has_next %}
+                    {% endif %} {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                      <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% else %}
                     <li class="page-item">
                       <a
                         class="page-link"
-                        href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ data.next_page_number }}"
+                        href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ num }}"
+                        >{{ num }}</a
+                      >
+                    </li>
+                    {% endif %} {% endfor %} {% if page_obj.has_next %}
+                    <li class="page-item">
+                      <a
+                        class="page-link"
+                        href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}"
                         >Next</a
                       >
                     </li>
