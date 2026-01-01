@@ -1,7 +1,5 @@
 from django.db import models
 
-# Create your models here.
-
 
 class villa(models.Model):
 
@@ -144,7 +142,7 @@ class villa(models.Model):
         # Calculate: original_price * (1 + markup_percentage/100)
         marked_up_price = base_price * (1 + markup_percentage / 100)
         return round(marked_up_price, 2)
-    
+
     def get_price_for_date(self, date):
         """
         Get the base price for a specific date (without markup).
@@ -267,12 +265,15 @@ class VillaPricing(models.Model):
     Model to store date-specific pricing for villas.
     Allows vendors to set different prices for different dates.
     """
-    villa = models.ForeignKey("hotel.villa", on_delete=models.CASCADE, related_name="date_pricing")
+
+    villa = models.ForeignKey(
+        "hotel.villa", on_delete=models.CASCADE, related_name="date_pricing"
+    )
     date = models.DateField()
     price_per_night = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        help_text="Price per night for this specific date"
+        help_text="Price per night for this specific date",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

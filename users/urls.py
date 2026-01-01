@@ -17,7 +17,10 @@ router.register(r'profile', UserProfileViewSet, basename='user-profile')
 
 urlpatterns = [
     path('signup/', SignupView.as_view(), name='signup'),
+    path('signup-customer/', CustomerSignupAPIView.as_view(), name='signup_customer'),
     path('login/', LoginAPIView.as_view(), name='login'),
+    path('login-email-mobile/', EmailMobileLoginAPIView.as_view(), name='login_email_mobile'),
+    path('logout-api/', LogoutAPIView.as_view(), name='logout_api'),
     path('login-admin/', login_admin, name='login_admin'),
     path('login-vendor/', login_vendor, name='login_vendor'),
     path('login-staff/', login_staff, name='login_staff'),
