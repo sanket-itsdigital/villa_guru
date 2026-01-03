@@ -237,6 +237,15 @@
                             {% if form.price_per_night.errors %}
                                 <div class="text-danger">{{ form.price_per_night.errors.0 }}</div>
                             {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="weekend_percentage" class="form-label">Weekend Price Percentage (%)</label>
+                            {{ form.weekend_percentage }}
+                            <small class="form-text text-muted">Percentage increase for weekend prices (e.g., 25 for 25% increase on Friday, Saturday, Sunday). Leave empty for no weekend pricing.</small>
+                            {% if form.weekend_percentage.errors %}
+                                <div class="text-danger">{{ form.weekend_percentage.errors.0 }}</div>
+                            {% endif %}
                             <small class="form-text text-muted">
                                 Set the base price for booking the entire villa per night
                                 {% if has_bookings and not request.user.is_superuser %}

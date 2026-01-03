@@ -15,21 +15,272 @@
         border-radius: 3px;
         font-size: 11px;
     }
+    .day-price {
+        font-size: 11px;
+        font-weight: bold;
+        margin-top: 2px;
+        text-align: center;
+        padding: 2px;
+    }
+    .fc-daygrid-day {
+        position: relative;
+        min-height: 100px;
+    }
+    .fc-daygrid-day-number {
+        padding: 4px 8px !important;
+        font-weight: normal;
+        text-align: right !important;
+        display: block;
+    }
+    .fc-daygrid-day-top {
+        display: flex;
+        justify-content: flex-end;
+        align-items: flex-start;
+        padding: 0;
+        margin-bottom: 4px;
+    }
+    .fc-event {
+        cursor: pointer;
+        font-size: 10px;
+        padding: 1px 3px;
+        margin: 1px 0;
+    }
+    .fc-daygrid-day-frame {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 4px;
+    }
+    .day-price {
+        text-align: center;
+        margin: 4px 0;
+        padding: 2px;
+    }
+    .fc-header-toolbar {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        margin-bottom: 1.5em !important;
+        padding: 10px 0 !important;
+    }
+    .fc-toolbar-title {
+        font-size: 1.75em !important;
+        font-weight: bold !important;
+        margin: 0 !important;
+        text-transform: uppercase;
+    }
+    .fc-toolbar-chunk {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px;
+    }
+    .fc-toolbar-chunk:first-child {
+        flex: 1;
+    }
+    .fc-toolbar-chunk:last-child {
+        flex: 0 0 auto;
+    }
+    .fc-button-group {
+        display: flex !important;
+        gap: 4px !important;
+    }
+    .fc-button {
+        padding: 6px 12px !important;
+        border-radius: 4px !important;
+    }
+    .fc-daygrid-day-number {
+        float: right !important;
+        clear: both !important;
+        padding: 4px 8px !important;
+    }
+    .fc-col-header-cell {
+        text-align: center;
+        font-weight: bold;
+        padding: 8px;
+    }
+    .custom-price {
+        background-color: #28a745 !important; /* Green for custom prices */
+        color: white !important;
+    }
+    .weekend-price {
+        background-color: #fff3e0 !important; /* Orange/Amber background for weekend prices */
+        color: #f57c00 !important; /* Dark orange text */
+    }
+    .default-price {
+        background-color: #e3f2fd !important; /* Light blue background for default prices */
+        color: #1976d2 !important; /* Blue text */
+    }
+    .fc-day-other {
+        opacity: 0.3 !important;
+        pointer-events: none !important;
+    }
+    .fc-daygrid-day.fc-day-other {
+        visibility: hidden !important;
+    }
+    /* Ensure proper date alignment - dates should appear in correct day columns */
+    .fc-daygrid-body {
+        position: relative;
+    }
+    /* Make sure each day column has equal width for proper alignment */
+    .fc-col-header-cell {
+        width: calc(100% / 7) !important;
+        text-align: center !important;
+    }
+    .fc-daygrid-day {
+        width: calc(100% / 7) !important;
+    }
+    .fc-scrollgrid-sync-table {
+        width: 100% !important;
+        table-layout: fixed !important;
+    }
+    .fc-day-today {
+        background-color: #ffebee !important; /* Light red background for today */
+        font-weight: bold !important;
+    }
+    .fc-day-today .fc-daygrid-day-number {
+        font-weight: bold;
+        color: #c62828; /* Dark red for date number */
+    }
+    .main-content {
+        margin-left: 260px;
+        min-height: 100vh;
+        transition: all 0.3s;
+        overflow-x: visible !important;
+    }
+    .page-content {
+        overflow-x: visible !important;
+        overflow-y: auto !important;
+    }
+    .container-fluid {
+        overflow-x: visible !important;
+    }
+    @media (max-width: 991.98px) {
+        .main-content {
+            margin-left: 0;
+        }
+    }
+    .card {
+        box-shadow: 0 0.75rem 1.5rem rgba(18, 38, 63, 0.03);
+        border: 1px solid #e9ecef;
+        margin-bottom: 1.5rem;
+    }
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        padding: 1rem 1.5rem;
+    }
+    .card-body {
+        padding: 1.5rem;
+    }
+    /* Villa dropdown styling - ensure it's always visible */
+    #villa_filter {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 10 !important;
+        position: relative !important;
+    }
+    .villa-selector-container {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        gap: 10px !important;
+        background: white !important;
+        padding: 15px 20px !important;
+        margin-top: 20px !important;
+        margin-bottom: 15px !important;
+        border-radius: 4px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        min-width: 300px !important;
+        max-width: 100% !important;
+        overflow: visible !important;
+        position: relative !important;
+        z-index: 1000 !important;
+        flex-shrink: 0 !important;
+    }
+    .villa-selector-container label {
+        margin: 0 !important;
+        white-space: nowrap !important;
+        font-weight: 600 !important;
+        flex-shrink: 0 !important;
+    }
+    #villa_filter {
+        min-width: 250px !important;
+        max-width: 350px !important;
+        flex: 1 1 auto !important;
+        overflow: visible !important;
+    }
+    /* Ensure parent containers don't clip the dropdown */
+    .row {
+        overflow: visible !important;
+    }
+    .col-12 {
+        overflow: visible !important;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h4>Manage Villa Dynamic Pricing</h4>
-    <p class="text-muted">Set different prices for different dates. Default price: ₹{{ default_price }}</p>
-</div>
-
 <div class="main-content">
     <div class="page-content" style="padding: calc(7px + 24px) calc(24px / 2) 60px calc(24px / 2) !important;">
         <div class="container-fluid">
+            <div class="row mb-4" style="margin-top: 30px !important;">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3" style="overflow: visible !important;">
+                        <h4 class="mb-0 font-size-18" style="margin-top: 20px;">Manage Villa Dynamic Pricing</h4>
+                        {% if villas_list %}
+                        <div class="villa-selector-container" style="overflow: visible !important; position: relative !important; z-index: 1000 !important;">
+                            <label for="villa_filter" class="mb-0"><strong>Select Villa:</strong></label>
+                            <select id="villa_filter" class="form-select" style="min-width: 250px; max-width: 350px;" onchange="filterVilla(this.value)">
+                                {% for v in villas_list %}
+                                <option value="{{ v.id }}" {% if v.id == villa.id %}selected{% endif %}>
+                                    {{ v.name }} {% if v.price_per_night %}(₹{{ v.price_per_night|floatformat:2 }}){% else %}(₹0.00){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Villa Base Pricing Card -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">{{ villa.name }} - Base Pricing</h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong>Base Price (Weekday):</strong></p>
+                                    <p class="text-primary fs-4 mb-0">₹{{ default_price|floatformat:2 }}</p>
+                                </div>
+                                {% if weekend_percentage and weekend_percentage > 0 %}
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong>Weekend Percentage:</strong></p>
+                                    <p class="text-info fs-5 mb-0">{{ weekend_percentage|floatformat:2 }}%</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong>Weekend Price:</strong></p>
+                                    <p class="text-success fs-4 mb-0">₹{{ weekend_price|floatformat:2 }}</p>
+                                    <small class="text-muted">(Friday, Saturday, Sunday)</small>
+                                </div>
+                                {% else %}
+                                <div class="col-md-8">
+                                    <p class="text-muted mb-0">No weekend pricing configured. Set weekend percentage in villa settings to enable weekend pricing.</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Pricing Management Section -->
             <div class="row">
                 <div class="col-12">
-                    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <div class="page-title-box d-sm-flex align-items-center justify-content-between mb-3">
                         <h4 class="mb-sm-0 font-size-18">Dynamic Pricing Management</h4>
                     </div>
                 </div>
@@ -45,6 +296,9 @@
             <div id="bulkFormContainer" style="display: none; transition: all 0.3s ease; background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                 <form method="post" action="{% url 'bulk_update_villa_pricing' %}">
                     {% csrf_token %}
+                    {% if villa.id %}
+                    <input type="hidden" name="villa_id" value="{{ villa.id }}">
+                    {% endif %}
                     <h5 class="mb-3">Bulk Update Pricing</h5>
                     <div class="row">
                         <div class="col-md-4 mb-3">
@@ -107,8 +361,16 @@
             {% endif %}
 
             <!-- Calendar -->
-            <div class="container">
-                <div id="calendar"></div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">Calendar View</h5>
+                            <div id="calendar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
                 <!-- Modal for Single Date Pricing -->
                 <div class="modal fade" id="pricingModal" tabindex="-1" aria-hidden="true">
@@ -133,7 +395,7 @@
                                                min="0" 
                                                placeholder="Enter price per night" 
                                                required>
-                                        <small class="text-muted">Default price: ₹{{ default_price }}</small>
+                                        <small class="text-muted">Default price: ₹{{ default_price|floatformat:2 }}</small>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -159,11 +421,90 @@ document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
     const pricingData = {{ pricing_json|safe }};
     const defaultPrice = {{ default_price }};
+    const weekendPercentage = {{ weekend_percentage|default:0 }};
+    const weekendPrice = {{ weekend_price|default:0 }};
 
+    // Helper function to check if date is weekend (Friday=4, Saturday=5, Sunday=6)
+    function isWeekend(dateStr) {
+        const date = new Date(dateStr + 'T00:00:00');
+        const weekday = date.getDay();
+        return weekday === 5 || weekday === 6 || weekday === 0; // Fri, Sat, Sun
+    }
+
+    // Calculate price for a date (considering weekend pricing)
+    function getPriceForDate(dateStr) {
+        if (pricingData[dateStr]) {
+            return pricingData[dateStr];
+        }
+        if (isWeekend(dateStr) && weekendPercentage > 0 && weekendPrice > 0) {
+            return weekendPrice;
+        }
+        return defaultPrice;
+    }
+
+    // Build events for the visible month (will update when month changes)
+    let events = [];
+    
+    function generateEventsForMonth(year, month) {
+        const monthEvents = [];
+        // Get first and last day of the month
+        const startDate = new Date(year, month, 1);
+        const endDate = new Date(year, month + 1, 0); // Last day of the month (e.g., Jan 31)
+        
+        // Generate events for all dates in the month (inclusive)
+        const currentDate = new Date(startDate);
+        const lastDay = endDate.getDate();
+        
+        // Loop through all days of the month
+        for (let day = 1; day <= lastDay; day++) {
+            const date = new Date(year, month, day);
+            const dateStr = date.toISOString().split('T')[0];
+            const price = getPriceForDate(dateStr);
+            
+            if (price && price > 0) {
+                const isCustomPrice = pricingData[dateStr] !== undefined;
+                const isWeekendDay = isWeekend(dateStr);
+                
+                monthEvents.push({
+                    title: `₹${price.toFixed(0)}`,
+                    start: dateStr,
+                    color: isCustomPrice ? '#28a745' : (isWeekendDay && weekendPercentage > 0 ? '#f57c00' : '#1976d2'),
+                    textColor: isCustomPrice ? 'white' : (isWeekendDay && weekendPercentage > 0 ? '#f57c00' : '#1976d2'),
+                    className: isCustomPrice ? 'custom-price' : (isWeekendDay ? 'weekend-price' : 'default-price')
+                });
+            }
+        }
+        return monthEvents;
+    }
+    
+    // Generate initial events for current month
+    const today = new Date();
+    events = generateEventsForMonth(today.getFullYear(), today.getMonth());
+    
+    // Add weekend prices to calendar display
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         height: 'auto',
-        events: {{ events|safe }},
+        events: events,
+        fixedWeekCount: false, // Don't show extra weeks - only show weeks needed for the month
+        dayMaxEvents: true,
+        firstDay: 0, // Start week on Sunday (0 = Sunday, 1 = Monday)
+        headerToolbar: {
+            left: 'title',
+            center: '',
+            right: 'prev,next today'
+        },
+        locale: 'en',
+        validRange: null, // Remove any date restrictions
+        datesSet: function(dateInfo) {
+            // Regenerate events when month changes
+            const viewDate = dateInfo.view.currentStart;
+            const year = viewDate.getFullYear();
+            const month = viewDate.getMonth();
+            const newEvents = generateEventsForMonth(year, month);
+            calendar.removeAllEvents();
+            calendar.addEventSource(newEvents);
+        },
         dateClick: function(info) {
             const selectedDate = info.dateStr;
             
@@ -173,14 +514,109 @@ document.addEventListener('DOMContentLoaded', function() {
             const modal = document.getElementById('pricingModal');
             const priceInput = document.getElementById('price_per_night');
             
-            // Pre-fill with existing price if available
-            if (pricingData[selectedDate]) {
-                priceInput.value = pricingData[selectedDate];
+            // Pre-fill with existing price if available, otherwise use default/weekend price
+            const priceForDate = getPriceForDate(selectedDate);
+            priceInput.value = priceForDate || '';
+            
+            // Show hint if it's a weekend
+            if (isWeekend(selectedDate) && weekendPercentage > 0) {
+                const hint = document.createElement('small');
+                hint.className = 'text-info d-block mt-2';
+                hint.textContent = `Weekend price: ₹${weekendPrice} (${weekendPercentage}% increase)`;
+                const existingHint = priceInput.parentElement.querySelector('.text-info');
+                if (existingHint) existingHint.remove();
+                priceInput.parentElement.appendChild(hint);
             } else {
-                priceInput.value = defaultPrice || '';
+                const existingHint = priceInput.parentElement.querySelector('.text-info');
+                if (existingHint) existingHint.remove();
             }
             
             new bootstrap.Modal(modal).show();
+        },
+        dayCellDidMount: function(info) {
+            // Only process days in the current month being viewed
+            const viewStart = new Date(info.view.activeStart);
+            const viewEnd = new Date(info.view.activeEnd);
+            const cellDate = new Date(info.date);
+            
+            // Skip if it's a day from another month
+            if (cellDate < viewStart || cellDate >= viewEnd) {
+                return;
+            }
+            
+            const price = getPriceForDate(info.dateStr);
+            const isWeekendDay = isWeekend(info.dateStr);
+            const isCustomPrice = pricingData[info.dateStr] !== undefined;
+            
+            // Highlight today's date - compare using date string for accuracy
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const isToday = info.dateStr === todayStr;
+            
+            // Ensure date number is properly aligned in top-right
+            const dateNumber = info.el.querySelector('.fc-daygrid-day-number');
+            if (dateNumber) {
+                dateNumber.style.textAlign = 'right';
+                dateNumber.style.padding = '4px 8px';
+                dateNumber.style.fontWeight = isToday ? 'bold' : 'normal';
+                dateNumber.style.display = 'block';
+                if (isToday) {
+                    dateNumber.style.color = '#c62828';
+                }
+            }
+            
+            // Highlight today's date
+            if (isToday) {
+                info.el.style.border = '3px solid #c62828';
+                info.el.style.borderRadius = '4px';
+                info.el.style.backgroundColor = '#ffebee';
+                info.el.style.fontWeight = 'bold';
+            }
+            
+            // Add price text to each day cell
+            if (price && price > 0) {
+                // Find or create price display element
+                let priceEl = info.el.querySelector('.day-price');
+                if (!priceEl) {
+                    priceEl = document.createElement('div');
+                    priceEl.className = 'day-price';
+                    priceEl.style.cssText = 'font-size: 12px; font-weight: bold; margin-top: 4px; text-align: center; padding: 2px;';
+                    // Insert into the day frame
+                    const dayFrame = info.el.querySelector('.fc-daygrid-day-frame');
+                    if (dayFrame) {
+                        // Insert after the day-top section
+                        const dayTop = dayFrame.querySelector('.fc-daygrid-day-top');
+                        if (dayTop && dayTop.nextSibling) {
+                            dayFrame.insertBefore(priceEl, dayTop.nextSibling);
+                        } else {
+                            dayFrame.appendChild(priceEl);
+                        }
+                    } else {
+                        info.el.appendChild(priceEl);
+                    }
+                }
+                
+                priceEl.textContent = `₹${price.toFixed(0)}`;
+                priceEl.style.color = isCustomPrice ? '#28a745' : (isWeekendDay && weekendPercentage > 0 ? '#f57c00' : '#1976d2');
+            }
+            
+            // Highlight weekends if weekend pricing is enabled
+            if (isWeekendDay && weekendPercentage > 0 && !isCustomPrice && !isToday) {
+                info.el.style.backgroundColor = '#fff3e0';
+                info.el.style.border = '1px solid #f57c00';
+            }
+            
+            // Show detailed price on hover
+            if (price) {
+                let priceType = 'Default';
+                if (isCustomPrice) {
+                    priceType = 'Custom';
+                } else if (isWeekendDay && weekendPercentage > 0) {
+                    priceType = 'Weekend';
+                }
+                const todayLabel = isToday ? ' (Today)' : '';
+                info.el.title = `Price: ₹${price.toFixed(2)} (${priceType})${todayLabel}`;
+            }
         }
     });
 
@@ -189,6 +625,12 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <script>
+    function filterVilla(villaId) {
+        if (villaId) {
+            window.location.href = "{% url 'manage_villa_pricing' %}?villa_id=" + villaId;
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const toggleBtn = document.getElementById("toggleBulkForm");
         const formContainer = document.getElementById("bulkFormContainer");

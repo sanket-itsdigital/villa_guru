@@ -126,6 +126,7 @@
                         <th>Itinerary</th>
                         <th>Amount</th>
                         <th>Start Date</th>
+                        <th>End Date</th>
                         <th>Image</th>
                         <th>Action</th>
                       </tr>
@@ -149,6 +150,9 @@
                           {% if i.amount %}₹{{ i.amount }}{% else %}N/A{% endif %}
                         </td>
                         <td>{{ i.start_date|date:"M d, Y H:i" }}</td>
+                        <td>
+                          {% if i.end_date %}{{ i.end_date|date:"M d, Y H:i" }}{% else %}N/A{% endif %}
+                        </td>
                         <td>
                           {% if i.feature_image %}
                             <img src="{{ i.feature_image.url }}" alt="{{ i.name }}" width="60" height="60" style="object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">

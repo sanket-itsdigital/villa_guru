@@ -36,6 +36,13 @@ class villa_Form(forms.ModelForm):
                 'placeholder': 'Custom markup % (e.g., 10 for 10%). Leave empty to use system-wide markup.'
             }),
             'price_per_night': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Villa price per night (for whole villa booking)'}),
+            'weekend_percentage': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'step': '0.01', 
+                'min': '0',
+                'max': '100',
+                'placeholder': 'Weekend price increase % (e.g., 25 for 25% increase on weekends)'
+            }),
             'main_image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': "Description", 'style': "padding: 10px"}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),

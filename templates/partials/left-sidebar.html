@@ -209,15 +209,18 @@
 
                 {% if request.user|has_group:'Staff' or request.user.is_superuser or request.user.is_service_provider %}
 
-               {% if request.user.is_service_provider %}
+                {% if request.user.is_service_provider %}
 
                         <li>
-                            <a href="{% url 'view_hotel' %}">
+                            <a href="javascript: void(0);" class="has-arrow">
                                 <i data-feather="layers"></i>
-                                <span data-key="t-authentication">My Villa</span>
+                                <span data-key="t-authentication">Villa Management</span>
                             </a>
+                            <ul class="sub-menu" aria-expanded="false">
+                                <li><a href="{% url 'list_villa' %}">List Villa</a></li>
+                                <li><a href="{% url 'add_villa' %}">Add Villa</a></li>
+                            </ul>
                         </li>
-
 
                         {% endif %}
 

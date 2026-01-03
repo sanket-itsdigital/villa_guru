@@ -1,7 +1,5 @@
 from django.db import models
 
-# Create your models here.
-
 
 class villa(models.Model):
 
@@ -15,12 +13,12 @@ class villa(models.Model):
 
     villa_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
 
-    user = models.OneToOneField(
+    user = models.ForeignKey(
         "users.User",
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        related_name="villa",
+        related_name="villas",
     )
     name = models.CharField(max_length=255)
 
@@ -68,6 +66,14 @@ class villa(models.Model):
         blank=True,
         help_text="Villa price per night (for whole villa booking)",
     )
+    weekend_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=0,
+        help_text="Percentage increase for weekend prices (e.g., 25 for 25% increase). Applied to base price on weekends (Friday, Saturday, Sunday).",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -113,10 +119,12 @@ class villa(models.Model):
         """
         Calculate the price with admin-configured markup percentage.
         If date is provided, check for date-specific pricing first.
+        Applies weekend pricing if date falls on weekend (Friday, Saturday, Sunday).
         Returns the original price if no markup is set.
         """
         from masters.models import SystemSettings
         from decimal import Decimal
+        import calendar
 
         # Check for date-specific pricing first
         if date:
@@ -131,6 +139,14 @@ class villa(models.Model):
         if not base_price:
             return None
 
+        # Apply weekend pricing if date is provided and falls on weekend
+        if date and self.weekend_percentage:
+            weekday = date.weekday()  # Monday=0, Sunday=6
+            # Friday=4, Saturday=5, Sunday=6
+            if weekday in [4, 5, 6]:
+                weekend_multiplier = Decimal(1) + (self.weekend_percentage / 100)
+                base_price = base_price * weekend_multiplier
+
         # Use villa-specific markup if set, otherwise fall back to system-wide markup
         if self.markup_percentage is not None:
             markup_percentage = self.markup_percentage
@@ -139,22 +155,39 @@ class villa(models.Model):
             markup_percentage = settings.price_markup_percentage or 0
 
         if markup_percentage == 0:
-            return base_price
+            return round(base_price, 2)
 
         # Calculate: original_price * (1 + markup_percentage/100)
         marked_up_price = base_price * (1 + markup_percentage / 100)
         return round(marked_up_price, 2)
-    
+
     def get_price_for_date(self, date):
         """
-        Get the base price for a specific date (without markup).
+        Get the base price for a specific date (without markup, but with weekend pricing if applicable).
         Returns the date-specific price if exists, otherwise returns default price_per_night.
+        Applies weekend pricing if date falls on weekend (Friday, Saturday, Sunday).
         """
+        from decimal import Decimal
+        
+        # Check for date-specific pricing first
         try:
             date_pricing = VillaPricing.objects.get(villa=self, date=date)
-            return date_pricing.price_per_night
+            base_price = date_pricing.price_per_night
         except VillaPricing.DoesNotExist:
-            return self.price_per_night
+            base_price = self.price_per_night
+
+        if not base_price:
+            return None
+
+        # Apply weekend pricing if date falls on weekend
+        if self.weekend_percentage:
+            weekday = date.weekday()  # Monday=0, Sunday=6
+            # Friday=4, Saturday=5, Sunday=6
+            if weekday in [4, 5, 6]:
+                weekend_multiplier = Decimal(1) + (self.weekend_percentage / 100)
+                base_price = base_price * weekend_multiplier
+
+        return round(base_price, 2)
 
     def __str__(self):
         return self.name
@@ -267,12 +300,15 @@ class VillaPricing(models.Model):
     Model to store date-specific pricing for villas.
     Allows vendors to set different prices for different dates.
     """
-    villa = models.ForeignKey("hotel.villa", on_delete=models.CASCADE, related_name="date_pricing")
+
+    villa = models.ForeignKey(
+        "hotel.villa", on_delete=models.CASCADE, related_name="date_pricing"
+    )
     date = models.DateField()
     price_per_night = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        help_text="Price per night for this specific date"
+        help_text="Price per night for this specific date",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -64,12 +64,15 @@ class property_type_Form(forms.ModelForm):
         model = property_type
         fields = '__all__'
         widgets = {
-           
-            'name': forms.TextInput(attrs={
-                'class': 'form-control', 'id': 'name'
-            })
-
+            'name': forms.Select(
+                attrs={'class': 'form-control', 'id': 'name'}
+            )
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set choices for the name field
+        self.fields['name'].choices = property_type.PROPERTY_TYPE_CHOICES
         
 class city_Form(forms.ModelForm):
     class Meta:
@@ -111,7 +114,7 @@ class villa_type_Form(forms.ModelForm):
 class event_Form(forms.ModelForm):
     class Meta:
         model = event
-        fields = ['name', 'feature_image', 'description', 'itinerary', 'amount', 'start_date']
+        fields = ['name', 'feature_image', 'description', 'itinerary', 'amount', 'start_date', 'end_date']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'id': 'name'}),
             'description': forms.Textarea(attrs={'class': 'form-control description-box', 'id': 'description', 'rows': 5}),
@@ -119,6 +122,7 @@ class event_Form(forms.ModelForm):
             'amount': forms.NumberInput(attrs={'class': 'form-control', 'id': 'amount', 'step': '0.01', 'min': '0', 'placeholder': '0.00'}),
             'feature_image': forms.ClearableFileInput(attrs={'class': 'form-control', 'id': 'feature_image', 'accept': 'image/*'}),
             'start_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local', 'id': 'start_date'}),
+            'end_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local', 'id': 'end_date'}),
 
         }
 

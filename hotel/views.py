@@ -187,8 +187,39 @@ def add_hotel(request):
 def view_hotel(request):
     from django.db.models import Prefetch
     
-    try:
-        user_villa = villa.objects.select_related(
+    # Get villas for user - show first one or selected
+    villa_id = request.GET.get('villa_id')
+    if request.user.is_superuser:
+        if villa_id:
+            try:
+                user_villa = villa.objects.select_related(
+                    'user', 'city', 'property_type'
+                ).prefetch_related(
+                    'amenities',
+                    Prefetch(
+                        "rooms",
+                        queryset=villa_rooms.objects.select_related(
+                            "room_type"
+                        ).prefetch_related("room_amenities"),
+                    )
+                ).get(id=villa_id)
+            except villa.DoesNotExist:
+                user_villa = None
+        else:
+            user_villa = villa.objects.select_related(
+                'user', 'city', 'property_type'
+            ).prefetch_related(
+                'amenities',
+                Prefetch(
+                    "rooms",
+                    queryset=villa_rooms.objects.select_related(
+                        "room_type"
+                    ).prefetch_related("room_amenities"),
+                )
+            ).filter(is_active=True).first()
+    else:
+        # Vendor: get their villas
+        villas_qs = villa.objects.filter(user=request.user, is_active=True).select_related(
             'user', 'city', 'property_type'
         ).prefetch_related(
             'amenities',
@@ -198,9 +229,14 @@ def view_hotel(request):
                     "room_type"
                 ).prefetch_related("room_amenities"),
             )
-        ).get(user=request.user)
-    except villa.DoesNotExist:
-        user_villa = None
+        )
+        if villa_id:
+            try:
+                user_villa = villas_qs.get(id=villa_id)
+            except villa.DoesNotExist:
+                user_villa = villas_qs.first()
+        else:
+            user_villa = villas_qs.first()
 
     from masters.models import SystemSettings
     system_settings = SystemSettings.get_settings()
@@ -393,12 +429,11 @@ def add_hotel_rooms(request):
                 # Admin: hotel selected in form by dropdown (already present in form.cleaned_data)
                 pass  # already handled by form
             else:
-                # Vendor: assign hotel based on the user
-                try:
-                    user_villa = villa.objects.get(user=request.user)
-                    instance.villa = user_villa
-                except villa.DoesNotExist:
-                    return HttpResponse("You are not linked to any hotel.", status=403)
+                # Vendor: assign hotel based on the user (use first villa)
+                user_villa = villa.objects.filter(user=request.user, is_active=True).first()
+                if not user_villa:
+                    return HttpResponse("You are not linked to any villa. Please add a villa first.", status=403)
+                instance.villa = user_villa
 
             instance.save()
             form.save_m2m()
@@ -437,11 +472,11 @@ def update_hotel_rooms(request, hotel_rooms_id):
 
             # Ensure the correct hotel is assigned if user is not a superuser
             if not request.user.is_superuser:
-                try:
-                    user_villa = villa.objects.get(user=request.user)
-                    room.villa = user_villa
-                except villa.DoesNotExist:
-                    return HttpResponse("You are not linked to any hotel.", status=403)
+                # Vendor: assign hotel based on the user (use first villa)
+                user_villa = villa.objects.filter(user=request.user, is_active=True).first()
+                if not user_villa:
+                    return HttpResponse("You are not linked to any villa. Please add a villa first.", status=403)
+                room.villa = user_villa
 
             room.save()
             form.save_m2m()
@@ -529,7 +564,10 @@ def list_hotel_rooms(request):
 
     else:
 
-        villa_instance = villa.objects.get(user=request.user)
+        villa_instance = villa.objects.filter(user=request.user, is_active=True).first()
+        if not villa_instance:
+            messages.error(request, "You are not linked to any villa. Please add a villa first.")
+            return redirect("add_villa")
         data = villa_rooms.objects.filter(villa=villa_instance)
 
         context = {"data": data, "hote_name": villa_instance.name}
@@ -1020,7 +1058,21 @@ def update_hotel_availability(request):
         messages.info(request, "Availability management is only available for vendors.")
         return redirect("list_villa")
     
-    villa_obj = villa.objects.get(user=request.user)
+    # Get first villa for vendor (or selected one if multiple)
+    villas_list = villa.objects.filter(user=request.user, is_active=True)
+    villa_id = request.GET.get('villa_id')
+    
+    if villa_id:
+        try:
+            villa_obj = villas_list.get(id=villa_id)
+        except villa.DoesNotExist:
+            villa_obj = villas_list.first() if villas_list.exists() else None
+    else:
+        villa_obj = villas_list.first() if villas_list.exists() else None
+    
+    if not villa_obj:
+        messages.error(request, "You are not linked to any villa.")
+        return redirect("vendor_dashboard")
 
     if request.method == "POST":
         selected_date = request.POST.get("selected_date")
@@ -1042,7 +1094,21 @@ def update_hotel_availability(request):
         messages.success(request, f"Availability updated for {selected_date}")
         return redirect("update_villa_availability")
 
-    villa_obj = villa.objects.get(user=request.user)
+    # Get first villa for vendor (or selected one if multiple)
+    villas_list = villa.objects.filter(user=request.user, is_active=True)
+    villa_id = request.GET.get('villa_id')
+    
+    if villa_id:
+        try:
+            villa_obj = villas_list.get(id=villa_id)
+        except villa.DoesNotExist:
+            villa_obj = villas_list.first() if villas_list.exists() else None
+    else:
+        villa_obj = villas_list.first() if villas_list.exists() else None
+    
+    if not villa_obj:
+        messages.error(request, "You are not linked to any villa.")
+        return redirect("vendor_dashboard")
 
     raw_availability = RoomAvailability.objects.filter(room__villa=villa_obj)
 
@@ -1127,7 +1193,21 @@ def update_from_to_hotel_availability(request):
         messages.info(request, "Availability management is only available for vendors.")
         return redirect("list_villa")
     
-    villa_obj = villa.objects.get(user=request.user)
+    # Get first villa for vendor (or selected one if multiple)
+    villas_list = villa.objects.filter(user=request.user, is_active=True)
+    villa_id = request.GET.get('villa_id')
+    
+    if villa_id:
+        try:
+            villa_obj = villas_list.get(id=villa_id)
+        except villa.DoesNotExist:
+            villa_obj = villas_list.first() if villas_list.exists() else None
+    else:
+        villa_obj = villas_list.first() if villas_list.exists() else None
+    
+    if not villa_obj:
+        messages.error(request, "You are not linked to any villa.")
+        return redirect("vendor_dashboard")
 
     if request.method == "POST":
         from_date = request.POST.get("from_date")
@@ -1181,18 +1261,44 @@ def manage_villa_pricing(request):
     """
     Main view for managing villa pricing with calendar interface.
     Similar to availability management but for pricing.
-    Only vendors can access this - not admins.
+    Vendors can only see their own villa, admins can see all villas.
     """
-    # Restrict to vendors only
-    if request.user.is_superuser:
-        messages.info(request, "Pricing management is only available for vendors.")
-        return redirect("list_villa")
+    # Get villa_id from GET parameter or use user's villa
+    villa_id = request.GET.get("villa_id")
     
-    try:
-        villa_obj = villa.objects.get(user=request.user)
-    except villa.DoesNotExist:
-        messages.error(request, "You are not linked to any villa.")
-        return redirect("vendor_dashboard")
+    if request.user.is_superuser:
+        # Admin can view any villa
+        if villa_id:
+            try:
+                villa_obj = villa.objects.get(id=villa_id)
+            except villa.DoesNotExist:
+                messages.error(request, "Villa not found.")
+                return redirect("list_villa")
+        else:
+            # If no villa_id, get first villa or show all villas
+            villas_list = villa.objects.all().order_by("name")
+            if villas_list.exists():
+                villa_obj = villas_list.first()
+            else:
+                messages.error(request, "No villas found.")
+                return redirect("list_villa")
+    else:
+        # Vendor can see their own villas - get first one or use selected villa
+        villas_list = villa.objects.filter(user=request.user, is_active=True)
+        villa_id = request.GET.get('villa_id')
+        
+        if villa_id:
+            try:
+                villa_obj = villas_list.get(id=villa_id)
+            except villa.DoesNotExist:
+                messages.error(request, "Selected villa not found.")
+                villa_obj = villas_list.first() if villas_list.exists() else None
+        else:
+            villa_obj = villas_list.first() if villas_list.exists() else None
+        
+        if not villa_obj:
+            messages.error(request, "You are not linked to any villa. Please add a villa first.")
+            return redirect("add_villa")
 
     if request.method == "POST":
         # Handle single date pricing update
@@ -1229,7 +1335,11 @@ def manage_villa_pricing(request):
             except (ValueError, TypeError) as e:
                 messages.error(request, f"Invalid date or price: {str(e)}")
 
-        return redirect("manage_villa_pricing")
+        # Redirect with villa_id to maintain selection (for both admin and vendor)
+        redirect_url = "manage_villa_pricing"
+        if villa_obj:
+            redirect_url += f"?villa_id={villa_obj.id}"
+        return redirect(redirect_url)
 
     # Get existing pricing data
     raw_pricing = VillaPricing.objects.filter(villa=villa_obj)
@@ -1239,20 +1349,26 @@ def manage_villa_pricing(request):
     for entry in raw_pricing:
         pricing_data[entry.date.isoformat()] = float(entry.price_per_night)
 
-    # Build events for calendar display
-    events = []
-    for entry in raw_pricing:
-        events.append({
-            "title": f"₹{entry.price_per_night}",
-            "start": entry.date.isoformat(),
-            "color": "#28a745"
-        })
+    # Calculate weekend price if weekend_percentage is set
+    weekend_price = None
+    if villa_obj.weekend_percentage and villa_obj.price_per_night:
+        weekend_multiplier = Decimal(1) + (villa_obj.weekend_percentage / 100)
+        weekend_price = round(villa_obj.price_per_night * weekend_multiplier, 2)
+
+    # Get all villas for dropdown (admin sees all, vendor sees their own)
+    villas_list = []
+    if request.user.is_superuser:
+        villas_list = list(villa.objects.filter(is_active=True).order_by("name"))
+    else:
+        villas_list = list(villa.objects.filter(user=request.user, is_active=True).order_by("name"))
 
     context = {
         "villa": villa_obj,
-        "default_price": villa_obj.price_per_night or 0,
+        "villas_list": villas_list,
+        "default_price": float(villa_obj.price_per_night or 0),
+        "weekend_percentage": float(villa_obj.weekend_percentage or 0),
+        "weekend_price": float(weekend_price) if weekend_price else None,
         "pricing_json": json.dumps(pricing_data),
-        "events": json.dumps(events),
         "pricing_list": raw_pricing.order_by("-date")[:50],  # Show last 50 entries
     }
 
@@ -1270,20 +1386,42 @@ def bulk_update_villa_pricing(request):
         messages.info(request, "Pricing management is only available for vendors.")
         return redirect("list_villa")
     
-    try:
-        villa_obj = villa.objects.get(user=request.user)
-    except villa.DoesNotExist:
-        messages.error(request, "You are not linked to any villa.")
-        return redirect("vendor_dashboard")
+    # Get first villa for vendor (or selected one if multiple)
+    villas_list = villa.objects.filter(user=request.user, is_active=True)
+    villa_id = request.GET.get('villa_id')
+    
+    if villa_id:
+        try:
+            villa_obj = villas_list.get(id=villa_id)
+        except villa.DoesNotExist:
+            villa_obj = villas_list.first() if villas_list.exists() else None
+    else:
+        villa_obj = villas_list.first() if villas_list.exists() else None
+    
+    if not villa_obj:
+        messages.error(request, "You are not linked to any villa. Please add a villa first.")
+        return redirect("add_villa")
 
     if request.method == "POST":
         from_date = request.POST.get("from_date")
         to_date = request.POST.get("to_date")
         price = request.POST.get("price_per_night")
+        # Get villa_id from POST if provided, otherwise use GET
+        villa_id = request.POST.get('villa_id') or request.GET.get('villa_id')
+        
+        # Re-fetch villa_obj if villa_id changed
+        if villa_id:
+            try:
+                villa_obj = villas_list.get(id=villa_id)
+            except villa.DoesNotExist:
+                villa_obj = villas_list.first() if villas_list.exists() else None
 
         if not all([from_date, to_date, price]):
             messages.error(request, "All fields are required.")
-            return redirect("manage_villa_pricing")
+            redirect_url = "manage_villa_pricing"
+            if villa_obj:
+                redirect_url += f"?villa_id={villa_obj.id}"
+            return redirect(redirect_url)
 
         try:
             from_date_obj = datetime.strptime(from_date, "%Y-%m-%d").date()
@@ -1291,11 +1429,17 @@ def bulk_update_villa_pricing(request):
             price_decimal = Decimal(price)
         except (ValueError, TypeError) as e:
             messages.error(request, f"Invalid date or price: {str(e)}")
-            return redirect("manage_villa_pricing")
+            redirect_url = "manage_villa_pricing"
+            if villa_obj:
+                redirect_url += f"?villa_id={villa_obj.id}"
+            return redirect(redirect_url)
 
         if from_date_obj > to_date_obj:
             messages.error(request, "'From' date must be before 'To' date.")
-            return redirect("manage_villa_pricing")
+            redirect_url = "manage_villa_pricing"
+            if villa_obj:
+                redirect_url += f"?villa_id={villa_obj.id}"
+            return redirect(redirect_url)
 
         # Update pricing for each date in range
         current_date = from_date_obj
@@ -1335,7 +1479,11 @@ def bulk_update_villa_pricing(request):
                 f"Pricing successfully updated for {updated_count} days from {from_date} to {to_date}."
             )
 
-    return redirect("manage_villa_pricing")
+    # Redirect with villa_id to maintain selection
+    redirect_url = "manage_villa_pricing"
+    if villa_obj:
+        redirect_url += f"?villa_id={villa_obj.id}"
+    return redirect(redirect_url)
 
 
 @login_required(login_url="login_admin")
@@ -1352,6 +1500,7 @@ def delete_villa_pricing(request, pricing_id):
     
     try:
         pricing_obj = VillaPricing.objects.get(id=pricing_id, villa__user=request.user)
+        villa_obj = pricing_obj.villa
         
         # Check if villa has bookings on this date
         from customer.models import VillaBooking
@@ -1373,5 +1522,10 @@ def delete_villa_pricing(request, pricing_id):
             messages.success(request, f"Pricing for {pricing_obj.date} has been deleted.")
     except VillaPricing.DoesNotExist:
         messages.error(request, "Pricing entry not found.")
+        villa_obj = None
 
-    return redirect("manage_villa_pricing")
+    # Redirect with villa_id to maintain selection
+    redirect_url = "manage_villa_pricing"
+    if villa_obj:
+        redirect_url += f"?villa_id={villa_obj.id}"
+    return redirect(redirect_url)

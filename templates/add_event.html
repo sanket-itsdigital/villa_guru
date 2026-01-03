@@ -98,6 +98,11 @@
                         </div>
                         
                         <div class="mb-4">
+                            <label for="end_date" class="form-label">End Date:</label>
+                            {{ form.end_date }}
+                        </div>
+                        
+                        <div class="mb-4">
                             <label for="feature_image" class="form-label">Feature Image (Main Image):</label>
                             {{ form.feature_image }}
                             {% if form.instance.feature_image %}
