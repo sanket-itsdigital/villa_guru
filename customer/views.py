@@ -551,8 +551,14 @@ class AvailableVillasAPIView(APIView):
         # Step 6: Get available villas
         available_villas = villa.objects.filter(id__in=available_villa_ids).distinct()
 
+        # Step 7: Apply Django filters (price range, villa_star_facility, amenities)
+        from .filters import AvailableVillaFilter
+
+        filterset = AvailableVillaFilter(request.GET, queryset=available_villas)
+        filtered_villas = filterset.qs
+
         serializer = VillaSerializer(
-            available_villas, many=True, context={"request": request}
+            filtered_villas, many=True, context={"request": request}
         )
         return Response(serializer.data)
 
