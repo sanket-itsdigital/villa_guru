@@ -111,6 +111,7 @@ class VillaSerializer(serializers.ModelSerializer):
     )
     marked_up_price_per_night = serializers.SerializerMethodField()
     is_best_rated = serializers.SerializerMethodField()
+    is_like = serializers.SerializerMethodField()
 
     class Meta:
         model = villa
@@ -153,6 +154,7 @@ class VillaSerializer(serializers.ModelSerializer):
             "min_price",
             "max_price",
             "is_best_rated",
+            "is_like",
         ]
 
     def get_min_price(self, obj):
@@ -196,6 +198,18 @@ class VillaSerializer(serializers.ModelSerializer):
             )
 
         return obj.id in self.context.get("top_rated_villa_ids", set())
+
+    def get_is_like(self, obj):
+        """
+        Return True if the current user has liked/favorited this villa.
+        Returns False if user is not authenticated or hasn't favorited the villa.
+        """
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            from .models import favouritevilla
+
+            return favouritevilla.objects.filter(user=request.user, villa=obj).exists()
+        return False
 
 
 class SupportTicketSerializer(serializers.ModelSerializer):

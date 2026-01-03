@@ -386,6 +386,14 @@ class VillaDetailAPIView(generics.RetrieveAPIView):
     lookup_url_kwarg = "villa_id"
     lookup_field = "id"
 
+    def get_serializer_context(self):
+        """
+        Add request to serializer context so is_like field can check user's favorites.
+        """
+        context = super().get_serializer_context()
+        context["request"] = self.request
+        return context
+
 
 class VillaRoomListAPIView(generics.ListAPIView):
     serializer_class = VillaRoomSerializer
