@@ -14,13 +14,13 @@ from datetime import date, timedelta
 
 class VillaImageSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = VillaImage
         fields = ["id", "image"]
-    
+
     def get_image(self, obj):
-        request = self.context.get('request')
+        request = self.context.get("request")
         if obj.image and request:
             return request.build_absolute_uri(obj.image.url)
         return obj.image.url if obj.image else None
@@ -84,9 +84,10 @@ from users.models import User
 
 class VillaUserSerializer(serializers.ModelSerializer):
     """Simple serializer for user details in villa response"""
+
     class Meta:
         model = User
-        fields = ['id', 'mobile', 'email', 'first_name', 'last_name', 'profile_photo']
+        fields = ["id", "mobile", "email", "first_name", "last_name", "profile_photo"]
         read_only_fields = fields
 
 
@@ -109,6 +110,7 @@ class VillaSerializer(serializers.ModelSerializer):
         max_digits=10, decimal_places=2, read_only=True
     )
     marked_up_price_per_night = serializers.SerializerMethodField()
+    is_best_rated = serializers.SerializerMethodField()
 
     class Meta:
         model = villa
@@ -148,6 +150,7 @@ class VillaSerializer(serializers.ModelSerializer):
             "marked_up_price_per_night",
             "min_price",
             "max_price",
+            "is_best_rated",
         ]
 
     def get_min_price(self, obj):
@@ -164,15 +167,33 @@ class VillaSerializer(serializers.ModelSerializer):
         This is the price that customers will see.
         """
         return obj.get_marked_up_price()
-    
+
     def get_main_image(self, obj):
         """
         Return absolute URL for main_image.
         """
-        request = self.context.get('request')
+        request = self.context.get("request")
         if obj.main_image and request:
             return request.build_absolute_uri(obj.main_image.url)
         return obj.main_image.url if obj.main_image else None
+
+    def get_is_best_rated(self, obj):
+        """
+        Return True if this villa is in the top 10 best-rated villas.
+        Rating is based on overall_rating field.
+        """
+        # Cache the top 10 villa IDs in the serializer context to avoid repeated queries
+        if "top_rated_villa_ids" not in self.context:
+            from hotel.models import villa
+
+            top_rated_villas = villa.objects.filter(
+                is_active=True, go_live=True, overall_rating__isnull=False
+            ).order_by("-overall_rating")[:10]
+            self.context["top_rated_villa_ids"] = set(
+                top_rated_villas.values_list("id", flat=True)
+            )
+
+        return obj.id in self.context.get("top_rated_villa_ids", set())
 
 
 class SupportTicketSerializer(serializers.ModelSerializer):
