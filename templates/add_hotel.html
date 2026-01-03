@@ -152,6 +152,15 @@
 
                             {% endif %}
 
+                        <div class="mb-4">
+                            <label class="form-label">Star Facility:</label>
+                            {{ form.villa_star_facility }}
+                            {% if form.villa_star_facility.errors %}
+                                <div class="text-danger">{{ form.villa_star_facility.errors.0 }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Select the star facility type (1-7 Star Villa). This is a facility classification, not a rating.</small>
+                        </div>
+
   <div class="mb-4">
                             <label class="form-label">Villa Name:</label>
                             {{ form.name }}
@@ -237,6 +246,15 @@
                             {% if form.price_per_night.errors %}
                                 <div class="text-danger">{{ form.price_per_night.errors.0 }}</div>
                             {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">MRP (Maximum Retail Price):</label>
+                            {{ form.mrp }}
+                            {% if form.mrp.errors %}
+                                <div class="text-danger">{{ form.mrp.errors.0 }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Enter the Maximum Retail Price (MRP) for the villa.</small>
                         </div>
                         
                         <div class="mb-4">
