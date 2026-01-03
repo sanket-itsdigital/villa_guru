@@ -42,6 +42,22 @@ class villa(models.Model):
     overall_rating = models.DecimalField(
         max_digits=2, decimal_places=1, null=True, blank=True
     )
+
+    VILLA_STAR_FACILITY_CHOICES = [
+        (1, "1 Star Villa"),
+        (2, "2 Star Villa"),
+        (3, "3 Star Villa"),
+        (4, "4 Star Villa"),
+        (5, "5 Star Villa"),
+        (6, "6 Star Villa"),
+        (7, "7 Star Villa"),
+    ]
+    villa_star_facility = models.IntegerField(
+        choices=VILLA_STAR_FACILITY_CHOICES,
+        null=True,
+        blank=True,
+        help_text="Villa star facility type (1-7 Star Villa). This is a facility classification, not a rating.",
+    )
     main_image = models.ImageField(upload_to="hotels/", null=True, blank=True)
     profit_margin = models.DecimalField(
         max_digits=5, decimal_places=2, null=True, blank=True
@@ -168,7 +184,7 @@ class villa(models.Model):
         Applies weekend pricing if date falls on weekend (Friday, Saturday, Sunday).
         """
         from decimal import Decimal
-        
+
         # Check for date-specific pricing first
         try:
             date_pricing = VillaPricing.objects.get(villa=self, date=date)

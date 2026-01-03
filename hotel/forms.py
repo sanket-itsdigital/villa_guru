@@ -26,6 +26,7 @@ class villa_Form(forms.ModelForm):
             'city': forms.Select(attrs={'class': 'form-control select2'}),
             'star_rating': forms.NumberInput(attrs={'class': 'form-control'}),
             'overall_rating': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+            'villa_star_facility': forms.Select(attrs={'class': 'form-control'}),
             'pincode': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': "Pincode"}),
             'profit_margin': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'markup_percentage': forms.NumberInput(attrs={

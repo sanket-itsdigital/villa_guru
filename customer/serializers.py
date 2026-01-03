@@ -128,6 +128,7 @@ class VillaSerializer(serializers.ModelSerializer):
             "pincode",
             "star_rating",
             "overall_rating",
+            "villa_star_facility",
             "main_image",
             "profit_margin",
             "is_featured",
