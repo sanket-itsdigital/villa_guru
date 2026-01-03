@@ -900,8 +900,27 @@ def delete_home_banner(request, home_banner_id):
 from django.views import View
 
 
-def get_home_banner(request):
+class HomeBannerListAPIView(ListAPIView):
+    """
+    API endpoint to retrieve all home banners with filtering support.
+    
+    Returns a list of all banners with complete information including:
+    - id, title, description
+    - image (with absolute URL)
+    - is_for_web, is_active flags
+    - created_at timestamp
+    """
+    queryset = home_banner.objects.all().order_by("-id")
+    serializer_class = HomeBannerSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = home_bannerFilter
 
+
+def get_home_banner(request):
+    """
+    Legacy endpoint - kept for backward compatibility.
+    Use HomeBannerListAPIView instead.
+    """
     filtered_qs = home_bannerFilter(request.GET, queryset=home_banner.objects.all()).qs
 
     serialized_data = HomeBannerSerializer(

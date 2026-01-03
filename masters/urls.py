@@ -148,7 +148,8 @@ urlpatterns = [
         delete_home_banner,
         name="delete_home_banner",
     ),  # create or fetch list of admins
-    path("get-home-banner/", get_home_banner, name="get_home_banner"),
+    path("get-home-banner/", get_home_banner, name="get_home_banner"),  # Legacy endpoint
+    path("home-banners/", HomeBannerListAPIView.as_view(), name="home_banners_api"),  # New API endpoint
     path("list-payments/", list_payments, name="list_payments"),
     path("admin/support-tickets/", list_support_tickets, name="list_support_tickets"),
     path("admin/support-tickets/<int:ticket_id>/", ticket_detail, name="ticket_detail"),

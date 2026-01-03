@@ -64,12 +64,17 @@ class event_serializer(serializers.ModelSerializer):
 
 # Step 1: Create a serializer
 class HomeBannerSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+    
     class Meta:
         model = home_banner
-        fields = ['image'] 
+        fields = ['id', 'title', 'description', 'image', 'is_for_web', 'is_active', 'created_at']
     
     def get_image(self, obj):
+        """
+        Return absolute URL for banner image.
+        """
         request = self.context.get('request')
-        if request:
+        if obj.image and request:
             return request.build_absolute_uri(obj.image.url)
-        return obj.image.url
+        return obj.image.url if obj.image else None
