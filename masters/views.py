@@ -305,7 +305,26 @@ class get_event(ListAPIView):
     filterset_class = EventFilter  # enables filtering on all fields
 
     def get_queryset(self):
-        return event.objects.filter(start_date__gte=now()).order_by("start_date")
+        from django.utils import timezone
+        from django.db.models import Q
+
+        current_time = timezone.now()
+
+        # Include events that:
+        # 1. Start today or in the future (start_date >= today at 00:00:00)
+        # 2. OR are currently ongoing (started but not ended yet)
+
+        today_start = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        queryset = event.objects.filter(
+            Q(start_date__gte=today_start)  # Events starting today or future
+            | (
+                Q(start_date__lt=current_time)
+                & (Q(end_date__isnull=True) | Q(end_date__gte=current_time))
+            )  # Events that have started but haven't ended
+        ).order_by("start_date")
+
+        return queryset
 
 
 def add_testimonials(request):
@@ -903,13 +922,14 @@ from django.views import View
 class HomeBannerListAPIView(ListAPIView):
     """
     API endpoint to retrieve all home banners with filtering support.
-    
+
     Returns a list of all banners with complete information including:
     - id, title, description
     - image (with absolute URL)
     - is_for_web, is_active flags
     - created_at timestamp
     """
+
     queryset = home_banner.objects.all().order_by("-id")
     serializer_class = HomeBannerSerializer
     filter_backends = [DjangoFilterBackend]
