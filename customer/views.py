@@ -741,6 +741,127 @@ class FavouriteVillaViewSet(viewsets.ModelViewSet):
         return favouritevilla.objects.none()
 
 
+class VillaReviewViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for villa reviews.
+    Customers can create, update, and delete their own reviews.
+    """
+    serializer_class = VillaReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Return reviews filtered by villa if villa_id is provided in query params.
+        Otherwise, return all reviews for the current user.
+        """
+        queryset = VillaReview.objects.all()
+        villa_id = self.request.query_params.get("villa_id")
+        
+        if villa_id:
+            queryset = queryset.filter(villa_id=villa_id)
+        
+        # If user is not admin, only show their own reviews when listing all
+        if not self.request.user.is_superuser:
+            if not villa_id:
+                queryset = queryset.filter(user=self.request.user)
+        
+        return queryset.order_by("-created_at")
+
+    def perform_create(self, serializer):
+        """
+        Set the user to the current authenticated user.
+        Ensure only customers can create reviews.
+        """
+        if not self.request.user.is_customer:
+            raise ValidationError("Only customers can create reviews.")
+        
+        serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        """
+        Ensure users can only update their own reviews.
+        """
+        if serializer.instance.user != self.request.user:
+            raise ValidationError("You can only update your own reviews.")
+        
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        """
+        Ensure users can only delete their own reviews.
+        """
+        if instance.user != self.request.user and not self.request.user.is_superuser:
+            raise ValidationError("You can only delete your own reviews.")
+        
+        instance.delete()
+
+
+class VillaReviewCreateAPIView(generics.CreateAPIView):
+    """
+    Create a new review for a villa.
+    POST /customer/villa-reviews/create/
+    Only customers can create reviews.
+    """
+    serializer_class = VillaReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Create a new villa review. Only customers can create reviews.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["villa", "rating", "comment"],
+            properties={
+                "villa": openapi.Schema(type=openapi.TYPE_INTEGER, description="Villa ID"),
+                "rating": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Rating from 1 to 5 stars",
+                    enum=[1, 2, 3, 4, 5],
+                ),
+                "comment": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="Review comment/feedback"
+                ),
+            },
+        ),
+        responses={
+            201: VillaReviewSerializer,
+            400: "Bad request - Validation error",
+            403: "Forbidden - Only customers can create reviews",
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_customer:
+            return Response(
+                {"error": "Only customers can create reviews."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().post(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        """Set the user to the current authenticated user."""
+        serializer.save(user=self.request.user)
+
+
+class VillaReviewListAPIView(generics.ListAPIView):
+    """
+    List all reviews for a specific villa.
+    GET /customer/villas/{villa_id}/reviews/
+    Public endpoint - no authentication required.
+    """
+    serializer_class = VillaReviewSerializer
+    permission_classes = []  # Public endpoint
+
+    @swagger_auto_schema(
+        operation_description="List all reviews for a specific villa. Public endpoint.",
+        responses={200: VillaReviewSerializer(many=True)},
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        villa_id = self.kwargs.get("villa_id")
+        return VillaReview.objects.filter(villa_id=villa_id).order_by("-created_at")
+
+
 import json
 import logging
 import razorpay

@@ -40,3 +40,10 @@ class PaymentTransactionAdmin(admin.ModelAdmin):
     search_fields = ['booking__booking_id', 'razorpay_order_id', 'razorpay_payment_id']
     readonly_fields = ['created_at', 'updated_at']
     date_hierarchy = 'created_at'
+
+@admin.register(VillaReview)
+class VillaReviewAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'villa', 'rating', 'created_at', 'updated_at']
+    list_filter = ['rating', 'created_at']
+    search_fields = ['user__mobile', 'user__email', 'villa__name', 'comment']
+    readonly_fields = ['created_at', 'updated_at']

@@ -285,3 +285,48 @@ class PaymentTransaction(models.Model):
         return (
             f"Txn {self.razorpay_payment_id or self.id} - {self.status} - {self.amount}"
         )
+
+
+class VillaReview(models.Model):
+    """
+    Review model for villas.
+    Only customers can create reviews.
+    """
+    RATING_CHOICES = [
+        (1, "1 Star"),
+        (2, "2 Stars"),
+        (3, "3 Stars"),
+        (4, "4 Stars"),
+        (5, "5 Stars"),
+    ]
+
+    user = models.ForeignKey(
+        "users.User",
+        on_delete=models.CASCADE,
+        related_name="villa_reviews",
+        help_text="Customer who wrote the review",
+    )
+    villa = models.ForeignKey(
+        "hotel.villa",
+        on_delete=models.CASCADE,
+        related_name="reviews",
+        help_text="Villa being reviewed",
+    )
+    rating = models.IntegerField(
+        choices=RATING_CHOICES,
+        help_text="Rating from 1 to 5 stars",
+    )
+    comment = models.TextField(
+        help_text="Review comment/feedback",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "villa")
+        ordering = ["-created_at"]
+        verbose_name = "Villa Review"
+        verbose_name_plural = "Villa Reviews"
+
+    def __str__(self):
+        return f"Review by {self.user.first_name or self.user.mobile} for {self.villa.name} - {self.rating} stars"

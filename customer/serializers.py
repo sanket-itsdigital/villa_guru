@@ -112,6 +112,8 @@ class VillaSerializer(serializers.ModelSerializer):
     marked_up_price_per_night = serializers.SerializerMethodField()
     is_best_rated = serializers.SerializerMethodField()
     is_like = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
 
     class Meta:
         model = villa
@@ -155,6 +157,8 @@ class VillaSerializer(serializers.ModelSerializer):
             "max_price",
             "is_best_rated",
             "is_like",
+            "average_rating",
+            "review_count",
         ]
 
     def get_min_price(self, obj):
@@ -210,6 +214,30 @@ class VillaSerializer(serializers.ModelSerializer):
 
             return favouritevilla.objects.filter(user=request.user, villa=obj).exists()
         return False
+
+    def get_average_rating(self, obj):
+        """
+        Calculate and return average rating from all approved reviews.
+        """
+        from .models import VillaReview
+        from django.db.models import Avg
+
+        avg_rating = VillaReview.objects.filter(villa=obj).aggregate(
+            avg_rating=Avg("rating")
+        )["avg_rating"]
+
+        if avg_rating:
+            # Round to 1 decimal place
+            return round(float(avg_rating), 1)
+        return None
+
+    def get_review_count(self, obj):
+        """
+        Return total count of approved reviews for this villa.
+        """
+        from .models import VillaReview
+
+        return VillaReview.objects.filter(villa=obj).count()
 
 
 class SupportTicketSerializer(serializers.ModelSerializer):
@@ -296,3 +324,69 @@ class FavouriteVillaSerializer(serializers.ModelSerializer):
         model = favouritevilla
         fields = ["id", "user", "villa"]  # Include 'user' but make it read-only
         read_only_fields = ["user"]
+
+
+class VillaReviewSerializer(serializers.ModelSerializer):
+    """
+    Serializer for villa reviews.
+    """
+
+    user = serializers.SerializerMethodField()
+    user_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VillaReview
+        fields = [
+            "id",
+            "user",
+            "user_name",
+            "villa",
+            "rating",
+            "comment",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["user", "created_at", "updated_at"]
+
+    def get_user(self, obj):
+        """Return user ID"""
+        return obj.user.id if obj.user else None
+
+    def get_user_name(self, obj):
+        """Return user's full name or mobile number"""
+        if obj.user:
+            if obj.user.first_name and obj.user.last_name:
+                return f"{obj.user.first_name} {obj.user.last_name}"
+            elif obj.user.first_name:
+                return obj.user.first_name
+            else:
+                return obj.user.mobile
+        return None
+
+    def validate_rating(self, value):
+        """Ensure rating is between 1 and 5"""
+        if value < 1 or value > 5:
+            raise serializers.ValidationError("Rating must be between 1 and 5.")
+        return value
+
+    def validate(self, data):
+        """Ensure user is a customer and hasn't already reviewed this villa"""
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            # Check if user is a customer
+            if not request.user.is_customer:
+                raise serializers.ValidationError("Only customers can create reviews.")
+
+            # Check if user has already reviewed this villa
+            villa = data.get("villa") or (
+                self.instance.villa if self.instance else None
+            )
+            if villa:
+                existing_review = VillaReview.objects.filter(
+                    user=request.user, villa=villa
+                ).exclude(pk=self.instance.pk if self.instance else None)
+                if existing_review.exists():
+                    raise serializers.ValidationError(
+                        "You have already reviewed this villa. You can update your existing review."
+                    )
+        return data

@@ -15,6 +15,7 @@ router.register("tickets", SupportTicketViewSet, basename="tickets")
 router.register("ticket-messages", TicketMessageViewSet, basename="ticket-messages")
 
 router.register(r"favourite-villas", FavouriteVillaViewSet, basename="favouritevilla")
+router.register(r"villa-reviews", VillaReviewViewSet, basename="villa-review")
 
 urlpatterns = [
     path("cancelltation-policy/", cancelltation_policy, name="cancelltation_policy"),
@@ -49,6 +50,16 @@ urlpatterns = [
         name="cancel_booking",
     ),
     path("booking/webhook/", razorpay_booking_webhook, name="razorpay_booking_webhook"),
+    path(
+        "villa-reviews/create/",
+        VillaReviewCreateAPIView.as_view(),
+        name="villa-review-create",
+    ),
+    path(
+        "villas/<int:villa_id>/reviews/",
+        VillaReviewListAPIView.as_view(),
+        name="villa-reviews-list",
+    ),
 ] + router.urls
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
