@@ -99,8 +99,10 @@
                                                 <th>Name</th>
                                                 <th>City</th>
                                                 <th>Star Rating</th>
+                                                <th>Star Facility</th>
                                                 <th>Ammenities</th>
                                                 <th>Price/Night</th>
+                                                <th>MRP</th>
                                                 <th>Markup %</th>
                                                 <th>Featured</th>
                                                 <th>Is Active</th>
@@ -117,7 +119,14 @@
                                                 <td>{{ hotel.villa_id|default:"-" }}</td>
                                                 <td>{{ hotel.name }}</td>
                                                 <td>{% if hotel.city %}{{ hotel.city.name }}{% else %}-{% endif %}</td>
-                                                <td>{{ hotel.star_rating }}</td>
+                                                <td>{{ hotel.star_rating|default:"-" }}</td>
+                                                <td>
+                                                    {% if hotel.villa_star_facility %}
+                                                        {{ hotel.get_villa_star_facility_display }}
+                                                    {% else %}
+                                                        <span class="text-muted">-</span>
+                                                    {% endif %}
+                                                </td>
                                                 <td>
                                                     {% for amenity in hotel.amenities.all %}
                                                         {{ amenity.name }}{% if not forloop.last %}, {% endif %}
@@ -130,6 +139,13 @@
                                                         ₹{{ hotel.price_per_night }}
                                                     {% else %}
                                                         <span class="text-muted">N/A</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if hotel.mrp %}
+                                                        ₹{{ hotel.mrp }}
+                                                    {% else %}
+                                                        <span class="text-muted">-</span>
                                                     {% endif %}
                                                 </td>
                                                 <td>

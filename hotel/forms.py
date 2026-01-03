@@ -27,6 +27,7 @@ class villa_Form(forms.ModelForm):
             'star_rating': forms.NumberInput(attrs={'class': 'form-control'}),
             'overall_rating': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
             'villa_star_facility': forms.Select(attrs={'class': 'form-control'}),
+            'mrp': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Maximum Retail Price (MRP)'}),
             'pincode': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': "Pincode"}),
             'profit_margin': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'markup_percentage': forms.NumberInput(attrs={

@@ -129,6 +129,7 @@ class VillaSerializer(serializers.ModelSerializer):
             "star_rating",
             "overall_rating",
             "villa_star_facility",
+            "mrp",
             "main_image",
             "profit_margin",
             "is_featured",

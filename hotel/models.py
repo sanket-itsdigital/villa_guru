@@ -58,6 +58,13 @@ class villa(models.Model):
         blank=True,
         help_text="Villa star facility type (1-7 Star Villa). This is a facility classification, not a rating.",
     )
+    mrp = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Maximum Retail Price (MRP) for the villa",
+    )
     main_image = models.ImageField(upload_to="hotels/", null=True, blank=True)
     profit_margin = models.DecimalField(
         max_digits=5, decimal_places=2, null=True, blank=True

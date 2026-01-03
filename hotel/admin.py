@@ -7,7 +7,7 @@ from .models import *
 
 @admin.register(villa)
 class VillaAdmin(admin.ModelAdmin):
-    list_display = ['villa_id', 'name', 'user', 'city', 'category', 'price_per_night', 'markup_percentage', 'is_active', 'go_live', 'is_featured', 'created_at']
+    list_display = ['villa_id', 'name', 'user', 'city', 'category', 'villa_star_facility', 'price_per_night', 'mrp', 'markup_percentage', 'is_active', 'go_live', 'is_featured', 'created_at']
     list_filter = ['category', 'is_active', 'go_live', 'is_featured', 'is_recommended', 'city', 'property_type', 'villa_star_facility', 'created_at']
     search_fields = ['villa_id', 'name', 'user__mobile', 'user__email', 'address', 'city__name']
     readonly_fields = ['villa_id', 'created_at']
@@ -21,7 +21,7 @@ class VillaAdmin(admin.ModelAdmin):
             'fields': ('city', 'address', 'landmark', 'pincode')
         }),
         ('Pricing', {
-            'fields': ('price_per_night', 'markup_percentage', 'profit_margin')
+            'fields': ('price_per_night', 'mrp', 'markup_percentage', 'profit_margin')
         }),
         ('Features', {
             'fields': ('amenities', 'no_of_rooms', 'star_rating', 'overall_rating', 'villa_star_facility', 'main_image')
