@@ -90,8 +90,8 @@ class VillaSerializer(serializers.ModelSerializer):
         many=True, read_only=True
     )  # or use AmenitySerializer
     property_type = property_type_serializer(
-        many=True, read_only=True
-    )  # or use AmenitySerializer
+        many=False, read_only=True
+    )  # property_type is a ForeignKey, not ManyToMany
     main_image = serializers.ImageField(required=False)
     user = VillaUserSerializer(read_only=True)  # Return user details instead of just ID
 
