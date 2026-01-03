@@ -13,9 +13,17 @@ from datetime import date, timedelta
 
 
 class VillaImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+    
     class Meta:
         model = VillaImage
         fields = ["id", "image"]
+    
+    def get_image(self, obj):
+        request = self.context.get('request')
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url if obj.image else None
 
 
 class VillaRoomImageSerializer(serializers.ModelSerializer):
@@ -92,7 +100,7 @@ class VillaSerializer(serializers.ModelSerializer):
     property_type = property_type_serializer(
         many=False, read_only=True
     )  # property_type is a ForeignKey, not ManyToMany
-    main_image = serializers.ImageField(required=False)
+    main_image = serializers.SerializerMethodField()
     user = VillaUserSerializer(read_only=True)  # Return user details instead of just ID
 
     min_price = serializers.SerializerMethodField()
@@ -156,6 +164,15 @@ class VillaSerializer(serializers.ModelSerializer):
         This is the price that customers will see.
         """
         return obj.get_marked_up_price()
+    
+    def get_main_image(self, obj):
+        """
+        Return absolute URL for main_image.
+        """
+        request = self.context.get('request')
+        if obj.main_image and request:
+            return request.build_absolute_uri(obj.main_image.url)
+        return obj.main_image.url if obj.main_image else None
 
 
 class SupportTicketSerializer(serializers.ModelSerializer):

@@ -543,7 +543,10 @@ class AvailableVillasAPIView(APIView):
         # Step 6: Get available villas
         available_villas = villa.objects.filter(id__in=available_villa_ids).distinct()
 
-        return Response(VillaSerializer(available_villas, many=True).data)
+        serializer = VillaSerializer(
+            available_villas, many=True, context={"request": request}
+        )
+        return Response(serializer.data)
 
 
 class TopPicksByGuestsAPIView(APIView):
