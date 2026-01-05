@@ -9,7 +9,7 @@ from django.conf.urls.static import static
 from rest_framework.routers import SimpleRouter
 
 router = SimpleRouter()
-router.register(r"villa-bookings", VillaBookingViewSet, basename="sdfdssdsa")
+# Removed villa-bookings from router - now using custom path below
 
 router.register("tickets", SupportTicketViewSet, basename="tickets")
 router.register("ticket-messages", TicketMessageViewSet, basename="ticket-messages")
@@ -27,6 +27,19 @@ urlpatterns = [
         VillaBookingRecalculateAPIView.as_view(),
         name="VillaBookingRecalculateAPIView",
     ),
+    # Villa/Resort/Couple Stay Bookings
+    path(
+        "villa-resort-and-couple-stay/bookings/",
+        VillaBookingViewSet.as_view({"get": "list", "post": "create"}),
+        name="villa-resort-couple-stay-booking-list",
+    ),
+    path(
+        "villa-resort-and-couple-stay/bookings/<int:pk>/",
+        VillaBookingViewSet.as_view(
+            {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"}
+        ),
+        name="villa-resort-couple-stay-booking-detail",
+    ),
     path("villas/", VillaListAPIView.as_view(), name="villa-list"),
     path("villas/<int:villa_id>/", VillaDetailAPIView.as_view(), name="villa-detail"),
     path(
@@ -37,7 +50,9 @@ urlpatterns = [
     path("room/<int:room_id>/", VillaRoomDetailAPIView.as_view(), name="room-detail"),
     path("available-rooms/", AvailableRoomsAPIView.as_view(), name="available-rooms"),
     path(
-        "available-villas/", AvailableVillasAPIView.as_view(), name="available-villas"
+        "available-villa-resort-and-couple-stay/",
+        AvailableVillasAPIView.as_view(),
+        name="available-villa-resort-and-couple-stay",
     ),
     path(
         "top-picks-by-guests/",

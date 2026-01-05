@@ -105,6 +105,18 @@ urlpatterns = [
     ),  # create or fetch list of admins
     path("get-villa_amenity/", get_villa_amenity.as_view(), name="get_villa_amenity "),
     path(
+        "add-room-type/", add_room_type, name="add_room_type"
+    ),  # create or fetch list of admins
+    path(
+        "update-room-type/<room_type_id>", update_room_type, name="update_room_type"
+    ),  # create or fetch list of admins
+    path(
+        "list-room-type/", list_room_type, name="list_room_type"
+    ),  # create or fetch list of admins
+    path(
+        "delete-room-type/<room_type_id>", delete_room_type, name="delete_room_type"
+    ),  # create or fetch list of admins
+    path(
         "add-villa-type/", add_villa_type, name="add_villa_type"
     ),  # create or fetch list of admins
     path(

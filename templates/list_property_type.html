@@ -91,6 +91,9 @@
             class="page-title-box d-sm-flex align-items-center justify-content-between"
           >
             <h4 class="mb-sm-0 font-size-18">List Property Type</h4>
+            <a href="{% url 'add_property_type' %}" class="btn btn-primary">
+              <i class="bi bi-plus-circle"></i> Add Property Type
+            </a>
           </div>
         </div>
       </div>
@@ -108,6 +111,8 @@
                       <tr>
                         <th>#</th>
                         <th>Name</th>
+                        <th>Booking Type</th>
+                        <th>Description</th>
                         <th>Action</th>
                       </tr>
                     </thead>
@@ -115,8 +120,27 @@
                       {% if data %} {% for i in data %}
                       <tr>
                         <td>{{ forloop.counter }}</td>
-                        <td>{{ i.name }}</td>
-
+                        <td><strong>{{ i.get_name_display }}</strong></td>
+                        <td>
+                          {% if i.name == "Villa" %}
+                            <span class="badge bg-success">Whole Villa</span>
+                            <small class="d-block text-muted">All rooms booked automatically</small>
+                          {% else %}
+                            <span class="badge bg-info">Selected Rooms</span>
+                            <small class="d-block text-muted">Customers can select specific rooms</small>
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if i.name == "Villa" %}
+                            When booking a Villa, the entire property is reserved. All rooms are automatically included in the booking.
+                          {% elif i.name == "Resort" %}
+                            For Resorts, customers can select and book individual rooms based on availability.
+                          {% elif i.name == "Couple Stay" %}
+                            For Couple Stay properties, customers can select and book specific rooms for their stay.
+                          {% else %}
+                            {{ i.name }} property type
+                          {% endif %}
+                        </td>
                         <td>
                           <!-- remove Button -->
 

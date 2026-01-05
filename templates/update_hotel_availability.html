@@ -1,116 +1,364 @@
 {% extends "partials/adminBase.html" %}
 {% load static %}
 
-{% block title %}Manage Villa Calendar{% endblock %}
+{% block title %}Manage Availability{% endblock %}
 
 {% block extra_css %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+<style>
+    .property-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .property-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    .property-card.selected {
+        border-color: #007bff;
+        background-color: #f0f8ff;
+    }
+    .property-card.booked {
+        border-left: 4px solid #dc3545;
+    }
+    .property-card.available {
+        border-left: 4px solid #28a745;
+    }
+    .booking-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    .badge-booked {
+        background-color: #dc3545;
+        color: white;
+    }
+    .badge-available {
+        background-color: #28a745;
+        color: white;
+    }
+    .filter-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .calendar-section {
+        margin-top: 30px;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h4>Manage Villa Availability</h4>
-    <div class="alert alert-info mt-3">
-        <strong>Legend:</strong>
-        <span class="badge bg-danger ms-2">Red Background</span> = Villa is Booked
-        <span class="badge bg-primary ms-2">Blue Event</span> = Room Availability Set
-    </div>
-</div>
-
 <div class="main-content">
     <div class="page-content" style="padding: calc(7px + 24px) calc(24px / 2) 60px calc(24px / 2) !important;">
         <div class="container-fluid">
             <div class="row">
                 <div class="col-12">
                     <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-                        <h4 class="mb-sm-0 font-size-18">Manage Villa Availability</h4>
+                        <h4 class="mb-sm-0 font-size-18">Manage Availability</h4>
                     </div>
                 </div>
             </div>
 
-            
-            <div class="d-flex justify-content-end mb-3">
-                <button type="button" class="btn btn-outline-primary" id="toggleBulkForm">
-                    + Bulk Update Availability
-                </button>
-            </div>
-
-
-
-            <div id="bulkFormContainer" style="display: none; transition: all 0.3s ease;">
-                <form method="post" action="{% url 'update_from_to_villa_availability' %}">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="from_date">From Date</label>
-                        <input type="date" name="from_date" id="from_date" class="form-control" required>
+            <!-- Filters Section -->
+            <div class="filter-section">
+                <form method="get" action="{% url 'update_villa_availability' %}" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select name="status" id="status" class="form-select">
+                            <option value="all" {% if filter_status == 'all' %}selected{% endif %}>All Properties</option>
+                            <option value="booked" {% if filter_status == 'booked' %}selected{% endif %}>Booked Only</option>
+                            <option value="available" {% if filter_status == 'available' %}selected{% endif %}>Available Only</option>
+                        </select>
                     </div>
-                    <div class="mb-3">
-                        <label for="to_date">To Date</label>
-                        <input type="date" name="to_date" id="to_date" class="form-control" required>
+                    <div class="col-md-3">
+                        <label for="property_type" class="form-label">Property Type</label>
+                        <select name="property_type" id="property_type" class="form-select">
+                            <option value="all" {% if property_type_filter == 'all' %}selected{% endif %}>All Types</option>
+                            {% for pt in property_types %}
+                            <option value="{{ pt.id }}" {% if property_type_filter == pt.id|stringformat:"s" %}selected{% endif %}>
+                                {{ pt.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
-
-                    {% for room in rooms %}
-                    <div class="mb-2">
-                        <label>{{ room.room_type }} ({{ room.title }})   {% if room.refundable %}
-                                        Refundable
-                                    {% else %}
-                                        Not Refundable
-                                    {% endif %} </label>
-                        <input type="number" name="availability_{{ room.id }}" class="form-control" min="0" placeholder="Number of rooms available">
-                    </div>
-                    {% endfor %}
-
-                    <div class="mt-3">
-                        <button type="submit" class="btn btn-primary">Update Availability</button>
-                        <button type="button" class="btn btn-secondary" id="cancelBulkForm">Cancel</button>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        <a href="{% url 'update_villa_availability' %}" class="btn btn-secondary ms-2">Clear</a>
                     </div>
                 </form>
             </div>
 
-
-            <div class="container">
-                <div id="calendar"></div>
-
-                <!-- Modal -->
-                <div class="modal fade" id="availabilityModal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <form method="post">
-                            {% csrf_token %}
-                            <input type="hidden" name="selected_date" id="selected_date">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Update Room Availability</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <!-- Properties List -->
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>Your Properties</h5>
+                    {% if all_villas %}
+                        {% for item in all_villas %}
+                        <div class="property-card {% if item.has_booking %}booked{% else %}available{% endif %} {% if selected_villa_id == item.villa.id %}selected{% endif %}" 
+                             onclick="window.location.href='?villa_id={{ item.villa.id }}&status={{ filter_status }}&property_type={{ property_type_filter }}'">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">{{ item.villa.name }}</h6>
+                                    <p class="mb-1 text-muted small">
+                                        <strong>Type:</strong> {{ item.villa.property_type.name|default:"N/A" }}<br>
+                                        <strong>City:</strong> {{ item.villa.city.name|default:"N/A" }}<br>
+                                        <strong>ID:</strong> {{ item.villa.villa_id|default:"N/A" }}
+                                    </p>
                                 </div>
-                                <div class="modal-body">
-                                    <p>Set availability for <strong id="modal_date"></strong></p>
-                                    {% for room in rooms %}
-                                    <div class="mb-2">
-                                        <label>
-                                    {{ room.room_type }} ({{ room.title }}) - 
-                                    {% if room.refundable %}
-                                        Refundable
+                                <div class="text-end">
+                                    {% if item.has_booking %}
+                                    <span class="booking-badge badge-booked">Booked</span>
+                                    <br><small class="text-muted">{{ item.booking_count }} booking(s)</small>
                                     {% else %}
-                                        Not Refundable
+                                    <span class="booking-badge badge-available">Available</span>
                                     {% endif %}
-                                    </label>
-
-
-                                        <input type="number" name="availability_{{ room.id }}" class="form-control" min="0" placeholder="Number of rooms available">
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="submit" class="btn btn-primary">Save</button>
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                                 </div>
                             </div>
-                        </form>
-                    </div>
+                            {% if item.next_booking %}
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <strong>Next Booking:</strong> {{ item.next_booking.check_in|date:"M d, Y" }} - {{ item.next_booking.check_out|date:"M d, Y" }}
+                                </small>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <p>No properties found. Please add a property first.</p>
+                            <a href="{% url 'add_villa' %}" class="btn btn-sm btn-primary">Add Property</a>
+                        </div>
+                    {% endif %}
                 </div>
 
+                <!-- Calendar Section -->
+                <div class="col-md-8">
+                    {% if villa_obj %}
+                    <!-- Rooms List Section (for Resort/Couple Stay) -->
+                    {% if villa_obj.property_type.name in "Resort,Couple Stay" %}
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">All Rooms - {{ villa_obj.name }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Date Range Filter for Room Status -->
+                            <form method="get" class="mb-3">
+                                <input type="hidden" name="villa_id" value="{{ villa_obj.id }}">
+                                <input type="hidden" name="status" value="{{ filter_status }}">
+                                <input type="hidden" name="property_type" value="{{ property_type_filter }}">
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label for="check_date_from" class="form-label small">Check From Date</label>
+                                        <input type="date" name="check_date_from" id="check_date_from" 
+                                               value="{{ check_date_from }}" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="check_date_to" class="form-label small">Check To Date</label>
+                                        <input type="date" name="check_date_to" id="check_date_to" 
+                                               value="{{ check_date_to }}" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="col-md-4 d-flex align-items-end">
+                                        <button type="submit" class="btn btn-sm btn-primary me-2">Check Status</button>
+                                        <a href="?villa_id={{ villa_obj.id }}&status={{ filter_status }}&property_type={{ property_type_filter }}" 
+                                           class="btn btn-sm btn-secondary">Reset</a>
+                                    </div>
+                                </div>
+                            </form>
+                            
+                            <!-- Rooms Table -->
+                            {% if rooms_with_status %}
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Room ID</th>
+                                            <th>Room Type</th>
+                                            <th>Title</th>
+                                            <th>Price/Night</th>
+                                            <th>Max Guests</th>
+                                            <th>Status</th>
+                                            <th>Booking Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in rooms_with_status %}
+                                        <tr class="{% if item.status == 'fully_booked' %}table-danger{% elif item.status == 'partially_booked' %}table-warning{% else %}table-success{% endif %}">
+                                            <td>{{ item.room.id }}</td>
+                                            <td>{{ item.room.room_type.name|default:"N/A" }}</td>
+                                            <td>{{ item.room.title|default:"N/A" }}</td>
+                                            <td>₹{{ item.room.price_per_night|default:"0.00" }}</td>
+                                            <td>{{ item.room.max_guest_count|default:"N/A" }}</td>
+                                            <td>
+                                                {% if item.status == 'fully_booked' %}
+                                                    <span class="badge bg-danger">Fully Booked</span>
+                                                {% elif item.status == 'partially_booked' %}
+                                                    <span class="badge bg-warning text-dark">{{ item.status_label }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">Available</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <small>
+                                                    {% if item.booked_days > 0 %}
+                                                        Booked: {{ item.booked_days }}/{{ item.total_days }} days
+                                                    {% else %}
+                                                        No bookings
+                                                    {% endif %}
+                                                </small>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% elif rooms %}
+                            <div class="alert alert-warning">
+                                <p class="mb-0">Rooms found but no booking status data. Please select a date range and click "Check Status".</p>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">No rooms found for this property. <a href="{% url 'add_villa_rooms' %}?villa_id={{ villa_obj.id }}">Add Rooms</a></p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                {{ villa_obj.name }} - Availability Calendar
+                                <span class="badge bg-{% if villa_obj.property_type.name == 'Villa' %}primary{% else %}info{% endif %} ms-2">
+                                    {{ villa_obj.property_type.name|default:"N/A" }}
+                                </span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <strong>Legend:</strong>
+                                <span class="badge bg-danger ms-2">Red Background</span> = Booked (Online/Offline)
+                                <span class="badge bg-primary ms-2">Blue Event</span> = Availability Set
+                                <span class="badge bg-warning ms-2">Yellow</span> = Manually Booked (Offline)
+                            </div>
+
+                            <div class="d-flex justify-content-end mb-3">
+                                <button type="button" class="btn btn-outline-primary" id="toggleBulkForm">
+                                    + Bulk Update Availability
+                                </button>
+                            </div>
+
+                            <div id="bulkFormContainer" style="display: none;">
+                                <form method="post" action="{% url 'update_from_to_villa_availability' %}?villa_id={{ villa_obj.id }}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="villa_id" value="{{ villa_obj.id }}">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="from_date">From Date</label>
+                                            <input type="date" name="from_date" id="from_date" class="form-control" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="to_date">To Date</label>
+                                            <input type="date" name="to_date" id="to_date" class="form-control" required>
+                                        </div>
+                                    </div>
+                                    {% if villa_obj.property_type.name in "Resort,Couple Stay" %}
+                                        {% for room in rooms %}
+                                        <div class="mb-2">
+                                            <label>{{ room.room_type.name|default:"Room" }} ({{ room.title }})</label>
+                                            <input type="number" name="availability_{{ room.id }}" class="form-control" min="0" placeholder="Number of rooms available">
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="mb-2">
+                                            <label>
+                                                <input type="checkbox" name="is_open" value="true" checked> Villa is Open
+                                            </label>
+                                        </div>
+                                    {% endif %}
+                                    <div class="mt-3">
+                                        <button type="submit" class="btn btn-primary">Update Availability</button>
+                                        <button type="button" class="btn btn-secondary" id="cancelBulkForm">Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <div id="calendar"></div>
+
+                            <!-- Modal -->
+                            <div class="modal fade" id="availabilityModal" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="selected_date" id="selected_date">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Update Availability</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Set availability for <strong id="modal_date"></strong></p>
+                                                {% if villa_obj.property_type.name in "Resort,Couple Stay" %}
+                                                    {% for room in rooms %}
+                                                    <div class="mb-3">
+                                                        <label class="form-label">
+                                                            <strong>{{ room.room_type.name|default:"Room" }} ({{ room.title }})</strong>
+                                                        </label>
+                                                        <div class="input-group">
+                                                            <input type="number" name="availability_{{ room.id }}" id="availability_{{ room.id }}" class="form-control" min="0" placeholder="Number of rooms available">
+                                                            <button type="button" class="btn btn-outline-danger" onclick="markRoomBooked({{ room.id }})" title="Mark as Booked (Offline)">
+                                                                <i class="bi bi-x-circle"></i> Mark Booked
+                                                            </button>
+                                                            <button type="button" class="btn btn-outline-success" onclick="markRoomAvailable({{ room.id }})" title="Mark as Available">
+                                                                <i class="bi bi-check-circle"></i> Mark Available
+                                                            </button>
+                                                        </div>
+                                                        <small class="text-muted">Set to 0 to mark as booked (offline booking)</small>
+                                                    </div>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <div class="mb-2">
+                                                        <label>
+                                                            <input type="checkbox" name="is_open" id="is_open" value="true" checked> Villa is Open
+                                                        </label>
+                                                        <div class="mt-2">
+                                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="markVillaBooked()" title="Mark as Booked (Offline)">
+                                                                <i class="bi bi-x-circle"></i> Mark as Booked
+                                                            </button>
+                                                            <button type="button" class="btn btn-sm btn-outline-success" onclick="markVillaAvailable()" title="Mark as Available">
+                                                                <i class="bi bi-check-circle"></i> Mark as Available
+                                                            </button>
+                                                        </div>
+                                                        <small class="text-muted">Uncheck to mark as booked (offline booking)</small>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="submit" class="btn btn-primary">Save</button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <h5>Select a Property</h5>
+                        <p>Please select a property from the list on the left to view and manage its availability.</p>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -121,18 +369,19 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
+{% if villa_obj %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
-    const availabilityData = {{ availability_json|safe }};  // ✅ This should be correct JSON like: {"2025-07-05": {"9": 5}}
-    const bookedDates = {{ booked_dates_json|safe }};  // Set of booked dates
+    const availabilityData = {{ availability_json|safe }};
+    const bookedDates = {{ booked_dates_json|safe }};
+    const events = {{ events|safe }};
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         height: 'auto',
-        events: {{ events|safe }},
+        events: events,
         eventDidMount: function(info) {
-            // Style booked dates with red background
             if (info.event.display === 'background' && info.event.color === '#dc3545') {
                 info.el.style.backgroundColor = '#dc3545';
                 info.el.style.opacity = '0.6';
@@ -140,17 +389,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         dayCellDidMount: function(info) {
-            // Check if this date is booked and add visual indicator
             const dateStr = info.dateStr;
             if (bookedDates.includes(dateStr)) {
                 info.el.style.backgroundColor = '#ffebee';
                 info.el.style.border = '2px solid #dc3545';
                 info.el.style.borderRadius = '4px';
-                info.el.title = 'Villa is booked on this date';
+                info.el.title = 'Property is booked on this date';
             }
         },
         eventContent: function(info) {
-            // Hide background events from showing text, but keep the background color
             if (info.event.display === 'background') {
                 return { html: '' };
             }
@@ -159,31 +406,33 @@ document.addEventListener('DOMContentLoaded', function() {
         dateClick: function(info) {
             const selectedDate = info.dateStr;
             
-            // Check if date is booked
-            if (bookedDates.includes(selectedDate)) {
-                alert('⚠️ This date is already booked. You cannot change availability for booked dates.');
-                return;
-            }
+            // Allow editing even if booked - vendor can mark as booked/unbooked for offline bookings
+            // if (bookedDates.includes(selectedDate)) {
+            //     alert('⚠️ This date is already booked. You cannot change availability for booked dates.');
+            //     return;
+            // }
 
             document.getElementById('selected_date').value = selectedDate;
             document.getElementById('modal_date').textContent = selectedDate;
 
             const modal = document.getElementById('availabilityModal');
-
-            // Clear previous values (only inside modal)
-            modal.querySelectorAll('input[name^="availability_"]').forEach(input => {
-                input.value = "";
+            modal.querySelectorAll('input[name^="availability_"], input[name="is_open"]').forEach(input => {
+                if (input.type === 'number') {
+                    input.value = "";
+                } else {
+                    input.checked = true;
+                }
             });
 
             const dayData = availabilityData[selectedDate];
-            console.log("Selected:", selectedDate);
-            console.log("DayData:", dayData);
-
             if (dayData) {
-                for (const roomId in dayData) {
-                    const input = modal.querySelector(`input[name="availability_${roomId}"]`);
-                    if (input) {
-                        input.value = dayData[roomId];
+                for (const key in dayData) {
+                    if (key === 'is_open') {
+                        const checkbox = modal.querySelector('input[name="is_open"]');
+                        if (checkbox) checkbox.checked = dayData[key];
+                    } else {
+                        const input = modal.querySelector(`input[name="availability_${key}"]`);
+                        if (input) input.value = dayData[key];
                     }
                 }
             }
@@ -194,26 +443,63 @@ document.addEventListener('DOMContentLoaded', function() {
 
     calendar.render();
 });
-</script>
 
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById("toggleBulkForm");
+    const formContainer = document.getElementById("bulkFormContainer");
+    const cancelBtn = document.getElementById("cancelBulkForm");
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const toggleBtn = document.getElementById("toggleBulkForm");
-        const formContainer = document.getElementById("bulkFormContainer");
-        const cancelBtn = document.getElementById("cancelBulkForm");
-
+    if (toggleBtn) {
         toggleBtn.addEventListener("click", () => {
             formContainer.style.display = (formContainer.style.display === "none" || !formContainer.style.display)
                 ? "block"
                 : "none";
         });
+    }
 
-        cancelBtn?.addEventListener("click", () => {
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", () => {
             formContainer.style.display = "none";
         });
-    });
+    }
+});
+
+// Functions to mark rooms as booked/available
+function markRoomBooked(roomId) {
+    const input = document.getElementById(`availability_${roomId}`);
+    if (input) {
+        input.value = "0";
+        input.classList.add('border-danger');
+        input.classList.remove('border-success');
+    }
+}
+
+function markRoomAvailable(roomId) {
+    const input = document.getElementById(`availability_${roomId}`);
+    if (input) {
+        // Set to 1 by default, or get from room data if available
+        input.value = "1";
+        input.classList.add('border-success');
+        input.classList.remove('border-danger');
+    }
+}
+
+// Functions to mark villa as booked/available
+function markVillaBooked() {
+    const checkbox = document.getElementById('is_open');
+    if (checkbox) {
+        checkbox.checked = false;
+        checkbox.classList.add('border-danger');
+    }
+}
+
+function markVillaAvailable() {
+    const checkbox = document.getElementById('is_open');
+    if (checkbox) {
+        checkbox.checked = true;
+        checkbox.classList.remove('border-danger');
+    }
+}
 </script>
-
-
+{% endif %}
 {% endblock %}

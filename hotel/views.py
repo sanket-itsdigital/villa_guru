@@ -200,7 +200,7 @@ def view_hotel(request):
                         "rooms",
                         queryset=villa_rooms.objects.select_related(
                             "room_type"
-                        ).prefetch_related("room_amenities"),
+                        ).prefetch_related("villa_amenities"),
                     )
                 ).get(id=villa_id)
             except villa.DoesNotExist:
@@ -214,7 +214,7 @@ def view_hotel(request):
                     "rooms",
                     queryset=villa_rooms.objects.select_related(
                         "room_type"
-                    ).prefetch_related("room_amenities"),
+                    ).prefetch_related("villa_amenities"),
                 )
             ).filter(is_active=True).first()
     else:
@@ -227,7 +227,7 @@ def view_hotel(request):
                 "rooms",
                 queryset=villa_rooms.objects.select_related(
                     "room_type"
-                ).prefetch_related("room_amenities"),
+                ).prefetch_related("villa_amenities"),
             )
         )
         if villa_id:
@@ -375,7 +375,7 @@ def list_hotel(request):
         Prefetch(
             "rooms",
             queryset=villa_rooms.objects.select_related("room_type").prefetch_related(
-                "room_amenities"
+                "villa_amenities"
             ),
         )
     ).order_by("-id")
@@ -413,14 +413,26 @@ def delete_hotel_image(request, image_id):
 
 @login_required(login_url="login_admin")
 def add_hotel_rooms(request):
-    # Room management is no longer used - only whole villa bookings are supported
+    # For vendors: only allow room addition for Resort and Couple Stay properties
     if request.user.is_service_provider and not request.user.is_superuser:
-        messages.info(request, "Room management is no longer available. All bookings are for whole villas only.")
-        return redirect("view_villa")
+        # Get user's villas that are Resort or Couple Stay
+        user_villas = villa.objects.filter(
+            user=request.user,
+            is_active=True,
+            property_type__name__in=["Resort", "Couple Stay"]
+        )
+        
+        if not user_villas.exists():
+            messages.warning(
+                request,
+                "Room management is only available for Resort and Couple Stay properties. "
+                "Please create a Resort or Couple Stay property first."
+            )
+            return redirect("view_villa")
 
     if request.method == "POST":
 
-        form = villa_rooms_Form(request.POST, request.FILES)
+        form = villa_rooms_Form(request.POST, request.FILES, user=request.user)
 
         if form.is_valid():
             instance = form.save(commit=False)
@@ -429,11 +441,27 @@ def add_hotel_rooms(request):
                 # Admin: hotel selected in form by dropdown (already present in form.cleaned_data)
                 pass  # already handled by form
             else:
-                # Vendor: assign hotel based on the user (use first villa)
-                user_villa = villa.objects.filter(user=request.user, is_active=True).first()
-                if not user_villa:
-                    return HttpResponse("You are not linked to any villa. Please add a villa first.", status=403)
-                instance.villa = user_villa
+                # Vendor: validate that the selected villa is Resort or Couple Stay
+                selected_villa = form.cleaned_data.get('villa')
+                if selected_villa:
+                    if selected_villa.property_type and selected_villa.property_type.name not in ["Resort", "Couple Stay"]:
+                        messages.error(
+                            request,
+                            "Rooms can only be added to Resort or Couple Stay properties. "
+                            f"{selected_villa.name} is a {selected_villa.property_type.name}."
+                        )
+                        context = {"form": form}
+                        return render(request, "add_hotel_rooms.html", context)
+                else:
+                    # If no villa selected, use first Resort/Couple Stay villa
+                    user_villa = villa.objects.filter(
+                        user=request.user,
+                        is_active=True,
+                        property_type__name__in=["Resort", "Couple Stay"]
+                    ).first()
+                    if not user_villa:
+                        return HttpResponse("You are not linked to any Resort or Couple Stay property. Please add one first.", status=403)
+                    instance.villa = user_villa
 
             instance.save()
             form.save_m2m()
@@ -441,42 +469,97 @@ def add_hotel_rooms(request):
             for img in request.FILES.getlist("image"):
                 villa_roomsImage.objects.create(villa_rooms=instance, image=img)
 
-            return redirect("list_hotel_rooms")
+            messages.success(request, f"Room added successfully to {instance.villa.name}!")
+            return redirect("list_villa_rooms")
 
         else:
             print(form.errors)
+            # Re-apply villa filtering for vendors in case of errors
+            if request.user.is_service_provider and not request.user.is_superuser:
+                user_villas = villa.objects.filter(
+                    user=request.user,
+                    is_active=True,
+                    property_type__name__in=["Resort", "Couple Stay"]
+                )
+                form.fields['villa'].queryset = user_villas
             context = {"form": form}
             return render(request, "add_hotel_rooms.html", context)
 
     else:
 
-        form = villa_rooms_Form()
+        form = villa_rooms_Form(user=request.user)
+        
+        # For vendors: filter villa dropdown to only show Resort/Couple Stay properties
+        if request.user.is_service_provider and not request.user.is_superuser:
+            user_villas = villa.objects.filter(
+                user=request.user,
+                is_active=True,
+                property_type__name__in=["Resort", "Couple Stay"]
+            )
+            form.fields['villa'].queryset = user_villas
+            form.fields['villa'].help_text = f"Only your Resort and Couple Stay properties are shown. You have {user_villas.count()} property(ies) available."
+            if user_villas.count() == 1:
+                # Auto-select if only one villa
+                form.fields['villa'].initial = user_villas.first()
+            elif user_villas.count() == 0:
+                form.fields['villa'].help_text = "You don't have any Resort or Couple Stay properties. Please create one first."
 
         return render(request, "add_hotel_rooms.html", {"form": form})
 
 
 @login_required(login_url="login_admin")
-def update_hotel_rooms(request, hotel_rooms_id):
-    # Room management is no longer used - only whole villa bookings are supported
-    if request.user.is_service_provider and not request.user.is_superuser:
-        messages.info(request, "Room management is no longer available. All bookings are for whole villas only.")
-        return redirect("view_villa")
+def update_hotel_rooms(request, villa_rooms_id):
+    instance = get_object_or_404(villa_rooms, id=villa_rooms_id)
     
-    instance = get_object_or_404(villa_rooms, id=hotel_rooms_id)
+    # For vendors: only allow editing rooms for Resort and Couple Stay properties
+    if request.user.is_service_provider and not request.user.is_superuser:
+        # Check if the room belongs to a Resort or Couple Stay property owned by the user
+        if not instance.villa or instance.villa.user != request.user:
+            messages.error(request, "You don't have permission to edit this room.")
+            return redirect("list_villa_rooms")
+        
+        if not instance.villa.property_type or instance.villa.property_type.name not in ["Resort", "Couple Stay"]:
+            messages.error(
+                request,
+                "Room editing is only available for Resort and Couple Stay properties."
+            )
+            return redirect("list_villa_rooms")
 
     if request.method == "POST":
-        form = villa_rooms_Form(request.POST, request.FILES, instance=instance)
+        form = villa_rooms_Form(request.POST, request.FILES, instance=instance, user=request.user)
 
         if form.is_valid():
             room = form.save(commit=False)
 
             # Ensure the correct hotel is assigned if user is not a superuser
             if not request.user.is_superuser:
-                # Vendor: assign hotel based on the user (use first villa)
-                user_villa = villa.objects.filter(user=request.user, is_active=True).first()
-                if not user_villa:
-                    return HttpResponse("You are not linked to any villa. Please add a villa first.", status=403)
-                room.villa = user_villa
+                # Vendor: validate villa is Resort or Couple Stay
+                selected_villa = form.cleaned_data.get('villa') or instance.villa
+                if selected_villa:
+                    if selected_villa.property_type and selected_villa.property_type.name not in ["Resort", "Couple Stay"]:
+                        messages.error(
+                            request,
+                            "Rooms can only be assigned to Resort or Couple Stay properties."
+                        )
+                        # Re-initialize form with user for proper room type filtering
+                        form = villa_rooms_Form(request.POST, request.FILES, instance=instance, user=request.user)
+                        if request.user.is_service_provider and not request.user.is_superuser:
+                            user_villas = villa.objects.filter(
+                                user=request.user,
+                                is_active=True,
+                                property_type__name__in=["Resort", "Couple Stay"]
+                            )
+                            form.fields['villa'].queryset = user_villas
+                        context = {
+                            "form": form,
+                            "existing_images": instance.images.all() if instance else None,
+                        }
+                        return render(request, "add_hotel_rooms.html", context)
+                    room.villa = selected_villa
+                else:
+                    # Fallback to existing villa
+                    if instance.villa and instance.villa.user != request.user:
+                        return HttpResponse("You don't have permission to edit this room.", status=403)
 
             room.save()
             form.save_m2m()
@@ -484,11 +567,29 @@ def update_hotel_rooms(request, hotel_rooms_id):
             for img in request.FILES.getlist("image"):
                 hotel_roomsImage.objects.create(hotel_rooms=room, image=img)
 
-            return redirect("list_hotel_rooms")
+            messages.success(request, "Room updated successfully!")
+            return redirect("list_villa_rooms")
         else:
             print(form.errors)
+            # Re-apply villa filtering for vendors in case of errors
+            if request.user.is_service_provider and not request.user.is_superuser:
+                user_villas = villa.objects.filter(
+                    user=request.user,
+                    is_active=True,
+                    property_type__name__in=["Resort", "Couple Stay"]
+                )
+                form.fields['villa'].queryset = user_villas
     else:
-        form = villa_rooms_Form(instance=instance)
+        form = villa_rooms_Form(instance=instance, user=request.user)
+        
+        # For vendors: filter villa dropdown to only show Resort/Couple Stay properties
+        if request.user.is_service_provider and not request.user.is_superuser:
+            user_villas = villa.objects.filter(
+                user=request.user,
+                is_active=True,
+                property_type__name__in=["Resort", "Couple Stay"]
+            )
+            form.fields['villa'].queryset = user_villas
 
     context = {
         "form": form,
@@ -498,25 +599,44 @@ def update_hotel_rooms(request, hotel_rooms_id):
 
 
 @login_required(login_url="login_admin")
-def delete_hotel_rooms(request, hotel_rooms_id):
-    # Room management is no longer used - only whole villa bookings are supported
+def delete_hotel_rooms(request, villa_rooms_id):
+    room = get_object_or_404(villa_rooms, id=villa_rooms_id)
+    
+    # For vendors: only allow deleting rooms from their own Resort/Couple Stay properties
     if request.user.is_service_provider and not request.user.is_superuser:
-        messages.info(request, "Room management is no longer available. All bookings are for whole villas only.")
-        return redirect("view_villa")
+        if not room.villa or room.villa.user != request.user:
+            messages.error(request, "You don't have permission to delete this room.")
+            return redirect("list_villa_rooms")
+        
+        if not room.villa.property_type or room.villa.property_type.name not in ["Resort", "Couple Stay"]:
+            messages.error(
+                request,
+                "Room deletion is only available for Resort and Couple Stay properties."
+            )
+            return redirect("list_villa_rooms")
 
-    villa_rooms.objects.get(id=hotel_rooms_id).delete()
-
-    return HttpResponseRedirect(reverse("list_hotel_rooms"))
+    room.delete()
+    messages.success(request, "Room deleted successfully!")
+    return HttpResponseRedirect(reverse("list_villa_rooms"))
 
 
 @login_required(login_url="login_admin")
 def view_hotel_rooms(request, hotel_id):
-    # Room management is no longer used - only whole villa bookings are supported
+    villa_instance = get_object_or_404(villa, id=hotel_id)
+    
+    # For vendors: only allow viewing rooms from their own Resort/Couple Stay properties
     if request.user.is_service_provider and not request.user.is_superuser:
-        messages.info(request, "Room management is no longer available. All bookings are for whole villas only.")
-        return redirect("view_villa")
-
-    villa_instance = villa.objects.get(id=hotel_id)
+        if villa_instance.user != request.user:
+            messages.error(request, "You don't have permission to view rooms for this property.")
+            return redirect("list_villa_rooms")
+        
+        if not villa_instance.property_type or villa_instance.property_type.name not in ["Resort", "Couple Stay"]:
+            messages.error(
+                request,
+                "Room viewing is only available for Resort and Couple Stay properties."
+            )
+            return redirect("list_villa_rooms")
+    
     data = villa_rooms.objects.filter(villa__id=hotel_id)
 
     context = {"data": data, "hote_name": villa_instance.name}
@@ -535,43 +655,57 @@ def delete_hotel_room_image(request, image_id):
 
     print(villa_rooms_id)
 
-    return redirect("update_hotel_rooms", hotel_rooms_id=villa_rooms_id)
+    return redirect("update_villa_rooms", villa_rooms_id=villa_rooms_id)
 
 
 @login_required(login_url="login_admin")
 def list_hotel_rooms(request):
-    # Room management is no longer used - only whole villa bookings are supported
-    if request.user.is_service_provider and not request.user.is_superuser:
-        messages.info(request, "Room management is no longer available. All bookings are for whole villas only.")
-        return redirect("view_villa")
-
     if request.user.is_superuser:
-        data = villa.objects.prefetch_related(
-            Prefetch(
-                "rooms",
-                queryset=villa_rooms.objects.select_related(
-                    "room_type"
-                ).prefetch_related("room_amenities"),
-            )
-        )
-
-        filterset = VillaFilter(request.GET, queryset=data, request=request)
-        filtered_bookings = filterset.qs
-
-        context = {"data": filtered_bookings, "filterset": filterset}
-
-        return render(request, "list_hotel.html", context)
-
+        # Admin: show all rooms from all villas
+        all_rooms = villa_rooms.objects.select_related(
+            "villa", "room_type"
+        ).prefetch_related("villa_amenities", "images").all()
+        
+        # Group by villa for display
+        villas_with_rooms = {}
+        for room in all_rooms:
+            if room.villa not in villas_with_rooms:
+                villas_with_rooms[room.villa] = []
+            villas_with_rooms[room.villa].append(room)
+        
+        context = {"villas_with_rooms": villas_with_rooms}
+        return render(request, "list_hotel_rooms.html", context)
     else:
+        # Vendor: show only rooms from their Resort/Couple Stay properties
+        user_villas = villa.objects.filter(
+            user=request.user,
+            is_active=True,
+            property_type__name__in=["Resort", "Couple Stay"]
+        )
+        
+        if not user_villas.exists():
+            messages.info(
+                request,
+                "You don't have any Resort or Couple Stay properties. "
+                "Room management is only available for these property types."
+            )
+            return redirect("view_villa")
+        
+        # Get all rooms from user's Resort/Couple Stay properties
+        all_rooms = villa_rooms.objects.filter(
+            villa__in=user_villas
+        ).select_related(
+            "villa", "room_type"
+        ).prefetch_related("villa_amenities", "images").order_by("villa", "room_type")
+        
+        # Group by villa for display
+        villas_with_rooms = {}
+        for room in all_rooms:
+            if room.villa not in villas_with_rooms:
+                villas_with_rooms[room.villa] = []
+            villas_with_rooms[room.villa].append(room)
 
-        villa_instance = villa.objects.filter(user=request.user, is_active=True).first()
-        if not villa_instance:
-            messages.error(request, "You are not linked to any villa. Please add a villa first.")
-            return redirect("add_villa")
-        data = villa_rooms.objects.filter(villa=villa_instance)
-
-        context = {"data": data, "hote_name": villa_instance.name}
-
+        context = {"villas_with_rooms": villas_with_rooms}
         return render(request, "list_hotel_rooms.html", context)
 
 
@@ -1050,7 +1184,8 @@ from collections import defaultdict
 @login_required
 def update_hotel_availability(request):
     """
-    Update villa availability.
+    Manage availability for all properties (Villa, Resort, Couple Stay).
+    Shows all properties with booking status and filters.
     Only vendors can access this - not admins.
     """
     # Restrict to vendors only
@@ -1058,120 +1193,296 @@ def update_hotel_availability(request):
         messages.info(request, "Availability management is only available for vendors.")
         return redirect("list_villa")
     
-    # Get first villa for vendor (or selected one if multiple)
-    villas_list = villa.objects.filter(user=request.user, is_active=True)
+    # Get all properties for vendor
+    all_villas = villa.objects.filter(user=request.user, is_active=True).select_related('property_type', 'city')
+    
+    # Get filter parameters
+    filter_status = request.GET.get('status', 'all')  # 'all', 'booked', 'available'
+    property_type_filter = request.GET.get('property_type', 'all')  # 'all', '1', '2', '3'
     villa_id = request.GET.get('villa_id')
     
+    # Filter by property type if specified
+    if property_type_filter != 'all':
+        try:
+            all_villas = all_villas.filter(property_type_id=int(property_type_filter))
+        except (ValueError, TypeError):
+            pass
+    
+    # Get selected villa for detailed view
+    villa_obj = None
     if villa_id:
         try:
-            villa_obj = villas_list.get(id=villa_id)
+            villa_obj = all_villas.get(id=villa_id)
         except villa.DoesNotExist:
-            villa_obj = villas_list.first() if villas_list.exists() else None
-    else:
-        villa_obj = villas_list.first() if villas_list.exists() else None
-    
-    if not villa_obj:
-        messages.error(request, "You are not linked to any villa.")
-        return redirect("vendor_dashboard")
+            villa_obj = None
 
     if request.method == "POST":
+        if not villa_obj:
+            messages.error(request, "Please select a property first.")
+            return HttpResponseRedirect(reverse("update_villa_availability"))
+            
         selected_date = request.POST.get("selected_date")
         selected_date_obj = datetime.strptime(selected_date, "%Y-%m-%d").date()
 
-        for room in villa_rooms.objects.filter(villa=villa_obj):
-            field_name = f"availability_{room.id}"
-            count = request.POST.get(field_name)
+        # Handle room-based availability (Resort/Couple Stay)
+        property_type_name = villa_obj.property_type.name if villa_obj.property_type else None
+        if property_type_name in ["Resort", "Couple Stay"]:
+            for room in villa_rooms.objects.filter(villa=villa_obj):
+                field_name = f"availability_{room.id}"
+                count = request.POST.get(field_name)
 
-            if count is not None and count != "":
-
-                # Save/update room availability
-                RoomAvailability.objects.update_or_create(
-                    room=room,
-                    date=selected_date_obj,
-                    defaults={"available_count": count},
-                )
+                if count is not None and count != "":
+                    count_int = int(count)
+                    # Save/update room availability
+                    # If count is 0, room is marked as booked (offline)
+                    RoomAvailability.objects.update_or_create(
+                        room=room,
+                        date=selected_date_obj,
+                        defaults={"available_count": count_int},
+                    )
+        else:
+            # Handle villa availability (whole villa)
+            is_open = request.POST.get("is_open", "true") == "true"
+            VillaAvailability.objects.update_or_create(
+                villa=villa_obj,
+                date=selected_date_obj,
+                defaults={"is_open": is_open},
+            )
 
         messages.success(request, f"Availability updated for {selected_date}")
-        return redirect("update_villa_availability")
-
-    # Get first villa for vendor (or selected one if multiple)
-    villas_list = villa.objects.filter(user=request.user, is_active=True)
-    villa_id = request.GET.get('villa_id')
-    
-    if villa_id:
-        try:
-            villa_obj = villas_list.get(id=villa_id)
-        except villa.DoesNotExist:
-            villa_obj = villas_list.first() if villas_list.exists() else None
-    else:
-        villa_obj = villas_list.first() if villas_list.exists() else None
-    
-    if not villa_obj:
-        messages.error(request, "You are not linked to any villa.")
-        return redirect("vendor_dashboard")
-
-    raw_availability = RoomAvailability.objects.filter(room__villa=villa_obj)
-
-    # Build JSON: { "2025-07-05": { "8": 5, "9": 3 } }
-    availability_data = defaultdict(dict)
-    for entry in raw_availability:
-        availability_data[entry.date.isoformat()][
-            str(entry.room.id)
-        ] = entry.available_count
-
-    # Combine room data by date for single event display
-    grouped = defaultdict(list)
-    for entry in raw_availability:
-        grouped[entry.date.isoformat()].append(
-            f"{entry.room.room_type}: {entry.available_count} rooms"
+        return HttpResponseRedirect(
+            reverse("update_villa_availability") + 
+            f"?villa_id={villa_obj.id}&status={filter_status}&property_type={property_type_filter}"
         )
 
-    # Get villa bookings to show booked dates
+    # Get all bookings for all properties to determine booking status
     from customer.models import VillaBooking
-    from datetime import date as date_type
+    from datetime import date as date_type, timedelta
+    from django.db.models import Q, Count, Exists, OuterRef
     
-    bookings = VillaBooking.objects.filter(
-        villa=villa_obj,
-        status__in=["confirmed", "checked_in"]
-    )
+    # Get current date for checking availability
+    today = date_type.today()
     
-    # Create a set of all booked dates
-    booked_dates = set()
-    booking_events = []
-    
-    for booking in bookings:
-        # Add all dates between check_in and check_out (exclusive of check_out)
-        current_date = booking.check_in
-        while current_date < booking.check_out:
-            booked_dates.add(current_date.isoformat())
-            current_date += timedelta(days=1)
+    # Annotate each villa with booking status
+    villas_with_status = []
+    for v in all_villas:
+        # Check if villa has any active bookings
+        active_bookings = VillaBooking.objects.filter(
+            villa=v,
+            status__in=["confirmed", "checked_in", "pending"],
+            check_in__lte=today + timedelta(days=365),  # Check next year
+            check_out__gte=today,
+        )
         
-        # Add booking event for the calendar
-        booking_events.append({
-            "title": f"Booked: {booking.booking_id or 'N/A'}",
-            "start": booking.check_in.isoformat(),
-            "end": booking.check_out.isoformat(),
-            "color": "#dc3545",  # Red color for booked dates
-            "display": "background",  # Show as background color
-            "allDay": True
+        has_active_booking = active_bookings.exists()
+        
+        # Get next booking if any
+        next_booking = active_bookings.order_by('check_in').first()
+        
+        villas_with_status.append({
+            'villa': v,
+            'has_booking': has_active_booking,
+            'next_booking': next_booking,
+            'booking_count': active_bookings.count(),
         })
+    
+    # Apply status filter
+    if filter_status == 'booked':
+        villas_with_status = [v for v in villas_with_status if v['has_booking']]
+    elif filter_status == 'available':
+        villas_with_status = [v for v in villas_with_status if not v['has_booking']]
+    
+    # Prepare context for selected villa (if any)
+    availability_data = {}
+    events = []
+    booked_dates = []
+    rooms = []
+    
+    if villa_obj:
+        # Get property type
+        property_type_name = villa_obj.property_type.name if villa_obj.property_type else None
+        
+        if property_type_name in ["Resort", "Couple Stay"]:
+            # Room-based availability
+            rooms = villa_rooms.objects.filter(villa=villa_obj).select_related('room_type')
+            raw_availability = RoomAvailability.objects.filter(room__villa=villa_obj)
 
-    # Create availability events (blue color)
-    availability_events = [
-        {"title": "<br>".join(labels), "start": date, "color": "#007bff", "display": "block"}
-        for date, labels in grouped.items()
-    ]
+            # Build JSON: { "2025-07-05": { "8": 5, "9": 3 } }
+            availability_data = defaultdict(dict)
+            for entry in raw_availability:
+                availability_data[entry.date.isoformat()][
+                    str(entry.room.id)
+                ] = entry.available_count
 
-    # Combine all events
-    all_events = booking_events + availability_events
+            # Combine room data by date for single event display
+            grouped = defaultdict(list)
+            booked_rooms_grouped = defaultdict(list)
+            for entry in raw_availability:
+                if entry.available_count == 0:
+                    # Marked as booked (offline)
+                    booked_rooms_grouped[entry.date.isoformat()].append(
+                        f"{entry.room.room_type.name if entry.room.room_type else 'Room'}: Booked (Offline)"
+                    )
+                else:
+                    grouped[entry.date.isoformat()].append(
+                        f"{entry.room.room_type.name if entry.room.room_type else 'Room'}: {entry.available_count} rooms"
+                    )
 
-    print(json.dumps(availability_data))
+            # Create availability events (blue color for available)
+            availability_events = [
+                {"title": "<br>".join(labels), "start": date, "color": "#007bff", "display": "block"}
+                for date, labels in grouped.items()
+            ]
+            events.extend(availability_events)
+            
+            # Create booked (offline) events (yellow/orange color)
+            offline_booked_events = [
+                {"title": "<br>".join(labels), "start": date, "color": "#ffc107", "display": "block"}
+                for date, labels in booked_rooms_grouped.items()
+            ]
+            events.extend(offline_booked_events)
+        else:
+            # Villa-based availability
+            raw_availability = VillaAvailability.objects.filter(villa=villa_obj)
+            availability_data = defaultdict(dict)
+            for entry in raw_availability:
+                availability_data[entry.date.isoformat()] = {
+                    'is_open': entry.is_open
+                }
+                # Add event for closed villas (offline booking)
+                if not entry.is_open:
+                    events.append({
+                        "title": f"Booked (Offline)",
+                        "start": entry.date.isoformat(),
+                        "color": "#ffc107",  # Yellow for offline booking
+                        "display": "block",
+                        "allDay": True
+                    })
+
+        # Get bookings for selected villa
+        bookings = VillaBooking.objects.filter(
+            villa=villa_obj,
+            status__in=["confirmed", "checked_in", "pending"]
+        )
+        
+        # Create a set of all booked dates
+        booked_dates_set = set()
+        
+        for booking in bookings:
+            # Add all dates between check_in and check_out (exclusive of check_out)
+            current_date = booking.check_in
+            while current_date < booking.check_out:
+                booked_dates_set.add(current_date.isoformat())
+                current_date += timedelta(days=1)
+            
+            # Add booking event for the calendar
+            events.append({
+                "title": f"Booked: {booking.booking_id or 'N/A'} ({booking.guest_count} guests)",
+                "start": booking.check_in.isoformat(),
+                "end": booking.check_out.isoformat(),
+                "color": "#dc3545",  # Red color for booked dates
+                "display": "background",  # Show as background color
+                "allDay": True
+            })
+        
+        booked_dates = list(booked_dates_set)
+    
+    # Get room booking status for Resort/Couple Stay properties
+    rooms_with_status = []
+    if villa_obj:
+        property_type_name = villa_obj.property_type.name if villa_obj.property_type else None
+        if property_type_name in ["Resort", "Couple Stay"]:
+            from customer.models import BookingRoom
+            # Get date range from query params (default to today + 30 days)
+            check_date_from = request.GET.get('check_date_from')
+            check_date_to = request.GET.get('check_date_to')
+            
+            if check_date_from and check_date_to:
+                try:
+                    check_from = datetime.strptime(check_date_from, "%Y-%m-%d").date()
+                    check_to = datetime.strptime(check_date_to, "%Y-%m-%d").date()
+                except (ValueError, TypeError):
+                    check_from = date_type.today()
+                    check_to = date_type.today() + timedelta(days=30)
+            else:
+                check_from = date_type.today()
+                check_to = date_type.today() + timedelta(days=30)
+            
+            # Get all bookings for these rooms in the date range
+            room_bookings = BookingRoom.objects.filter(
+                booking__villa=villa_obj,
+                booking__status__in=["confirmed", "checked_in", "pending"],
+                booking__check_in__lt=check_to,
+                booking__check_out__gt=check_from,
+            ).select_related('booking', 'room')
+            
+            # Calculate booked dates per room
+            room_booked_dates = defaultdict(set)
+            for room_booking in room_bookings:
+                current_date = max(check_from, room_booking.booking.check_in)
+                end_date = min(check_to, room_booking.booking.check_out)
+                while current_date < end_date:
+                    room_booked_dates[room_booking.room_id].add(current_date)
+                    current_date += timedelta(days=1)
+            
+            # Check each room's status
+            for room in rooms:
+                # Check offline bookings (available_count = 0)
+                offline_booked_dates = RoomAvailability.objects.filter(
+                    room=room,
+                    date__gte=check_from,
+                    date__lt=check_to,
+                    available_count=0
+                ).values_list('date', flat=True)
+                
+                # Check online bookings
+                online_booked_dates = room_booked_dates.get(room.id, set())
+                
+                # Combine all booked dates
+                all_booked_dates = set(offline_booked_dates) | online_booked_dates
+                
+                # Calculate total days in range
+                total_days = (check_to - check_from).days
+                booked_days_count = len(all_booked_dates)
+                
+                # Determine status
+                if booked_days_count == total_days:
+                    status = "fully_booked"
+                    status_label = "Fully Booked"
+                elif booked_days_count > 0:
+                    status = "partially_booked"
+                    status_label = f"Partially Booked ({booked_days_count}/{total_days} days)"
+                else:
+                    status = "available"
+                    status_label = "Available"
+                
+                rooms_with_status.append({
+                    'room': room,
+                    'status': status,
+                    'status_label': status_label,
+                    'booked_days': booked_days_count,
+                    'total_days': total_days,
+                    'booked_dates': sorted(all_booked_dates),
+                })
+
+    # Get property types for filter dropdown
+    from masters.models import property_type
+    property_types = property_type.objects.all()
 
     context = {
-        "rooms": villa_rooms.objects.filter(villa=villa_obj),
+        "all_villas": villas_with_status,
+        "villa_obj": villa_obj,
+        "rooms": rooms,
+        "rooms_with_status": rooms_with_status,
         "availability_json": json.dumps(availability_data),
-        "events": json.dumps(all_events),
-        "booked_dates_json": json.dumps(list(booked_dates)),
+        "events": json.dumps(events),
+        "booked_dates_json": json.dumps(booked_dates),
+        "filter_status": filter_status,
+        "property_type_filter": property_type_filter,
+        "property_types": property_types,
+        "selected_villa_id": villa_obj.id if villa_obj else None,
+        "check_date_from": request.GET.get('check_date_from', ''),
+        "check_date_to": request.GET.get('check_date_to', ''),
     }
 
     return render(request, "update_hotel_availability.html", context)
@@ -1185,7 +1496,8 @@ import json
 @login_required
 def update_from_to_hotel_availability(request):
     """
-    Bulk update villa availability for date range.
+    Bulk update availability for date range.
+    Supports both Villa (whole property) and Resort/Couple Stay (room-based).
     Only vendors can access this - not admins.
     """
     # Restrict to vendors only
@@ -1193,20 +1505,21 @@ def update_from_to_hotel_availability(request):
         messages.info(request, "Availability management is only available for vendors.")
         return redirect("list_villa")
     
-    # Get first villa for vendor (or selected one if multiple)
+    # Get villa from GET or POST
+    villa_id = request.GET.get('villa_id') or request.POST.get('villa_id')
     villas_list = villa.objects.filter(user=request.user, is_active=True)
-    villa_id = request.GET.get('villa_id')
     
     if villa_id:
         try:
             villa_obj = villas_list.get(id=villa_id)
         except villa.DoesNotExist:
-            villa_obj = villas_list.first() if villas_list.exists() else None
+            messages.error(request, "Property not found.")
+            return HttpResponseRedirect(reverse("update_villa_availability"))
     else:
         villa_obj = villas_list.first() if villas_list.exists() else None
     
     if not villa_obj:
-        messages.error(request, "You are not linked to any villa.")
+        messages.error(request, "You are not linked to any property.")
         return redirect("vendor_dashboard")
 
     if request.method == "POST":
@@ -1218,53 +1531,91 @@ def update_from_to_hotel_availability(request):
             to_date_obj = datetime.strptime(to_date, "%Y-%m-%d").date()
         except (ValueError, TypeError):
             messages.error(request, "Invalid date range")
-            return redirect("update_villa_availability")
+            return HttpResponseRedirect(
+                reverse("update_villa_availability") + f"?villa_id={villa_obj.id}"
+            )
 
         if from_date_obj > to_date_obj:
             messages.error(request, "'From' date must be before 'To' date.")
-            return redirect("update_villa_availability")
-
-        # Update villa availability (open/closed) for date range
-        current_date = from_date_obj
-        updated_count = 0
-        
-        while current_date <= to_date_obj:
-            # Check if villa has bookings on this date
-            has_booking = VillaBooking.objects.filter(
-                villa=villa_obj,
-                status__in=["confirmed", "checked_in"],
-                check_in__lte=current_date,
-                check_out__gt=current_date,
-            ).exists()
-            
-            # Set villa as closed if it has a booking, open otherwise
-            VillaAvailability.objects.update_or_create(
-                villa=villa_obj,
-                date=current_date,
-                defaults={"is_open": not has_booking},
+            return HttpResponseRedirect(
+                reverse("update_villa_availability") + f"?villa_id={villa_obj.id}"
             )
-            updated_count += 1
-            current_date += timedelta(days=1)
+
+        property_type_name = villa_obj.property_type.name if villa_obj.property_type else None
+        updated_count = 0
+        current_date = from_date_obj
+        
+        if property_type_name in ["Resort", "Couple Stay"]:
+            # Room-based availability
+            from customer.models import BookingRoom
+            while current_date <= to_date_obj:
+                # Check if rooms have bookings on this date
+                for room in villa_rooms.objects.filter(villa=villa_obj):
+                    field_name = f"availability_{room.id}"
+                    count = request.POST.get(field_name)
+                    
+                    if count is not None and count != "":
+                        # Check existing bookings for this room
+                        has_booking = BookingRoom.objects.filter(
+                            booking__villa=villa_obj,
+                            room=room,
+                            booking__status__in=["confirmed", "checked_in", "pending"],
+                            booking__check_in__lte=current_date,
+                            booking__check_out__gt=current_date,
+                        ).exists()
+                        
+                        if not has_booking:
+                            RoomAvailability.objects.update_or_create(
+                                room=room,
+                                date=current_date,
+                                defaults={"available_count": int(count)},
+                            )
+                            updated_count += 1
+                current_date += timedelta(days=1)
+        else:
+            # Villa-based availability
+            while current_date <= to_date_obj:
+                # Check if villa has bookings on this date
+                has_booking = VillaBooking.objects.filter(
+                    villa=villa_obj,
+                    booking_type="whole_villa",
+                    status__in=["confirmed", "checked_in", "pending"],
+                    check_in__lte=current_date,
+                    check_out__gt=current_date,
+                ).exists()
+                
+                is_open = request.POST.get("is_open", "true") == "true" and not has_booking
+                
+                VillaAvailability.objects.update_or_create(
+                    villa=villa_obj,
+                    date=current_date,
+                    defaults={"is_open": is_open},
+                )
+                updated_count += 1
+                current_date += timedelta(days=1)
 
         messages.success(
             request,
-            f"Villa availability updated for {updated_count} days from {from_date} to {to_date}.",
+            f"Availability updated for {updated_count} days from {from_date} to {to_date}.",
         )
 
-        return redirect("update_villa_availability")
+        return HttpResponseRedirect(
+            reverse("update_villa_availability") + f"?villa_id={villa_obj.id}"
+        )
 
-    return redirect("update_villa_availability")
+    return HttpResponseRedirect(reverse("update_villa_availability"))
 
 
 @login_required(login_url="login_admin")
 def manage_villa_pricing(request):
     """
     Main view for managing villa pricing with calendar interface.
-    Similar to availability management but for pricing.
-    Vendors can only see their own villa, admins can see all villas.
+    For Villa properties: manages whole villa pricing
+    For Resort/Couple Stay: manages individual room pricing
     """
-    # Get villa_id from GET parameter or use user's villa
+    # Get villa_id and room_id from GET parameters
     villa_id = request.GET.get("villa_id")
+    room_id = request.GET.get("room_id")
     
     if request.user.is_superuser:
         # Admin can view any villa
@@ -1300,24 +1651,61 @@ def manage_villa_pricing(request):
             messages.error(request, "You are not linked to any villa. Please add a villa first.")
             return redirect("add_villa")
 
+    # Determine if this is a room-based property (Resort/Couple Stay)
+    is_room_based = villa_obj.property_type and villa_obj.property_type.name in ["Resort", "Couple Stay"]
+    selected_room = None
+    
+    if is_room_based:
+        # Get rooms for this villa
+        rooms_list = villa_rooms.objects.filter(villa=villa_obj).select_related('room_type').order_by('room_type__name')
+        
+        # Get selected room or first room
+        if room_id:
+            try:
+                selected_room = rooms_list.get(id=room_id)
+            except villa_rooms.DoesNotExist:
+                selected_room = rooms_list.first() if rooms_list.exists() else None
+        else:
+            selected_room = rooms_list.first() if rooms_list.exists() else None
+        
+        if not selected_room and rooms_list.exists():
+            # If no room selected but rooms exist, redirect to first room
+            return redirect(f"{request.path}?villa_id={villa_obj.id}&room_id={rooms_list.first().id}")
+    else:
+        rooms_list = []
+
     if request.method == "POST":
         # Handle single date pricing update
         selected_date = request.POST.get("selected_date")
         price = request.POST.get("price_per_night")
+        room_id_post = request.POST.get("room_id")  # For room-based pricing
 
         if selected_date and price:
             try:
                 selected_date_obj = datetime.strptime(selected_date, "%Y-%m-%d").date()
                 price_decimal = Decimal(price)
 
-                # Check if villa has bookings on this date
-                from customer.models import VillaBooking
-                has_booking = VillaBooking.objects.filter(
-                    villa=villa_obj,
-                    status__in=["confirmed", "checked_in"],
-                    check_in__lte=selected_date_obj,
-                    check_out__gt=selected_date_obj,
-                ).exists()
+                # Check if villa/room has bookings on this date
+                from customer.models import VillaBooking, BookingRoom
+                if is_room_based and room_id_post:
+                    # Room-based booking check
+                    room_obj = villa_rooms.objects.get(id=room_id_post)
+                    has_booking = BookingRoom.objects.filter(
+                        booking__villa=villa_obj,
+                        room=room_obj,
+                        booking__status__in=["confirmed", "checked_in"],
+                        booking__check_in__lte=selected_date_obj,
+                        booking__check_out__gt=selected_date_obj,
+                    ).exists()
+                else:
+                    # Villa-based booking check
+                    has_booking = VillaBooking.objects.filter(
+                        villa=villa_obj,
+                        booking_type="whole_villa",
+                        status__in=["confirmed", "checked_in"],
+                        check_in__lte=selected_date_obj,
+                        check_out__gt=selected_date_obj,
+                    ).exists()
                 
                 if has_booking:
                     messages.error(
@@ -1326,34 +1714,64 @@ def manage_villa_pricing(request):
                         'Please contact admin if you need to update the price.'
                     )
                 else:
-                    VillaPricing.objects.update_or_create(
-                        villa=villa_obj,
-                        date=selected_date_obj,
-                        defaults={"price_per_night": price_decimal}
-                    )
-                    messages.success(request, f"Price updated for {selected_date}")
+                    if is_room_based and room_id_post:
+                        # Room-based pricing
+                        room_obj = villa_rooms.objects.get(id=room_id_post)
+                        RoomPricing.objects.update_or_create(
+                            room=room_obj,
+                            date=selected_date_obj,
+                            defaults={"price_per_night": price_decimal}
+                        )
+                        messages.success(request, f"Room price updated for {selected_date}")
+                    else:
+                        # Villa-based pricing
+                        VillaPricing.objects.update_or_create(
+                            villa=villa_obj,
+                            date=selected_date_obj,
+                            defaults={"price_per_night": price_decimal}
+                        )
+                        messages.success(request, f"Price updated for {selected_date}")
             except (ValueError, TypeError) as e:
                 messages.error(request, f"Invalid date or price: {str(e)}")
 
-        # Redirect with villa_id to maintain selection (for both admin and vendor)
-        redirect_url = "manage_villa_pricing"
+        # Redirect with villa_id and room_id to maintain selection
+        from django.http import HttpResponseRedirect
+        from django.urls import reverse
+        
+        redirect_url = reverse("manage_villa_pricing")
+        params = []
         if villa_obj:
-            redirect_url += f"?villa_id={villa_obj.id}"
-        return redirect(redirect_url)
+            params.append(f"villa_id={villa_obj.id}")
+        if is_room_based and room_id_post:
+            params.append(f"room_id={room_id_post}")
+        
+        if params:
+            redirect_url += "?" + "&".join(params)
+        
+        return HttpResponseRedirect(redirect_url)
 
     # Get existing pricing data
-    raw_pricing = VillaPricing.objects.filter(villa=villa_obj)
+    if is_room_based and selected_room:
+        # Room-based pricing
+        raw_pricing = RoomPricing.objects.filter(room=selected_room)
+        default_price = float(selected_room.price_per_night or 0)
+        weekend_price = None
+        if villa_obj.weekend_percentage and selected_room.price_per_night:
+            weekend_multiplier = Decimal(1) + (villa_obj.weekend_percentage / 100)
+            weekend_price = round(selected_room.price_per_night * weekend_multiplier, 2)
+    else:
+        # Villa-based pricing
+        raw_pricing = VillaPricing.objects.filter(villa=villa_obj)
+        default_price = float(villa_obj.price_per_night or 0)
+        weekend_price = None
+        if villa_obj.weekend_percentage and villa_obj.price_per_night:
+            weekend_multiplier = Decimal(1) + (villa_obj.weekend_percentage / 100)
+            weekend_price = round(villa_obj.price_per_night * weekend_multiplier, 2)
 
     # Build JSON: { "2025-07-05": 1500.00 }
     pricing_data = {}
     for entry in raw_pricing:
         pricing_data[entry.date.isoformat()] = float(entry.price_per_night)
-
-    # Calculate weekend price if weekend_percentage is set
-    weekend_price = None
-    if villa_obj.weekend_percentage and villa_obj.price_per_night:
-        weekend_multiplier = Decimal(1) + (villa_obj.weekend_percentage / 100)
-        weekend_price = round(villa_obj.price_per_night * weekend_multiplier, 2)
 
     # Get all villas for dropdown (admin sees all, vendor sees their own)
     villas_list = []
@@ -1365,7 +1783,10 @@ def manage_villa_pricing(request):
     context = {
         "villa": villa_obj,
         "villas_list": villas_list,
-        "default_price": float(villa_obj.price_per_night or 0),
+        "rooms_list": rooms_list if is_room_based else [],
+        "selected_room": selected_room,
+        "is_room_based": is_room_based,
+        "default_price": default_price,
         "weekend_percentage": float(villa_obj.weekend_percentage or 0),
         "weekend_price": float(weekend_price) if weekend_price else None,
         "pricing_json": json.dumps(pricing_data),
@@ -1402,26 +1823,51 @@ def bulk_update_villa_pricing(request):
         messages.error(request, "You are not linked to any villa. Please add a villa first.")
         return redirect("add_villa")
 
+    # Determine if this is a room-based property
+    is_room_based = villa_obj.property_type and villa_obj.property_type.name in ["Resort", "Couple Stay"]
+    room_id = request.GET.get('room_id') or request.POST.get('room_id')
+    selected_room = None
+    
+    if is_room_based and room_id:
+        try:
+            selected_room = villa_rooms.objects.get(id=room_id, villa=villa_obj)
+        except villa_rooms.DoesNotExist:
+            selected_room = None
+
     if request.method == "POST":
         from_date = request.POST.get("from_date")
         to_date = request.POST.get("to_date")
         price = request.POST.get("price_per_night")
-        # Get villa_id from POST if provided, otherwise use GET
+        # Get villa_id and room_id from POST if provided, otherwise use GET
         villa_id = request.POST.get('villa_id') or request.GET.get('villa_id')
+        room_id = request.POST.get('room_id') or request.GET.get('room_id')
         
         # Re-fetch villa_obj if villa_id changed
         if villa_id:
             try:
                 villa_obj = villas_list.get(id=villa_id)
+                is_room_based = villa_obj.property_type and villa_obj.property_type.name in ["Resort", "Couple Stay"]
             except villa.DoesNotExist:
                 villa_obj = villas_list.first() if villas_list.exists() else None
+        
+        # Re-fetch room if room_id provided
+        if is_room_based and room_id:
+            try:
+                selected_room = villa_rooms.objects.get(id=room_id, villa=villa_obj)
+            except villa_rooms.DoesNotExist:
+                selected_room = None
 
         if not all([from_date, to_date, price]):
             messages.error(request, "All fields are required.")
-            redirect_url = "manage_villa_pricing"
+            redirect_url = reverse("manage_villa_pricing")
+            params = []
             if villa_obj:
-                redirect_url += f"?villa_id={villa_obj.id}"
-            return redirect(redirect_url)
+                params.append(f"villa_id={villa_obj.id}")
+            if is_room_based and room_id:
+                params.append(f"room_id={room_id}")
+            if params:
+                redirect_url += "?" + "&".join(params)
+            return HttpResponseRedirect(redirect_url)
 
         try:
             from_date_obj = datetime.strptime(from_date, "%Y-%m-%d").date()
@@ -1429,17 +1875,27 @@ def bulk_update_villa_pricing(request):
             price_decimal = Decimal(price)
         except (ValueError, TypeError) as e:
             messages.error(request, f"Invalid date or price: {str(e)}")
-            redirect_url = "manage_villa_pricing"
+            redirect_url = reverse("manage_villa_pricing")
+            params = []
             if villa_obj:
-                redirect_url += f"?villa_id={villa_obj.id}"
-            return redirect(redirect_url)
+                params.append(f"villa_id={villa_obj.id}")
+            if is_room_based and room_id:
+                params.append(f"room_id={room_id}")
+            if params:
+                redirect_url += "?" + "&".join(params)
+            return HttpResponseRedirect(redirect_url)
 
         if from_date_obj > to_date_obj:
             messages.error(request, "'From' date must be before 'To' date.")
-            redirect_url = "manage_villa_pricing"
+            redirect_url = reverse("manage_villa_pricing")
+            params = []
             if villa_obj:
-                redirect_url += f"?villa_id={villa_obj.id}"
-            return redirect(redirect_url)
+                params.append(f"villa_id={villa_obj.id}")
+            if is_room_based and room_id:
+                params.append(f"room_id={room_id}")
+            if params:
+                redirect_url += "?" + "&".join(params)
+            return HttpResponseRedirect(redirect_url)
 
         # Update pricing for each date in range
         current_date = from_date_obj
@@ -1448,20 +1904,40 @@ def bulk_update_villa_pricing(request):
         from customer.models import VillaBooking
         
         while current_date <= to_date_obj:
-            # Check if villa has bookings on this date
-            has_booking = VillaBooking.objects.filter(
-                villa=villa_obj,
-                status__in=["confirmed", "checked_in"],
-                check_in__lte=current_date,
-                check_out__gt=current_date,
-            ).exists()
+            # Check if villa/room has bookings on this date
+            if is_room_based and selected_room:
+                # Room-based booking check
+                from customer.models import BookingRoom
+                has_booking = BookingRoom.objects.filter(
+                    booking__villa=villa_obj,
+                    room=selected_room,
+                    booking__status__in=["confirmed", "checked_in"],
+                    booking__check_in__lte=current_date,
+                    booking__check_out__gt=current_date,
+                ).exists()
+            else:
+                # Villa-based booking check
+                has_booking = VillaBooking.objects.filter(
+                    villa=villa_obj,
+                    booking_type="whole_villa",
+                    status__in=["confirmed", "checked_in"],
+                    check_in__lte=current_date,
+                    check_out__gt=current_date,
+                ).exists()
             
             if not has_booking:
-                VillaPricing.objects.update_or_create(
-                    villa=villa_obj,
-                    date=current_date,
-                    defaults={"price_per_night": price_decimal}
-                )
+                if is_room_based and selected_room:
+                    RoomPricing.objects.update_or_create(
+                        room=selected_room,
+                        date=current_date,
+                        defaults={"price_per_night": price_decimal}
+                    )
+                else:
+                    VillaPricing.objects.update_or_create(
+                        villa=villa_obj,
+                        date=current_date,
+                        defaults={"price_per_night": price_decimal}
+                    )
                 updated_count += 1
             else:
                 skipped_count += 1
@@ -1480,10 +1956,17 @@ def bulk_update_villa_pricing(request):
             )
 
     # Redirect with villa_id to maintain selection
-    redirect_url = "manage_villa_pricing"
+    redirect_url = reverse("manage_villa_pricing")
+    params = []
     if villa_obj:
-        redirect_url += f"?villa_id={villa_obj.id}"
-    return redirect(redirect_url)
+        params.append(f"villa_id={villa_obj.id}")
+    # Check if this is room-based pricing
+    room_id = request.GET.get('room_id') or request.POST.get('room_id')
+    if room_id:
+        params.append(f"room_id={room_id}")
+    if params:
+        redirect_url += "?" + "&".join(params)
+    return HttpResponseRedirect(redirect_url)
 
 
 @login_required(login_url="login_admin")
@@ -1525,7 +2008,14 @@ def delete_villa_pricing(request, pricing_id):
         villa_obj = None
 
     # Redirect with villa_id to maintain selection
-    redirect_url = "manage_villa_pricing"
+    redirect_url = reverse("manage_villa_pricing")
+    params = []
     if villa_obj:
-        redirect_url += f"?villa_id={villa_obj.id}"
-    return redirect(redirect_url)
+        params.append(f"villa_id={villa_obj.id}")
+    # Check if this is room-based pricing
+    room_id = request.GET.get('room_id') or request.POST.get('room_id')
+    if room_id:
+        params.append(f"room_id={room_id}")
+    if params:
+        redirect_url += "?" + "&".join(params)
+    return HttpResponseRedirect(redirect_url)

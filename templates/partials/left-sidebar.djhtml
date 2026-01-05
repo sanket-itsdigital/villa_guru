@@ -173,6 +173,28 @@
           </ul>
         </li>
 
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="grid"></i>
+            <span>Room Type</span>
+          </a>
+          <ul class="sub-menu">
+            <li><a href="{% url 'add_room_type' %}">Add Room Type</a></li>
+            <li><a href="{% url 'list_room_type' %}">List Room Type</a></li>
+          </ul>
+        </li>
+
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="star"></i>
+            <span>Room Amenity</span>
+          </a>
+          <ul class="sub-menu">
+            <li><a href="{% url 'add_villa_amenity' %}">Add Room Amenity</a></li>
+            <li><a href="{% url 'list_villa_amenity' %}">List Room Amenity</a></li>
+          </ul>
+        </li>
+
         {% comment %} <li>
           <a href="javascript: void(0);" class="has-arrow">
             <i data-feather="box"></i>
@@ -222,6 +244,28 @@
           <ul class="sub-menu">
             <li><a href="{% url 'manage_villa_pricing' %}">Manage Dynamic Pricing</a></li>
             <li><a href="{% url 'update_villa_availability' %}">Manage Availability</a></li>
+          </ul>
+        </li>
+        
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="home"></i>
+            <span>Room Management</span>
+          </a>
+          <ul class="sub-menu">
+            <li><a href="{% url 'add_villa_rooms' %}">Add Room</a></li>
+            <li><a href="{% url 'list_villa_rooms' %}">List Rooms</a></li>
+          </ul>
+        </li>
+        
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="grid"></i>
+            <span>Room Type</span>
+          </a>
+          <ul class="sub-menu">
+            <li><a href="{% url 'add_room_type' %}">Add Room Type</a></li>
+            <li><a href="{% url 'list_room_type' %}">List Room Type</a></li>
           </ul>
         </li>
         {% endif %}

@@ -56,8 +56,6 @@ class VillaRoomSerializer(serializers.ModelSerializer):
             "title",
             "price_per_night",
             "max_guest_count",
-            "refundable",
-            "meals_included",
             "capacity",
             "view",
             "bed_type",
@@ -269,6 +267,27 @@ class TicketMessageSerializer(serializers.ModelSerializer):
         return obj.sender == request.user if request else False
 
 
+class BookingRoomSerializer(serializers.ModelSerializer):
+    """Serializer for booking rooms"""
+
+    room_details = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BookingRoom
+        fields = [
+            "id",
+            "room",
+            "room_details",
+            "quantity",
+            "price_per_night",
+        ]
+        read_only_fields = ["price_per_night"]
+
+    def get_room_details(self, obj):
+        # Return room details using VillaRoomSerializer
+        return VillaRoomSerializer(obj.room, context=self.context).data
+
+
 class VillaBookingSerializer(serializers.ModelSerializer):
 
     villa = serializers.PrimaryKeyRelatedField(
@@ -277,6 +296,17 @@ class VillaBookingSerializer(serializers.ModelSerializer):
 
     # Read-only nested output
     villa_details = VillaSerializer(source="villa", read_only=True)
+
+    # Room selection for Resort/Couple Stay
+    rooms = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+        write_only=True,
+        help_text="List of rooms to book. Format: [{'room_id': 1, 'quantity': 2}, ...]",
+    )
+
+    # Read-only booked rooms
+    booked_rooms = BookingRoomSerializer(many=True, read_only=True)
 
     class Meta:
         model = VillaBooking
@@ -297,26 +327,196 @@ class VillaBookingSerializer(serializers.ModelSerializer):
         villa = data.get("villa")
         check_in = data.get("check_in")
         check_out = data.get("check_out")
+        rooms = data.get("rooms", [])
+        booking_type = data.get("booking_type")
 
         if not check_in or not check_out:
             raise serializers.ValidationError("Check-in and check-out are required.")
 
-        if check_in < date.today():
-            raise serializers.ValidationError("Check-in cannot be in the past.")
+        # Validate dates are not in the past
+        today = date.today()
+        if check_in < today:
+            raise serializers.ValidationError("Check-in date cannot be in the past.")
+
+        if check_out < today:
+            raise serializers.ValidationError("Check-out date cannot be in the past.")
 
         if check_in >= check_out:
             raise serializers.ValidationError("Check-out must be after check-in.")
 
-        # Villa-level booking: validate villa has price
-        if villa:
+        if not villa:
+            raise serializers.ValidationError("Villa must be provided for booking.")
+
+        # Determine property type
+        property_type_name = None
+        if villa.property_type:
+            property_type_name = villa.property_type.name
+
+        # Auto-set booking type based on property type if not provided
+        if not booking_type:
+            if property_type_name == "Villa":
+                data["booking_type"] = "whole_villa"
+            else:
+                data["booking_type"] = "selected_rooms"
+
+        # Validate based on booking type
+        if data["booking_type"] == "whole_villa":
+            # Villa: must have price_per_night
             if not villa.price_per_night:
                 raise serializers.ValidationError(
                     "Villa does not have a price set. Please set villa price per night."
                 )
+
+            # Check if villa is already booked for these dates
+            from .models import VillaBooking as BookingModel
+            from hotel.models import VillaAvailability
+
+            # Check for conflicting whole villa bookings
+            conflicting_bookings = BookingModel.objects.filter(
+                villa=villa,
+                booking_type="whole_villa",
+                check_in__lt=check_out,
+                check_out__gt=check_in,
+                status__in=["confirmed", "checked_in"],
+            ).exclude(id=self.instance.id if self.instance else None)
+
+            if conflicting_bookings.exists():
+                raise serializers.ValidationError(
+                    f"This villa is already booked for the selected dates. "
+                    f"Please choose different dates."
+                )
+
+            # Check if villa is closed for any date in the range
+            from datetime import timedelta
+
+            current_date = check_in
+            while current_date < check_out:
+                villa_availability = VillaAvailability.objects.filter(
+                    villa=villa, date=current_date
+                ).first()
+
+                if villa_availability and not villa_availability.is_open:
+                    raise serializers.ValidationError(
+                        f"Villa is closed on {current_date}. Please choose different dates."
+                    )
+
+                current_date += timedelta(days=1)
         else:
-            raise serializers.ValidationError("Villa must be provided for booking.")
+            # Resort/Couple Stay: must have rooms selected
+            if not rooms:
+                raise serializers.ValidationError(
+                    "Rooms must be selected for Resort/Couple Stay bookings."
+                )
+
+            # Validate rooms belong to this villa and are available
+            from hotel.models import villa_rooms
+            from hotel.models import RoomAvailability
+            from .models import VillaBooking as BookingModel
+
+            for room_data in rooms:
+                room_id = room_data.get("room_id")
+                quantity = room_data.get("quantity", 1)
+
+                if not room_id:
+                    raise serializers.ValidationError(
+                        "room_id is required for each room."
+                    )
+
+                try:
+                    room = villa_rooms.objects.get(id=room_id, villa=villa)
+                except villa_rooms.DoesNotExist:
+                    raise serializers.ValidationError(
+                        f"Room {room_id} does not belong to this villa."
+                    )
+
+                # Check availability for each date
+                from datetime import timedelta
+
+                current_date = check_in
+                while current_date < check_out:
+                    room_availability = RoomAvailability.objects.filter(
+                        room=room, date=current_date
+                    ).first()
+
+                    # Check existing bookings (exclude current booking if updating)
+                    conflicting_bookings = (
+                        BookingModel.objects.filter(
+                            villa=villa,
+                            check_in__lt=check_out,
+                            check_out__gt=check_in,
+                            status__in=["confirmed", "checked_in", "pending"],
+                            booking_type="selected_rooms",
+                        )
+                        .exclude(id=self.instance.id if self.instance else None)
+                        .prefetch_related("booked_rooms")
+                    )
+
+                    booked_quantity = 0
+                    for booking in conflicting_bookings:
+                        for booked_room in booking.booked_rooms.all():
+                            if booked_room.room_id == room_id:
+                                booked_quantity += booked_room.quantity
+
+                    # If no RoomAvailability record exists, assume room is available (default: 1)
+                    # If record exists but available_count is 0, room is marked as booked (offline)
+                    if room_availability:
+                        available_count = room_availability.available_count
+                        # If available_count is 0, room is marked as booked (offline) - not available
+                        if available_count == 0:
+                            raise serializers.ValidationError(
+                                f"Room {room_id} is not available for the selected dates. "
+                                f"Room is marked as booked (offline) on {current_date}."
+                            )
+                    else:
+                        # No availability record means room is available by default
+                        available_count = 1  # Default: at least 1 room available
+
+                    available = available_count - booked_quantity
+
+                    if available < quantity:
+                        raise serializers.ValidationError(
+                            f"Room {room_id} is not available for the selected dates. "
+                            f"Only {available} room(s) available on {current_date}."
+                        )
+
+                    current_date += timedelta(days=1)
 
         return data
+
+    def create(self, validated_data):
+        rooms_data = validated_data.pop("rooms", [])
+        booking = VillaBooking.objects.create(**validated_data)
+
+        # If whole villa booking, automatically book all rooms
+        if booking.booking_type == "whole_villa":
+            from hotel.models import villa_rooms
+
+            all_rooms = villa_rooms.objects.filter(villa=booking.villa)
+            for room in all_rooms:
+                BookingRoom.objects.create(
+                    booking=booking,
+                    room=room,
+                    quantity=1,  # Each room booked once
+                    price_per_night=room.price_per_night,
+                )
+        else:
+            # Create BookingRoom entries for selected rooms
+            for room_data in rooms_data:
+                from hotel.models import villa_rooms
+
+                room = villa_rooms.objects.get(id=room_data["room_id"])
+                BookingRoom.objects.create(
+                    booking=booking,
+                    room=room,
+                    quantity=room_data.get("quantity", 1),
+                    price_per_night=room.price_per_night,
+                )
+
+        # Recalculate pricing after rooms are added
+        # Save again to recalculate pricing with the booked rooms
+        booking.save()
+
+        return booking
 
 
 class FavouriteVillaSerializer(serializers.ModelSerializer):

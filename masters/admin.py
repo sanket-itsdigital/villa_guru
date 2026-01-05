@@ -27,8 +27,14 @@ class VillaAmenityAdmin(admin.ModelAdmin):
 
 @admin.register(room_type)
 class RoomTypeAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name']
-    search_fields = ['name']
+    list_display = ['id', 'name', 'user', 'is_system_wide']
+    list_filter = ['user', 'name']
+    search_fields = ['name', 'user__email', 'user__mobile']
+    
+    def is_system_wide(self, obj):
+        return obj.user is None
+    is_system_wide.boolean = True
+    is_system_wide.short_description = 'System Wide'
 
 @admin.register(villa_type)
 class VillaTypeAdmin(admin.ModelAdmin):

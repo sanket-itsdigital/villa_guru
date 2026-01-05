@@ -112,14 +112,34 @@ class villa_rooms_Form(forms.ModelForm):
             'title': forms.Select(attrs={'class': 'form-control'}),  # it's a choice field
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'main_image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
-            'price_per_night': forms.NumberInput(attrs={'class': 'form-control'}),
-            'max_guest_count': forms.NumberInput(attrs={'class': 'form-control'}),
+            'price_per_night': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'max_guest_count': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
             'refundable': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'meals_included': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'bed_type': forms.TextInput(attrs={'class': 'form-control'}),
-            'capacity': forms.TextInput(attrs={'class': 'form-control'}),
-            'view': forms.TextInput(attrs={'class': 'form-control'}),
+            'bed_type': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 1 Queen Bed + 1 Double Bed'}),
+            'capacity': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 2 Adults, 1 Child'}),
+            'view': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Beach View, Garden View'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        # Make villa field required with help text
+        self.fields['villa'].required = True
+        self.fields['price_per_night'].help_text = 'Enter the price per night for this specific room. Each room can have different pricing.'
+        
+        # Filter room types based on user
+        if user and user.is_service_provider and not user.is_superuser:
+            # Vendor: show only their own room types + system-wide room types (user=None)
+            from masters.models import room_type
+            from django.db.models import Q
+            self.fields['room_type'].queryset = room_type.objects.filter(
+                Q(user=user) | Q(user__isnull=True)
+            )
+            self.fields['room_type'].help_text = 'Select the type of room. You can create your own room types in Room Type Management.'
+        else:
+            # Admin: show all room types
+            self.fields['room_type'].help_text = 'Select the type of room (e.g., Standard, Deluxe, Suite).'
 
 
 class VillaPricingForm(forms.ModelForm):

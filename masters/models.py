@@ -55,9 +55,25 @@ class villa_amenity(models.Model):
 
 class room_type(models.Model):
     name = models.CharField(max_length=255)
+    user = models.ForeignKey(
+        "users.User",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="room_types",
+        help_text="Vendor who created this room type. If null, it's a system-wide room type (admin created)."
+    )
+
+    class Meta:
+        verbose_name = "Room Type"
+        verbose_name_plural = "Room Types"
+        # Allow same name for different vendors, but unique per vendor
+        unique_together = [("name", "user")]
 
     def __str__(self):
-        return self.name
+        if self.user:
+            return f"{self.name} (by {self.user.first_name or self.user.mobile})"
+        return f"{self.name} (System)"
 
 
 class villa_type(models.Model):

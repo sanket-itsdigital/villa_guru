@@ -73,6 +73,15 @@ class RoomAvailabilityAdmin(admin.ModelAdmin):
     search_fields = ['room__villa__name', 'room__room_type__name']
     date_hierarchy = 'date'
 
+@admin.register(RoomPricing)
+class RoomPricingAdmin(admin.ModelAdmin):
+    list_display = ['id', 'room', 'date', 'price_per_night', 'created_at']
+    list_filter = ['date', 'room__villa', 'room__room_type']
+    search_fields = ['room__room_type__name', 'room__villa__name']
+    date_hierarchy = 'date'
+    readonly_fields = ['created_at', 'updated_at']
+
+
 @admin.register(VillaPricing)
 class VillaPricingAdmin(admin.ModelAdmin):
     list_display = ['id', 'villa', 'date', 'price_per_night', 'created_at', 'updated_at']

@@ -55,85 +55,137 @@
         <div class="container-fluid">
             <div class="row mb-3">
                 <div class="col-12">
-                    <h4 class="mb-0"> {{ hote_name }} List Rooms</h4>
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <h4 class="mb-0">Room Management</h4>
+                            {% if villas_with_rooms %}
+                                <small class="text-muted">
+                                    Showing rooms from {{ villas_with_rooms|length }} property(ies)
+                                </small>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'add_villa_rooms' %}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> Add Room
+                        </a>
+                    </div>
+                    {% if not request.user.is_superuser %}
+                    <div class="alert alert-info mt-3 mb-0">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Note:</strong> Room management is only available for <strong>Resort</strong> and <strong>Couple Stay</strong> properties. 
+                        <br><strong>Villa properties</strong> are booked as a whole unit and do not require individual room management.
+                        <br>Only rooms from your Resort and Couple Stay properties are displayed here.
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
-                      
-<form method="get">
-    <div class="row">
-        {% for field in filterset.form %}
-            <div class="col-md-3 mb-2">
-                <label>{{ field.label }}</label>
-                {{ field }}
-            </div>
-        {% endfor %}
-        <div class="col-md-3 mb-2 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary me-2">Apply</button>
-            <a href="{% url 'list_villa' %}" class="btn btn-secondary">Reset</a>
-        </div>
-    </div>
-</form>
-
-
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Room Type</th>
-                                            <th>Package</th>
-                                            <th>Price/Night</th>
-                                            <th>Max Guest Count</th>
-                                            <th>Refundable</th>
-                                            <th>Meals</th>
-                                            <th>Capacity</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        
-                                        {% for room in data %}
+            {% if villas_with_rooms %}
+                {% for villa_obj, rooms in villas_with_rooms.items %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="mb-0 text-white">
+                                            <i class="bi bi-building"></i> {{ villa_obj.name }}
+                                        </h5>
+                                        <small class="text-white-50">
+                                            Property Type: 
+                                            <span class="badge bg-light text-dark">
+                                                {{ villa_obj.property_type.get_name_display|default:"N/A" }}
+                                            </span>
+                                            {% if villa_obj.city %}
+                                            | Location: {{ villa_obj.city.name }}
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-success">{{ rooms|length }} Room{{ rooms|length|pluralize }}</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped">
+                                        <thead>
                                             <tr>
-                                                <td>{{ forloop.counter }}</td>
-                                                <td>{{ room.room_type }}</td>
-                                                <td>{{ room.get_title_display }}</td>
-                                                <td>₹{{ room.price_per_night }}</td>
-                                                <td>{{ room.max_guest_count }}</td>
-                                                <td>{{ room.refundable|yesno:"Yes,No" }}</td>
-                                                <td>{{ room.meals_included|yesno:"Yes,No" }}</td>
-                                                <td>{{ room.capacity }}</td>
-                                                <td>
-                                                
-                                                   <a href="{% url 'update_villa_rooms' room.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
-                                                        <i class="bi bi-pencil-square"></i> Edit
-                                                    </a>
-
-                                                    <a href="{% url 'delete_villa_rooms' room.id %}" 
-                                                    class="btn btn-sm btn-outline-danger" 
-                                                    title="Delete"
-                                                    onclick="return confirm('Are you sure you want to delete this hotel room?');">
-                                                        <i class="bi bi-trash"></i> Delete
-                                                    </a>
-                                                
-                                                </td>
+                                                <th>#</th>
+                                                <th>Room Type</th>
+                                                <th>Package</th>
+                                                <th>Price/Night</th>
+                                                <th>Max Guests</th>
+                                                <th>Bed Type</th>
+                                                <th>View</th>
+                                                <th>Actions</th>
                                             </tr>
-                                        {% empty %}
-                                            <tr>
-                                                <td colspan="9" class="text-center">No rooms found.</td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            {% for room in rooms %}
+                                                <tr>
+                                                    <td>{{ forloop.counter }}</td>
+                                                    <td>
+                                                        <strong>{{ room.room_type.name|default:room.room_type }}</strong>
+                                                        {% if room.capacity %}
+                                                        <br><small class="text-muted">{{ room.capacity }}</small>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ room.get_title_display }}</td>
+                                                    <td><strong>₹{{ room.price_per_night|floatformat:2 }}</strong></td>
+                                                    <td>{{ room.max_guest_count }}</td>
+                                                    <td>{{ room.bed_type|default:"-" }}</td>
+                                                    <td>{{ room.view|default:"-" }}</td>
+                                                    <td>
+                                                        <a href="{% url 'update_villa_rooms' room.id %}" 
+                                                           class="btn btn-sm btn-outline-primary" 
+                                                           title="Edit">
+                                                            <i class="bi bi-pencil-square"></i> Edit
+                                                        </a>
+                                                        <a href="{% url 'delete_villa_rooms' room.id %}" 
+                                                           class="btn btn-sm btn-outline-danger" 
+                                                           title="Delete"
+                                                           onclick="return confirm('Are you sure you want to delete this room?');">
+                                                            <i class="bi bi-trash"></i> Delete
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% empty %}
+                                                <tr>
+                                                    <td colspan="10" class="text-center text-muted">
+                                                        No rooms found for this property.
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+                {% endfor %}
+            {% else %}
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body text-center py-5">
+                                <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+                                <h5 class="mt-3">No Rooms Found</h5>
+                                <p class="text-muted">
+                                    {% if not request.user.is_superuser %}
+                                        You don't have any Resort or Couple Stay properties with rooms yet.
+                                        <br>Room management is only available for Resort and Couple Stay properties.
+                                        <br>Villa properties are booked as a whole unit.
+                                    {% else %}
+                                        No rooms have been added yet.
+                                    {% endif %}
+                                </p>
+                                <a href="{% url 'add_villa_rooms' %}" class="btn btn-primary mt-3">
+                                    <i class="bi bi-plus-circle"></i> Add Your First Room
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 

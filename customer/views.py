@@ -17,7 +17,7 @@ import uuid
 import razorpay
 from django.conf import settings
 from rest_framework.response import Response
-from hotel.models import villa, villa_rooms, VillaAvailability
+from hotel.models import villa, villa_rooms, VillaAvailability, RoomAvailability
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework import status
@@ -102,6 +102,27 @@ class VillaBookingViewSet(viewsets.ModelViewSet):
                     description="Payment type",
                     example="online",
                     default="online",
+                ),
+                "rooms": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    description="List of rooms to book (required for Resort/Couple Stay, optional for Villa). Format: [{'room_id': 1, 'quantity': 2}, ...]",
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            "room_id": openapi.Schema(
+                                type=openapi.TYPE_INTEGER,
+                                description="Room ID",
+                                example=1,
+                            ),
+                            "quantity": openapi.Schema(
+                                type=openapi.TYPE_INTEGER,
+                                description="Number of rooms",
+                                example=2,
+                                default=1,
+                            ),
+                        },
+                    ),
+                    example=[{"room_id": 1, "quantity": 2}],
                 ),
             },
         ),
@@ -219,8 +240,16 @@ class VillaBookingViewSet(viewsets.ModelViewSet):
             booking = serializer.save(user=self.request.user)
             print(f"➡️  Booking saved: {booking.pk}, Villa: {booking.villa.name}")
 
-            # Villa-level booking: whole villa is booked
-            print(f"✅ Villa-level booking: {booking.villa.name} booked as whole villa")
+            # Log booking type
+            if booking.booking_type == "whole_villa":
+                print(
+                    f"✅ Whole villa booking: {booking.villa.name} - all rooms booked automatically"
+                )
+            else:
+                rooms_count = booking.booked_rooms.count()
+                print(
+                    f"✅ Room-based booking: {booking.villa.name} - {rooms_count} room(s) selected"
+                )
 
             # --- ✅ Create Razorpay order here ---
             client = razorpay.Client(
@@ -236,6 +265,7 @@ class VillaBookingViewSet(viewsets.ModelViewSet):
                 "notes": {  # 👈 custom metadata
                     "booking_id": str(booking.id),
                     "user_id": str(self.request.user.id),
+                    "booking_type": booking.booking_type,
                 },
             }
 
@@ -370,9 +400,126 @@ class VillaListAPIView(generics.ListAPIView):
     filterset_class = VillaFilter
 
     def get_queryset(self):
-        return villa.objects.annotate(room_count=Count("rooms")).filter(
-            go_live=True, is_active=True, room_count__gt=0
+        from datetime import datetime, timedelta, date
+        from hotel.models import RoomAvailability
+        from .models import VillaBooking
+        from django.db.models import Count, Q
+
+        # Base queryset: Only Resort and Couple Stay properties
+        qs = villa.objects.annotate(room_count=Count("rooms")).filter(
+            go_live=True,
+            is_active=True,
+            property_type__name__in=["Resort", "Couple Stay"],
+            room_count__gt=0,
         )
+
+        # Get query parameters
+        check_in_str = self.request.query_params.get("check_in")
+        check_out_str = self.request.query_params.get("check_out")
+        city_id = self.request.query_params.get("city")
+
+        # Filter by city if provided
+        if city_id:
+            try:
+                qs = qs.filter(city_id=int(city_id))
+            except (ValueError, TypeError):
+                pass
+
+        # If check_in and check_out are provided, filter by availability
+        if check_in_str and check_out_str:
+            try:
+                check_in = datetime.strptime(check_in_str, "%Y-%m-%d").date()
+                check_out = datetime.strptime(check_out_str, "%Y-%m-%d").date()
+
+                if check_in >= check_out:
+                    return villa.objects.none()  # Invalid date range
+
+                if check_in < date.today():
+                    return villa.objects.none()  # Past date
+
+                total_days = (check_out - check_in).days
+
+                # Get all rooms for these resorts
+                resort_rooms = villa_rooms.objects.filter(
+                    villa__in=qs.values_list("id", flat=True)
+                )
+
+                # Get bookings that might block rooms
+                conflicting_bookings = VillaBooking.objects.filter(
+                    villa__in=qs.values_list("id", flat=True),
+                    check_in__lt=check_out,
+                    check_out__gt=check_in,
+                    status__in=["confirmed", "checked_in"],
+                    booking_type="selected_rooms",
+                ).prefetch_related("booked_rooms")
+
+                # Calculate booked quantities per room per date
+                from collections import defaultdict
+
+                room_booked_dates = defaultdict(lambda: defaultdict(int))
+
+                for booking in conflicting_bookings:
+                    for booked_room in booking.booked_rooms.all():
+                        current_date = max(check_in, booking.check_in)
+                        end_date = min(check_out, booking.check_out)
+                        while current_date < end_date:
+                            room_booked_dates[booked_room.room_id][
+                                current_date
+                            ] += booked_room.quantity
+                            current_date += timedelta(days=1)
+
+                # Check each room for availability across all dates
+                # If RoomAvailability record doesn't exist, assume room is available (default behavior)
+                truly_available_room_ids = []
+
+                for room in resort_rooms:
+                    is_available = True
+                    current_date = check_in
+
+                    while current_date < check_out:
+                        # Get RoomAvailability record for this date
+                        room_availability = RoomAvailability.objects.filter(
+                            room=room, date=current_date
+                        ).first()
+
+                        # If no RoomAvailability record exists, assume room is available
+                        # Otherwise use the available_count from the record
+                        if room_availability:
+                            available_count = room_availability.available_count
+                        else:
+                            # No availability record means room is available by default
+                            # You can set a default value here if needed (e.g., 1 or room quantity)
+                            available_count = 1  # Default: at least 1 room available
+
+                        booked_count = room_booked_dates[room.id].get(current_date, 0)
+
+                        # Room is not available if booked_count >= available_count
+                        if available_count <= booked_count:
+                            is_available = False
+                            break
+
+                        current_date += timedelta(days=1)
+
+                    if is_available:
+                        truly_available_room_ids.append(room.id)
+
+                # Get villas that have at least one available room
+                if truly_available_room_ids:
+                    available_villa_ids = (
+                        villa_rooms.objects.filter(id__in=truly_available_room_ids)
+                        .values_list("villa_id", flat=True)
+                        .distinct()
+                    )
+                    qs = qs.filter(id__in=available_villa_ids)
+                else:
+                    # No rooms available for the date range, return empty queryset
+                    qs = villa.objects.none()
+
+            except (ValueError, TypeError):
+                # Invalid date format, return empty queryset or all resorts
+                pass
+
+        return qs
 
     def get_filterset_kwargs(self):
         kwargs = super().get_filterset_kwargs()
@@ -396,13 +543,28 @@ class VillaDetailAPIView(generics.RetrieveAPIView):
 
 
 class VillaRoomListAPIView(generics.ListAPIView):
+    """
+    List all rooms for a specific villa.
+    For Resort and Couple Stay properties, this shows all available rooms.
+    For Villa properties, this will be empty as rooms are not individually bookable.
+    """
+
     serializer_class = VillaRoomSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = VillaRoomFilter
 
     def get_queryset(self):
-        hotel_id = self.kwargs.get("hotel_id")
-        return villa_rooms.objects.filter(villa_id=hotel_id)
+        villa_id = self.kwargs.get("villa_id")
+        # Only show rooms for Resort and Couple Stay properties
+        # Villa properties don't have individually bookable rooms
+        return (
+            villa_rooms.objects.filter(
+                villa_id=villa_id,
+                villa__property_type__name__in=["Resort", "Couple Stay"],
+            )
+            .select_related("villa", "room_type")
+            .prefetch_related("villa_amenities", "images")
+        )
 
 
 class VillaRoomDetailAPIView(generics.RetrieveAPIView):
@@ -425,10 +587,10 @@ class AvailableRoomsAPIView(generics.ListAPIView):
     def get_queryset(self):
         from_date_str = self.request.query_params.get("from_date")
         to_date_str = self.request.query_params.get("to_date")
-        hotel_id = self.request.query_params.get("hotel_id")
+        villa_id = self.request.query_params.get("villa_id")
 
-        if not hotel_id:
-            raise ValidationError("'hotel_id' is required.")
+        if not villa_id:
+            raise ValidationError("'villa_id' is required.")
 
         if not from_date_str or not to_date_str:
             raise ValidationError("Both 'from_date' and 'to_date' are required.")
@@ -444,25 +606,79 @@ class AvailableRoomsAPIView(generics.ListAPIView):
         if to_date < from_date:
             raise ValidationError("'to_date' must be after 'from_date'.")
 
-        total_days = (to_date - from_date).days + 1
-
-        # ✅ Only check availability for rooms of the given hotel
-        availability_qs = RoomAvailability.objects.filter(
-            room__hotel_id=hotel_id,
-            room__hotel__go_live=True,
-            date__gte=from_date,
-            date__lte=to_date,
-            available_count__gt=0,
+        # Get all rooms for the given villa (Resort/Couple Stay only)
+        rooms = villa_rooms.objects.filter(
+            villa_id=villa_id,
+            villa__go_live=True,
+            villa__property_type__name__in=["Resort", "Couple Stay"],
         )
 
-        available_room_ids = (
-            availability_qs.values("room")
-            .annotate(available_days=Count("date", distinct=True))
-            .filter(available_days=total_days)
-            .values_list("room", flat=True)
-        )
+        if not rooms.exists():
+            return villa_rooms.objects.none()
 
-        qs = villa_rooms.objects.filter(id__in=available_room_ids)
+        # Get bookings that might block rooms
+        from .models import VillaBooking
+        from collections import defaultdict
+        from datetime import timedelta
+
+        conflicting_bookings = VillaBooking.objects.filter(
+            villa_id=villa_id,
+            check_in__lt=to_date + timedelta(days=1),  # Include to_date
+            check_out__gt=from_date,
+            status__in=["confirmed", "checked_in"],
+            booking_type="selected_rooms",
+        ).prefetch_related("booked_rooms")
+
+        # Calculate booked quantities per room per date
+        room_booked_dates = defaultdict(lambda: defaultdict(int))
+
+        for booking in conflicting_bookings:
+            for booked_room in booking.booked_rooms.all():
+                current_date = max(from_date, booking.check_in)
+                end_date = min(to_date + timedelta(days=1), booking.check_out)
+                while current_date < end_date:
+                    room_booked_dates[booked_room.room_id][
+                        current_date
+                    ] += booked_room.quantity
+                    current_date += timedelta(days=1)
+
+        # Check each room for availability across all dates
+        truly_available_room_ids = []
+
+        for room in rooms:
+            is_available = True
+            current_date = from_date
+
+            while current_date < to_date:
+                # Get RoomAvailability record for this date
+                room_availability = RoomAvailability.objects.filter(
+                    room=room, date=current_date
+                ).first()
+
+                # If no RoomAvailability record exists, assume room is available
+                if room_availability:
+                    available_count = room_availability.available_count
+                    # If available_count is 0, room is marked as booked (offline) - not available
+                    if available_count == 0:
+                        is_available = False
+                        break
+                else:
+                    # No availability record means room is available by default
+                    available_count = 1  # Default: at least 1 room available
+
+                booked_count = room_booked_dates[room.id].get(current_date, 0)
+
+                # Room is not available if booked_count >= available_count
+                if available_count <= booked_count:
+                    is_available = False
+                    break
+
+                current_date += timedelta(days=1)
+
+            if is_available:
+                truly_available_room_ids.append(room.id)
+
+        qs = villa_rooms.objects.filter(id__in=truly_available_room_ids)
 
         # Apply other filters
         filterset = VillaRoomFilter(self.request.GET, queryset=qs)
@@ -474,6 +690,7 @@ class AvailableVillasAPIView(APIView):
         city = request.query_params.get("city")
         check_in = request.query_params.get("check_in")
         check_out = request.query_params.get("check_out")
+        property_type_id = request.query_params.get("property_type")
 
         if not city or not check_in or not check_out:
             return Response(
@@ -494,26 +711,47 @@ class AvailableVillasAPIView(APIView):
         if check_in < date.today():
             return Response({"error": "check_in cannot be in the past."}, status=400)
 
-        # Step 1: Get all villas in the given city that are active and go_live
+        # Step 1: Get all properties in the given city that are active and go_live
         villas = villa.objects.filter(city_id=city, is_active=True, go_live=True)
 
+        # Filter by property_type if provided
+        if property_type_id:
+            try:
+                villas = villas.filter(property_type_id=int(property_type_id))
+            except (ValueError, TypeError):
+                return Response({"error": "Invalid property_type ID."}, status=400)
+
         # Step 2: Calculate required dates for the booking period
+        # Note: check_out date is the departure date, so we don't need availability for that day
         days = (check_out - check_in).days
         required_dates = {check_in + timedelta(days=i) for i in range(days)}
 
-        # Step 3: Get all villa availabilities for the date range
+        # Step 3: Separate properties by type for different availability checks
+        villa_properties = villas.filter(property_type__name="Villa")
+        resort_couple_stay_properties = villas.filter(
+            property_type__name__in=["Resort", "Couple Stay"]
+        )
+
+        # Get all villa availabilities for the date range (only for Villa properties)
         availabilities = VillaAvailability.objects.filter(
-            villa__in=villas, date__gte=check_in, date__lt=check_out
+            villa__in=villa_properties, date__gte=check_in, date__lt=check_out
         ).select_related("villa")
 
-        # Step 4: Get all bookings for the date range to check conflicts
+        # Step 4: Get all bookings for the date range to check conflicts (only Villa whole_villa bookings)
         from .models import VillaBooking
 
+        # Check for any bookings that overlap with the requested date range
+        # A booking overlaps if: booking.check_in < request.check_out AND booking.check_out > request.check_in
         conflicting_bookings = VillaBooking.objects.filter(
-            villa__in=villas,
-            check_in__lt=check_out,
-            check_out__gt=check_in,
-            status__in=["confirmed", "checked_in"],
+            villa__in=villa_properties,
+            booking_type="whole_villa",  # Only whole villa bookings block Villa properties
+            check_in__lt=check_out,  # Booking starts before requested check-out
+            check_out__gt=check_in,  # Booking ends after requested check-in
+            status__in=[
+                "confirmed",
+                "checked_in",
+                "pending",
+            ],  # Include pending bookings too
         ).values_list("villa_id", "check_in", "check_out")
 
         # Step 5: Build villa → blocked_dates mapping from bookings
@@ -529,27 +767,117 @@ class AvailableVillasAPIView(APIView):
             villa_blocked_dates[villa_id].update(booking_dates)
 
         # Step 6: Build villa → closed_dates mapping from availability records
+        # Only mark dates as closed if VillaAvailability record exists AND is_open=False
+        # If no record exists, assume villa is open (available)
         villa_closed_dates = defaultdict(set)
         for availability in availabilities:
             if not availability.is_open:
                 villa_closed_dates[availability.villa_id].add(availability.date)
 
-        # Step 7: Filter villas that are available for all required dates
+        # Step 7: Filter properties that are available for all required dates
+        # Property types already separated above
         available_villa_ids = []
-        for villa_obj in villas:
+
+        # Check Villa properties (whole villa booking)
+        for villa_obj in villa_properties:
             blocked_dates = villa_blocked_dates.get(villa_obj.id, set())
             closed_dates = villa_closed_dates.get(villa_obj.id, set())
 
             # A villa is available if:
             # 1. None of the required dates are blocked by bookings
-            # 2. None of the required dates are marked as closed (is_open=False)
-            if not (required_dates & blocked_dates) and not (
-                required_dates & closed_dates
-            ):
+            # 2. None of the required dates are marked as closed (is_open=False in VillaAvailability)
+            # Note: If no VillaAvailability record exists for a date, villa is considered open/available by default
+            has_blocked = bool(required_dates & blocked_dates)
+            has_closed = bool(required_dates & closed_dates)
+
+            # Debug: Print availability check for troubleshooting
+            # if has_blocked:
+            #     print(f"Villa {villa_obj.id} ({villa_obj.name}) is blocked. Blocked dates: {sorted(blocked_dates)}")
+            #     print(f"Required dates: {sorted(required_dates)}")
+            #     print(f"Overlap: {sorted(required_dates & blocked_dates)}")
+
+            # Villa is available if it's not blocked and not explicitly closed
+            if not has_blocked and not has_closed:
                 available_villa_ids.append(villa_obj.id)
 
-        # Step 6: Get available villas
-        available_villas = villa.objects.filter(id__in=available_villa_ids).distinct()
+        # Check Resort/Couple Stay properties (room-based booking)
+        if resort_couple_stay_properties.exists():
+            # Get all rooms for these resorts
+            resort_rooms = villa_rooms.objects.filter(
+                villa__in=resort_couple_stay_properties
+            )
+
+            # Get bookings that might block rooms
+            conflicting_bookings = VillaBooking.objects.filter(
+                villa__in=resort_couple_stay_properties,
+                check_in__lt=check_out,
+                check_out__gt=check_in,
+                status__in=["confirmed", "checked_in"],
+                booking_type="selected_rooms",
+            ).prefetch_related("booked_rooms")
+
+            # Calculate booked quantities per room per date
+            from collections import defaultdict
+
+            room_booked_dates = defaultdict(lambda: defaultdict(int))
+
+            for booking in conflicting_bookings:
+                for booked_room in booking.booked_rooms.all():
+                    current_date = max(check_in, booking.check_in)
+                    end_date = min(check_out, booking.check_out)
+                    while current_date < end_date:
+                        room_booked_dates[booked_room.room_id][
+                            current_date
+                        ] += booked_room.quantity
+                        current_date += timedelta(days=1)
+
+            # Check each room for availability across all dates
+            truly_available_room_ids = []
+
+            for room in resort_rooms:
+                is_available = True
+                current_date = check_in
+
+                while current_date < check_out:
+                    # Get RoomAvailability record for this date
+                    room_availability = RoomAvailability.objects.filter(
+                        room=room, date=current_date
+                    ).first()
+
+                    # If no RoomAvailability record exists, assume room is available
+                    if room_availability:
+                        available_count = room_availability.available_count
+                    else:
+                        # No availability record means room is available by default
+                        available_count = 1  # Default: at least 1 room available
+
+                    booked_count = room_booked_dates[room.id].get(current_date, 0)
+
+                    # Room is not available if booked_count >= available_count
+                    if available_count <= booked_count:
+                        is_available = False
+                        break
+
+                    current_date += timedelta(days=1)
+
+                if is_available:
+                    truly_available_room_ids.append(room.id)
+
+            # Get resorts that have at least one available room
+            if truly_available_room_ids:
+                available_resort_ids = (
+                    villa_rooms.objects.filter(id__in=truly_available_room_ids)
+                    .values_list("villa_id", flat=True)
+                    .distinct()
+                )
+                available_villa_ids.extend(available_resort_ids)
+
+        # Step 8: Get available properties
+        available_villas = (
+            villa.objects.filter(id__in=available_villa_ids).distinct()
+            if available_villa_ids
+            else villa.objects.none()
+        )
 
         # Step 7: Apply Django filters (price range, villa_star_facility, amenities)
         from .filters import AvailableVillaFilter
@@ -746,6 +1074,7 @@ class VillaReviewViewSet(viewsets.ModelViewSet):
     ViewSet for villa reviews.
     Customers can create, update, and delete their own reviews.
     """
+
     serializer_class = VillaReviewSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -756,15 +1085,15 @@ class VillaReviewViewSet(viewsets.ModelViewSet):
         """
         queryset = VillaReview.objects.all()
         villa_id = self.request.query_params.get("villa_id")
-        
+
         if villa_id:
             queryset = queryset.filter(villa_id=villa_id)
-        
+
         # If user is not admin, only show their own reviews when listing all
         if not self.request.user.is_superuser:
             if not villa_id:
                 queryset = queryset.filter(user=self.request.user)
-        
+
         return queryset.order_by("-created_at")
 
     def perform_create(self, serializer):
@@ -774,7 +1103,7 @@ class VillaReviewViewSet(viewsets.ModelViewSet):
         """
         if not self.request.user.is_customer:
             raise ValidationError("Only customers can create reviews.")
-        
+
         serializer.save(user=self.request.user)
 
     def perform_update(self, serializer):
@@ -783,7 +1112,7 @@ class VillaReviewViewSet(viewsets.ModelViewSet):
         """
         if serializer.instance.user != self.request.user:
             raise ValidationError("You can only update your own reviews.")
-        
+
         serializer.save()
 
     def perform_destroy(self, instance):
@@ -792,7 +1121,7 @@ class VillaReviewViewSet(viewsets.ModelViewSet):
         """
         if instance.user != self.request.user and not self.request.user.is_superuser:
             raise ValidationError("You can only delete your own reviews.")
-        
+
         instance.delete()
 
 
@@ -802,6 +1131,7 @@ class VillaReviewCreateAPIView(generics.CreateAPIView):
     POST /customer/villa-reviews/create/
     Only customers can create reviews.
     """
+
     serializer_class = VillaReviewSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -811,7 +1141,9 @@ class VillaReviewCreateAPIView(generics.CreateAPIView):
             type=openapi.TYPE_OBJECT,
             required=["villa", "rating", "comment"],
             properties={
-                "villa": openapi.Schema(type=openapi.TYPE_INTEGER, description="Villa ID"),
+                "villa": openapi.Schema(
+                    type=openapi.TYPE_INTEGER, description="Villa ID"
+                ),
                 "rating": openapi.Schema(
                     type=openapi.TYPE_INTEGER,
                     description="Rating from 1 to 5 stars",
@@ -847,6 +1179,7 @@ class VillaReviewListAPIView(generics.ListAPIView):
     GET /customer/villas/{villa_id}/reviews/
     Public endpoint - no authentication required.
     """
+
     serializer_class = VillaReviewSerializer
     permission_classes = []  # Public endpoint
 

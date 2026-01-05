@@ -146,6 +146,7 @@
         min-height: 100vh;
         transition: all 0.3s;
         overflow-x: visible !important;
+        background-color: #f8f9fa;
     }
     .page-content {
         overflow-x: visible !important;
@@ -180,36 +181,65 @@
         z-index: 10 !important;
         position: relative !important;
     }
-    .villa-selector-container {
+    .villa-selector-container, .room-selector-container {
         display: flex !important;
         visibility: visible !important;
         opacity: 1 !important;
         align-items: center !important;
-        gap: 10px !important;
-        background: white !important;
-        padding: 15px 20px !important;
-        margin-top: 20px !important;
-        margin-bottom: 15px !important;
-        border-radius: 4px !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        gap: 12px !important;
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+        padding: 16px 24px !important;
+        margin-top: 10px !important;
+        margin-bottom: 10px !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+        border: 1px solid #e9ecef !important;
         min-width: 300px !important;
         max-width: 100% !important;
         overflow: visible !important;
         position: relative !important;
         z-index: 1000 !important;
         flex-shrink: 0 !important;
+        transition: all 0.3s ease !important;
     }
-    .villa-selector-container label {
+    .villa-selector-container:hover, .room-selector-container:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12) !important;
+        transform: translateY(-1px) !important;
+    }
+    .villa-selector-container label, .room-selector-container label {
         margin: 0 !important;
         white-space: nowrap !important;
         font-weight: 600 !important;
         flex-shrink: 0 !important;
+        color: #495057 !important;
+        font-size: 14px !important;
     }
-    #villa_filter {
+    #villa_filter, #room_filter {
         min-width: 250px !important;
         max-width: 350px !important;
         flex: 1 1 auto !important;
         overflow: visible !important;
+        border: 1px solid #ced4da !important;
+        border-radius: 6px !important;
+        padding: 8px 12px !important;
+        font-size: 14px !important;
+        transition: all 0.2s ease !important;
+    }
+    #villa_filter:focus, #room_filter:focus {
+        border-color: #780000 !important;
+        box-shadow: 0 0 0 0.2rem rgba(120, 0, 0, 0.15) !important;
+        outline: none !important;
+    }
+    /* Room selector specific styling */
+    .room-selector-container {
+        background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%) !important;
+        border-left: 4px solid #780000 !important;
+    }
+    .room-selector-container label {
+        color: #780000 !important;
+    }
+    #room_filter {
+        background-color: white !important;
     }
     /* Ensure parent containers don't clip the dropdown */
     .row {
@@ -218,70 +248,253 @@
     .col-12 {
         overflow: visible !important;
     }
+    /* Pricing info boxes */
+    .pricing-info-box {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .pricing-info-box:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    /* Room details styling */
+    .room-detail-item {
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+    .room-detail-item:hover {
+        background: #e9ecef;
+        transform: translateX(4px);
+    }
+    /* Card improvements */
+    .card {
+        transition: box-shadow 0.3s ease;
+    }
+    .card:hover {
+        box-shadow: 0 6px 16px rgba(0,0,0,0.12) !important;
+    }
+    /* Badge styling */
+    .badge {
+        font-weight: 500;
+        letter-spacing: 0.5px;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="main-content">
-    <div class="page-content" style="padding: calc(7px + 24px) calc(24px / 2) 60px calc(24px / 2) !important;">
+    <div class="page-content" style="padding: calc(40px + 24px) calc(24px / 2) 60px calc(24px / 2) !important;">
         <div class="container-fluid">
-            <div class="row mb-4" style="margin-top: 30px !important;">
+            <!-- Top Spacing -->
+            <div class="row mb-4" style="margin-top: 20px !important; margin-bottom: 30px !important;">
                 <div class="col-12">
-                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3" style="overflow: visible !important;">
-                        <h4 class="mb-0 font-size-18" style="margin-top: 20px;">Manage Villa Dynamic Pricing</h4>
-                        {% if villas_list %}
-                        <div class="villa-selector-container" style="overflow: visible !important; position: relative !important; z-index: 1000 !important;">
-                            <label for="villa_filter" class="mb-0"><strong>Select Villa:</strong></label>
-                            <select id="villa_filter" class="form-select" style="min-width: 250px; max-width: 350px;" onchange="filterVilla(this.value)">
-                                {% for v in villas_list %}
-                                <option value="{{ v.id }}" {% if v.id == villa.id %}selected{% endif %}>
-                                    {{ v.name }} {% if v.price_per_night %}(₹{{ v.price_per_night|floatformat:2 }}){% else %}(₹0.00){% endif %}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Villa Base Pricing Card -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title mb-3">{{ villa.name }} - Base Pricing</h5>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <p class="mb-1"><strong>Base Price (Weekday):</strong></p>
-                                    <p class="text-primary fs-4 mb-0">₹{{ default_price|floatformat:2 }}</p>
+                    <div class="card mb-4" style="border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 12px;">
+                        <div class="card-body p-4" style="padding: 2rem 2.5rem !important;">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3" style="overflow: visible !important;">
+                                <div>
+                                    <h4 class="mb-1" style="color: #780000; font-weight: 600;">
+                                        {% if is_room_based %}
+                                            <i class="bi bi-door-open me-2"></i>Manage Room Dynamic Pricing
+                                        {% else %}
+                                            <i class="bi bi-building me-2"></i>Manage Villa Dynamic Pricing
+                                        {% endif %}
+                                    </h4>
+                                    <p class="text-muted mb-0 small">
+                                        {% if is_room_based %}
+                                            Set custom pricing for individual rooms by date
+                                        {% else %}
+                                            Set custom pricing for your villa by date
+                                        {% endif %}
+                                    </p>
                                 </div>
-                                {% if weekend_percentage and weekend_percentage > 0 %}
-                                <div class="col-md-4">
-                                    <p class="mb-1"><strong>Weekend Percentage:</strong></p>
-                                    <p class="text-info fs-5 mb-0">{{ weekend_percentage|floatformat:2 }}%</p>
+                                <div class="d-flex gap-3 flex-wrap" style="overflow: visible !important;">
+                                    {% if villas_list %}
+                                    <div class="villa-selector-container" style="overflow: visible !important; position: relative !important; z-index: 1000 !important;">
+                                        <label for="villa_filter" class="mb-0">
+                                            <i class="bi bi-building me-1"></i><strong>Property:</strong>
+                                        </label>
+                                        <select id="villa_filter" class="form-select" style="min-width: 250px; max-width: 350px;" onchange="filterVilla(this.value)">
+                                            {% for v in villas_list %}
+                                            <option value="{{ v.id }}" {% if v.id == villa.id %}selected{% endif %}>
+                                                {{ v.name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    {% endif %}
+                                    {% if is_room_based and rooms_list %}
+                                    <div class="room-selector-container" style="overflow: visible !important; position: relative !important; z-index: 999 !important;">
+                                        <label for="room_filter" class="mb-0">
+                                            <i class="bi bi-door-open me-1"></i><strong>Room:</strong>
+                                        </label>
+                                        <select id="room_filter" class="form-select" style="min-width: 280px; max-width: 400px;" onchange="filterRoom(this.value)">
+                                            {% for r in rooms_list %}
+                                            <option value="{{ r.id }}" {% if selected_room and r.id == selected_room.id %}selected{% endif %}>
+                                                {{ r.room_type.name|default:"Room" }} - {{ r.get_title_display }} (₹{{ r.price_per_night|floatformat:2 }})
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    {% endif %}
                                 </div>
-                                <div class="col-md-4">
-                                    <p class="mb-1"><strong>Weekend Price:</strong></p>
-                                    <p class="text-success fs-4 mb-0">₹{{ weekend_price|floatformat:2 }}</p>
-                                    <small class="text-muted">(Friday, Saturday, Sunday)</small>
-                                </div>
-                                {% else %}
-                                <div class="col-md-8">
-                                    <p class="text-muted mb-0">No weekend pricing configured. Set weekend percentage in villa settings to enable weekend pricing.</p>
-                                </div>
-                                {% endif %}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Dynamic Pricing Management Section -->
-            <div class="row">
+            <!-- Base Pricing Card -->
+            <div class="row mb-4" style="margin-top: 25px !important;">
                 <div class="col-12">
-                    <div class="page-title-box d-sm-flex align-items-center justify-content-between mb-3">
-                        <h4 class="mb-sm-0 font-size-18">Dynamic Pricing Management</h4>
+                    <div class="card" style="border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 12px;">
+                        <div class="card-body" style="padding: 2.5rem;">
+                            {% if is_room_based and selected_room %}
+                            <!-- Room-based pricing header -->
+                            <div class="d-flex align-items-center justify-content-between mb-4">
+                                <div>
+                                    <h5 class="card-title mb-2" style="color: #780000; font-weight: 600;">
+                                        <i class="bi bi-door-open me-2"></i>{{ selected_room.room_type.name|default:"Room" }} - {{ selected_room.get_title_display }}
+                                    </h5>
+                                    <p class="text-muted mb-0">
+                                        <i class="bi bi-building me-1"></i>{{ villa.name }}
+                                    </p>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-primary fs-6 px-3 py-2">Base Pricing</span>
+                                </div>
+                            </div>
+                            <hr style="margin: 1.5rem 0;">
+                            <div class="row g-4">
+                                <div class="col-md-4">
+                                    <div class="pricing-info-box p-3" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 8px; border-left: 4px solid #2196f3;">
+                                        <p class="mb-2 text-muted small"><strong>Base Price (Weekday)</strong></p>
+                                        <p class="text-primary fs-3 mb-0 fw-bold">₹{{ default_price|floatformat:2 }}</p>
+                                        <small class="text-muted">Per night</small>
+                                    </div>
+                                </div>
+                                {% if weekend_percentage and weekend_percentage > 0 %}
+                                <div class="col-md-4">
+                                    <div class="pricing-info-box p-3" style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); border-radius: 8px; border-left: 4px solid #ff9800;">
+                                        <p class="mb-2 text-muted small"><strong>Weekend Percentage</strong></p>
+                                        <p class="text-warning fs-3 mb-0 fw-bold">{{ weekend_percentage|floatformat:2 }}%</p>
+                                        <small class="text-muted">Extra charge</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="pricing-info-box p-3" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-radius: 8px; border-left: 4px solid #4caf50;">
+                                        <p class="mb-2 text-muted small"><strong>Weekend Price</strong></p>
+                                        <p class="text-success fs-3 mb-0 fw-bold">₹{{ weekend_price|floatformat:2 }}</p>
+                                        <small class="text-muted">Fri, Sat, Sun</small>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="col-md-8">
+                                    <div class="p-3" style="background: #f8f9fa; border-radius: 8px;">
+                                        <p class="text-muted mb-0">
+                                            <i class="bi bi-info-circle me-2"></i>No weekend pricing configured. Set weekend percentage in villa settings to enable weekend pricing.
+                                        </p>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% if selected_room.bed_type or selected_room.capacity or selected_room.max_guest_count %}
+                            <hr style="margin: 1.5rem 0;">
+                            <div class="row g-3">
+                                {% if selected_room.bed_type %}
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-bed fs-5 text-primary me-2"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Bed Type</small>
+                                            <strong>{{ selected_room.bed_type }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% if selected_room.max_guest_count %}
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-people fs-5 text-success me-2"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Max Guests</small>
+                                            <strong>{{ selected_room.max_guest_count }} Guest{{ selected_room.max_guest_count|pluralize }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% if selected_room.capacity %}
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-person-check fs-5 text-info me-2"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Capacity</small>
+                                            <strong>{{ selected_room.capacity }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <!-- Villa-based pricing header -->
+                            <div class="d-flex align-items-center justify-content-between mb-4">
+                                <div>
+                                    <h5 class="card-title mb-2" style="color: #780000; font-weight: 600;">
+                                        <i class="bi bi-building me-2"></i>{{ villa.name }} - Base Pricing
+                                    </h5>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-primary fs-6 px-3 py-2">Villa Pricing</span>
+                                </div>
+                            </div>
+                            <hr style="margin: 1.5rem 0;">
+                            <div class="row g-4">
+                                <div class="col-md-4">
+                                    <div class="pricing-info-box p-3" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 8px; border-left: 4px solid #2196f3;">
+                                        <p class="mb-2 text-muted small"><strong>Base Price (Weekday)</strong></p>
+                                        <p class="text-primary fs-3 mb-0 fw-bold">₹{{ default_price|floatformat:2 }}</p>
+                                        <small class="text-muted">Per night</small>
+                                    </div>
+                                </div>
+                                {% if weekend_percentage and weekend_percentage > 0 %}
+                                <div class="col-md-4">
+                                    <div class="pricing-info-box p-3" style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); border-radius: 8px; border-left: 4px solid #ff9800;">
+                                        <p class="mb-2 text-muted small"><strong>Weekend Percentage</strong></p>
+                                        <p class="text-warning fs-3 mb-0 fw-bold">{{ weekend_percentage|floatformat:2 }}%</p>
+                                        <small class="text-muted">Extra charge</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="pricing-info-box p-3" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-radius: 8px; border-left: 4px solid #4caf50;">
+                                        <p class="mb-2 text-muted small"><strong>Weekend Price</strong></p>
+                                        <p class="text-success fs-3 mb-0 fw-bold">₹{{ weekend_price|floatformat:2 }}</p>
+                                        <small class="text-muted">Fri, Sat, Sun</small>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="col-md-8">
+                                    <div class="p-3" style="background: #f8f9fa; border-radius: 8px;">
+                                        <p class="text-muted mb-0">
+                                            <i class="bi bi-info-circle me-2"></i>No weekend pricing configured. Set weekend percentage in villa settings to enable weekend pricing.
+                                        </p>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Pricing Management Section -->
+            <div class="row" style="margin-top: 35px !important;">
+                <div class="col-12">
+                    <div class="page-title-box d-sm-flex align-items-center justify-content-between mb-4">
+                        <h4 class="mb-sm-0 font-size-18" style="font-weight: 600; color: #495057;">
+                            <i class="bi bi-calendar3 me-2"></i>Dynamic Pricing Management
+                        </h4>
                     </div>
                 </div>
             </div>
@@ -298,6 +511,9 @@
                     {% csrf_token %}
                     {% if villa.id %}
                     <input type="hidden" name="villa_id" value="{{ villa.id }}">
+                    {% endif %}
+                    {% if is_room_based and selected_room %}
+                    <input type="hidden" name="room_id" value="{{ selected_room.id }}">
                     {% endif %}
                     <h5 class="mb-3">Bulk Update Pricing</h5>
                     <div class="row">
@@ -361,11 +577,13 @@
             {% endif %}
 
             <!-- Calendar -->
-            <div class="row">
+            <div class="row" style="margin-top: 25px !important;">
                 <div class="col-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title mb-3">Calendar View</h5>
+                    <div class="card" style="border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                        <div class="card-body" style="padding: 2rem;">
+                            <h5 class="card-title mb-4" style="font-weight: 600; color: #495057;">
+                                <i class="bi bi-calendar-check me-2"></i>Calendar View
+                            </h5>
                             <div id="calendar"></div>
                         </div>
                     </div>
@@ -378,6 +596,9 @@
                         <form method="post">
                             {% csrf_token %}
                             <input type="hidden" name="selected_date" id="selected_date">
+                            {% if is_room_based and selected_room %}
+                            <input type="hidden" name="room_id" value="{{ selected_room.id }}">
+                            {% endif %}
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title">Set Price for Date</h5>
@@ -626,9 +847,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
     function filterVilla(villaId) {
-        if (villaId) {
-            window.location.href = "{% url 'manage_villa_pricing' %}?villa_id=" + villaId;
-        }
+        const url = new URL(window.location.href);
+        url.searchParams.set('villa_id', villaId);
+        // Remove room_id when changing villa
+        url.searchParams.delete('room_id');
+        window.location.href = url.toString();
+    }
+    
+    function filterRoom(roomId) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('room_id', roomId);
+        window.location.href = url.toString();
     }
 
     document.addEventListener('DOMContentLoaded', () => {

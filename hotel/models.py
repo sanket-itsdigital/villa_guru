@@ -344,3 +344,31 @@ class VillaPricing(models.Model):
 
     def __str__(self):
         return f"{self.villa.name} - {self.date} - ₹{self.price_per_night}"
+
+
+class RoomPricing(models.Model):
+    """
+    Model to store date-specific pricing for individual rooms.
+    Used for Resort and Couple Stay properties where rooms have individual pricing.
+    """
+
+    room = models.ForeignKey(
+        "hotel.villa_rooms", on_delete=models.CASCADE, related_name="date_pricing"
+    )
+    date = models.DateField()
+    price_per_night = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Price per night for this specific room and date",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("room", "date")
+        ordering = ["date"]
+        verbose_name = "Room Pricing"
+        verbose_name_plural = "Room Pricings"
+
+    def __str__(self):
+        return f"{self.room.room_type.name if self.room.room_type else 'Room'} - {self.date} - ₹{self.price_per_night}"

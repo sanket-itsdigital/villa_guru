@@ -97,6 +97,30 @@ class villa_amenity_Form(forms.ModelForm):
 
         }
         
+class room_type_Form(forms.ModelForm):
+    class Meta:
+        model = room_type
+        fields = '__all__'
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control', 'id': 'name',
+                'placeholder': 'e.g., Standard Room, Deluxe Room, Suite'
+            }),
+            'user': forms.Select(attrs={
+                'class': 'form-control'
+            })
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # For admins: show user field to assign to specific vendor
+        # For vendors: user field will be hidden and auto-assigned
+        if 'user' in self.fields:
+            from users.models import User
+            self.fields['user'].queryset = User.objects.filter(is_service_provider=True)
+            self.fields['user'].required = False
+            self.fields['user'].help_text = "Leave empty for system-wide room type (admin only). For vendors, this is auto-assigned."
+        
 class villa_type_Form(forms.ModelForm):
     class Meta:
         model = villa_type

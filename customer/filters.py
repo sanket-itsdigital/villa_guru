@@ -13,8 +13,6 @@ class VillaRoomFilter(django_filters.FilterSet):
     price_max = django_filters.NumberFilter(
         field_name="price_per_night", lookup_expr="lte"
     )
-    refundable = django_filters.BooleanFilter()
-    meals_included = django_filters.BooleanFilter()
 
     # 👇 Optional fields (recommended)
     bed_type = django_filters.CharFilter(lookup_expr="icontains")
@@ -35,8 +33,6 @@ class VillaRoomFilter(django_filters.FilterSet):
             "title",
             "price_min",
             "price_max",
-            "refundable",
-            "meals_included",
             "bed_type",
             "capacity",
             "view",

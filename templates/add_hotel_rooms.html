@@ -87,7 +87,26 @@
 <div class="main-content">
     <div class="page-content">
         <div class="container-fluid">
-            <div class="row"><div class="col-12"><div class="page-title-box"><h4>Add Room</h4></div></div></div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="page-title-box">
+                        <h4>Add Room</h4>
+                    </div>
+                </div>
+            </div>
+            
+            {% if not request.user.is_superuser %}
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Important:</strong> Rooms can only be added to <strong>Resort</strong> and <strong>Couple Stay</strong> properties. 
+                        Villa properties are booked as a whole unit and do not require individual room management.
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
             <div class="container">
                 <div class="form-container">
                     <form method="POST" enctype="multipart/form-data">
@@ -102,15 +121,27 @@
                         {% endif %}
 
                         {% if request.user.is_superuser %}
-
                             <div class="mb-4">
-                                <label class="form-label">Villa:</label>
-                                {{ form.hotel }}
-                                {% if form.hotel.errors %}
-                                    <div class="text-danger">{{ form.hotel.errors.0 }}</div>
+                                <label class="form-label">Property (Villa/Resort/Couple Stay):</label>
+                                {{ form.villa }}
+                                {% if form.villa.errors %}
+                                    <div class="text-danger">{{ form.villa.errors.0 }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">Select the property to add this room to.</small>
+                            </div>
+                        {% else %}
+                            <div class="mb-4">
+                                <label class="form-label">Property (Resort/Couple Stay):</label>
+                                {{ form.villa }}
+                                {% if form.villa.errors %}
+                                    <div class="text-danger">{{ form.villa.errors.0 }}</div>
+                                {% endif %}
+                                {% if form.villa.help_text %}
+                                    <small class="form-text text-muted">{{ form.villa.help_text }}</small>
+                                {% else %}
+                                    <small class="form-text text-muted">Select the Resort or Couple Stay property to add this room to. Only Resort and Couple Stay properties are shown.</small>
                                 {% endif %}
                             </div>
-
                         {% endif %}
 
 
@@ -119,6 +150,16 @@
                             {{ form.room_type }}
                             {% if form.room_type.errors %}
                                 <div class="text-danger">{{ form.room_type.errors.0 }}</div>
+                            {% endif %}
+                            {% if form.room_type.help_text %}
+                                <small class="form-text text-muted">{{ form.room_type.help_text }}</small>
+                            {% endif %}
+                            {% if not request.user.is_superuser %}
+                            <div class="mt-2">
+                                <a href="{% url 'add_room_type' %}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                    <i class="bi bi-plus-circle"></i> Create New Room Type
+                                </a>
+                            </div>
                             {% endif %}
                         </div>
 
@@ -154,21 +195,6 @@
                             {% endif %}
                         </div>
 
-                        <div class="mb-4">
-                            <label class="form-label">Refundable:</label>
-                            {{ form.refundable }}
-                            {% if form.refundable.errors %}
-                                <div class="text-danger">{{ form.refundable.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label">Meals Included:</label>
-                            {{ form.meals_included }}
-                            {% if form.meals_included.errors %}
-                                <div class="text-danger">{{ form.meals_included.errors.0 }}</div>
-                            {% endif %}
-                        </div>
 
                         <div class="mb-4">
                             <label class="form-label">Bed Type:</label>
@@ -195,11 +221,12 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label">Amenities:</label>
-                            {{ form.room_amenities }}
-                            {% if form.room_amenities.errors %}
-                                <div class="text-danger">{{ form.room_amenities.errors.0 }}</div>
+                            <label class="form-label">Room Amenities:</label>
+                            {{ form.villa_amenities }}
+                            {% if form.villa_amenities.errors %}
+                                <div class="text-danger">{{ form.villa_amenities.errors.0 }}</div>
                             {% endif %}
+                            <small class="form-text text-muted">Select amenities available in this room (e.g., WiFi, AC, TV, etc.)</small>
                         </div>
 
                         <div class="mb-4">
@@ -248,20 +275,10 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
   $(document).ready(function() {
-    $('#id_amenities').select2({
-      placeholder: "Select amenities",
-      allowClear: true
-    });
-  });
-</script>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script>
-  $(document).ready(function() {
-    $('#id_room_amenities').select2({
-      placeholder: "Select amenities",
-      allowClear: true
+    $('#id_villa_amenities').select2({
+      placeholder: "Select room amenities",
+      allowClear: true,
+      width: '100%'
     });
   });
 </script>

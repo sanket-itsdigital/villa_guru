@@ -683,6 +683,115 @@ class get_villa_amenity(ListAPIView):
     filterset_class = VillaAmenityFilter  # enables filtering on all fields
 
 
+@login_required(login_url="login_admin")
+def add_room_type(request):
+
+    if request.method == "POST":
+
+        forms = room_type_Form(request.POST, request.FILES)
+
+        if forms.is_valid():
+            instance = forms.save(commit=False)
+            # For vendors: assign the room type to the current user
+            if request.user.is_service_provider and not request.user.is_superuser:
+                instance.user = request.user
+            # For admins: user field can be null (system-wide room type)
+            instance.save()
+            messages.success(request, "Room type added successfully!")
+            return redirect("list_room_type")
+        else:
+            print(forms.errors)
+            context = {"form": forms}
+            return render(request, "add_room_type.html", context)
+
+    else:
+
+        form = room_type_Form()
+        # Hide user field from form - it will be set automatically
+        if request.user.is_service_provider and not request.user.is_superuser:
+            form.fields.pop('user', None)
+
+        return render(request, "add_room_type.html", {"form": form})
+
+
+@login_required(login_url="login_admin")
+def update_room_type(request, room_type_id):
+
+    instance = get_object_or_404(room_type, id=room_type_id)
+    
+    # For vendors: only allow editing their own room types
+    if request.user.is_service_provider and not request.user.is_superuser:
+        if instance.user != request.user:
+            messages.error(request, "You don't have permission to edit this room type.")
+            return redirect("list_room_type")
+    
+    if request.method == "POST":
+
+        forms = room_type_Form(request.POST, request.FILES, instance=instance)
+
+        if forms.is_valid():
+            instance = forms.save(commit=False)
+            # Ensure user is not changed for vendors
+            if request.user.is_service_provider and not request.user.is_superuser:
+                instance.user = request.user
+            instance.save()
+            messages.success(request, "Room type updated successfully!")
+            return redirect("list_room_type")
+        else:
+            print(forms.errors)
+            context = {"form": forms}
+            return render(request, "add_room_type.html", context)
+
+    else:
+
+        forms = room_type_Form(instance=instance)
+        # Hide user field from form for vendors
+        if request.user.is_service_provider and not request.user.is_superuser:
+            forms.fields.pop('user', None)
+
+        context = {"form": forms}
+
+        return render(request, "add_room_type.html", context)
+
+
+@login_required(login_url="login_admin")
+def list_room_type(request):
+    if request.user.is_superuser:
+        # Admin: show all room types
+        data = room_type.objects.all().order_by("-id")
+    else:
+        # Vendor: show only their own room types
+        data = room_type.objects.filter(user=request.user).order_by("-id")
+    
+    return render(request, "list_room_type.html", {"data": data})
+
+
+@login_required(login_url="login_admin")
+def delete_room_type(request, room_type_id):
+
+    instance = get_object_or_404(room_type, id=room_type_id)
+    
+    # For vendors: only allow deleting their own room types
+    if request.user.is_service_provider and not request.user.is_superuser:
+        if instance.user != request.user:
+            messages.error(request, "You don't have permission to delete this room type.")
+            return redirect("list_room_type")
+    
+    # Check if room type is being used
+    from hotel.models import villa_rooms
+    if villa_rooms.objects.filter(room_type=instance).exists():
+        messages.error(
+            request,
+            f"Cannot delete '{instance.name}' because it is being used by one or more rooms. "
+            "Please remove or update those rooms first."
+        )
+        return redirect("list_room_type")
+    
+    instance.delete()
+    messages.success(request, "Room type deleted successfully!")
+    return redirect("list_room_type")
+
+
 def add_villa_type(request):
 
     if request.method == "POST":
