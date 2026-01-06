@@ -83,6 +83,12 @@ Vaccination{% endblock title %} {% block extra_css %}
             </div>
 
             <div class="mb-4">
+              <label for="category" class="form-label">Category:</label>
+              {{ form.category }}
+              <small class="form-text text-muted">Select banner position: Top or Bottom</small>
+            </div>
+
+            <div class="mb-4">
               <label for="age_limit" class="form-label">Only for web:</label>
               {{ form.is_for_web }}
             </div>

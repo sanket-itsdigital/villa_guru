@@ -172,13 +172,19 @@ class home_banner_Form(forms.ModelForm):
         required=False,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
+    
+    category = forms.ChoiceField(
+        choices=home_banner.CATEGORY_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=True,
+        initial='top'
+    )
 
     class Meta:
         model = home_banner
         fields = '__all__'
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
-            'discription': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
-
         }

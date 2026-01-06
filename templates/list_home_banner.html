@@ -109,6 +109,7 @@
                         <th>#</th>
                         <th>Title</th>
                         <th>Image</th>
+                        <th>Category</th>
                         <th>For Web Only</th>
                         <th>Description</th>
                         <th>Action</th>
@@ -123,6 +124,11 @@
                           {% if i.image %}
                           <img width="60" src="{{ i.image.url }}" />
                           {% else %} N/A {% endif %}
+                        </td>
+                        <td>
+                          <span class="badge {% if i.category == 'top' %}bg-primary{% else %}bg-secondary{% endif %}">
+                            {{ i.get_category_display }}
+                          </span>
                         </td>
                         <td>{{ i.is_for_web }}</td>
                         <td>{{ i.description }}</td>

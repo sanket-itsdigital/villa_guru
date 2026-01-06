@@ -71,8 +71,8 @@ class EventImageAdmin(admin.ModelAdmin):
 
 @admin.register(home_banner)
 class HomeBannerAdmin(admin.ModelAdmin):
-    list_display = ['id', 'title', 'is_for_web', 'is_active', 'created_at']
-    list_filter = ['is_for_web', 'is_active', 'created_at']
+    list_display = ['id', 'title', 'category', 'is_for_web', 'is_active', 'created_at']
+    list_filter = ['category', 'is_for_web', 'is_active', 'created_at']
     search_fields = ['title', 'description']
     readonly_fields = ['created_at']
     date_hierarchy = 'created_at'

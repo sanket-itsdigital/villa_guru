@@ -1035,8 +1035,14 @@ class HomeBannerListAPIView(ListAPIView):
     Returns a list of all banners with complete information including:
     - id, title, description
     - image (with absolute URL)
+    - category (top/bottom)
     - is_for_web, is_active flags
     - created_at timestamp
+    
+    Filtering:
+    - category: Filter by banner position (top/bottom)
+    - is_for_web: Filter by web-only flag
+    - is_active: Filter by active status
     """
 
     queryset = home_banner.objects.all().order_by("-id")

@@ -68,7 +68,7 @@ class HomeBannerSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = home_banner
-        fields = ['id', 'title', 'description', 'image', 'is_for_web', 'is_active', 'created_at']
+        fields = ['id', 'title', 'description', 'image', 'category', 'is_for_web', 'is_active', 'created_at']
     
     def get_image(self, obj):
         """

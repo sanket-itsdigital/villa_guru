@@ -190,9 +190,20 @@ class EventImage(models.Model):
 
 
 class home_banner(models.Model):
+    CATEGORY_CHOICES = [
+        ("top", "Top"),
+        ("bottom", "Bottom"),
+    ]
+    
     title = models.CharField(max_length=225, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     image = models.ImageField(upload_to="homeBanners/")
+    category = models.CharField(
+        max_length=10,
+        choices=CATEGORY_CHOICES,
+        default="top",
+        help_text="Banner position: Top or Bottom"
+    )
     is_for_web = models.BooleanField(default=False)
     is_active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
