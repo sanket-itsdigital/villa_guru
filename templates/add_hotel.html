@@ -223,6 +223,25 @@
                             {% if form.description.errors %}
                                 <div class="text-danger">{{ form.description.errors.0 }}</div>
                             {% endif %}
+                            <small class="form-text text-muted">Brief description of the property</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">About:</label>
+                            {{ form.about }}
+                            {% if form.about.errors %}
+                                <div class="text-danger">{{ form.about.errors.0 }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Detailed information about the villa/resort/couple stay property</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Specialties:</label>
+                            {{ form.specialties }}
+                            {% if form.specialties.errors %}
+                                <div class="text-danger">{{ form.specialties.errors.0 }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Special features, unique selling points, or specialties of the property</small>
                         </div>
                         
                         <div class="mb-4">

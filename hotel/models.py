@@ -80,6 +80,16 @@ class villa(models.Model):
     is_featured = models.BooleanField(default=False)
     is_recommended = models.BooleanField(default=False)
     description = models.TextField(blank=True)
+    about = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Detailed information about the villa/resort/couple stay property"
+    )
+    specialties = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Special features, unique selling points, or specialties of the property"
+    )
     is_active = models.BooleanField(default=True)
     go_live = models.BooleanField(default=False)
     price_per_night = models.DecimalField(

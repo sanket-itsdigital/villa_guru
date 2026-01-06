@@ -135,6 +135,8 @@ class VillaSerializer(serializers.ModelSerializer):
             "profit_margin",
             "is_featured",
             "description",
+            "about",
+            "specialties",
             "is_active",
             "created_at",
             "gst_number",

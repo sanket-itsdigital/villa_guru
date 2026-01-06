@@ -47,6 +47,8 @@ class villa_Form(forms.ModelForm):
             }),
             'main_image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': "Description", 'style': "padding: 10px"}),
+            'about': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': "About the property - detailed information", 'style': "padding: 10px"}),
+            'specialties': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': "Specialties - unique features and selling points", 'style': "padding: 10px"}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_featured': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'go_live': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
