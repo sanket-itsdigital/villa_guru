@@ -27,6 +27,11 @@ urlpatterns = [
         VillaBookingRecalculateAPIView.as_view(),
         name="VillaBookingRecalculateAPIView",
     ),
+    path(
+        "calculate-price-with-coupon/",
+        CalculatePriceWithCouponAPIView.as_view(),
+        name="calculate-price-with-coupon",
+    ),
     # Villa/Resort/Couple Stay Bookings
     path(
         "villa-resort-and-couple-stay/bookings/",
