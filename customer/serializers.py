@@ -389,15 +389,38 @@ class VillaBookingSerializer(serializers.ModelSerializer):
                 )
 
             # Check if villa is closed for any date in the range
+            # Auto-create availability records if they don't exist (default: open/available)
             from datetime import timedelta
+            from .models import VillaBooking as BookingModel
 
+            # First check for conflicting bookings
+            conflicting_bookings = BookingModel.objects.filter(
+                villa=villa,
+                booking_type="whole_villa",
+                check_in__lt=check_out,
+                check_out__gt=check_in,
+                status__in=["confirmed", "checked_in", "pending"],
+            ).exclude(id=self.instance.id if self.instance else None)
+
+            if conflicting_bookings.exists():
+                raise serializers.ValidationError(
+                    f"This villa is already booked for the selected dates. "
+                    f"Please choose different dates."
+                )
+
+            # Then check availability for each date
             current_date = check_in
             while current_date < check_out:
-                villa_availability = VillaAvailability.objects.filter(
-                    villa=villa, date=current_date
-                ).first()
+                # Get or create availability record (default: open/available)
+                villa_availability, created = VillaAvailability.objects.get_or_create(
+                    villa=villa,
+                    date=current_date,
+                    defaults={
+                        "is_open": True
+                    },  # Default to open/available if not exists
+                )
 
-                if villa_availability and not villa_availability.is_open:
+                if not villa_availability.is_open:
                     raise serializers.ValidationError(
                         f"Villa is closed on {current_date}. Please choose different dates."
                     )
@@ -517,6 +540,50 @@ class VillaBookingSerializer(serializers.ModelSerializer):
         # Recalculate pricing after rooms are added
         # Save again to recalculate pricing with the booked rooms
         booking.save()
+
+        # Auto-update availability for ALL bookings (both online and offline)
+        # This ensures calendar reflects booking status automatically
+        if booking.booking_type == "whole_villa":
+            # Villa property: Close availability for all booked dates
+            from hotel.models import VillaAvailability
+            from datetime import timedelta
+
+            current_date = booking.check_in
+            while current_date < booking.check_out:
+                # Close availability for all bookings (prevents double booking)
+                VillaAvailability.objects.update_or_create(
+                    villa=booking.villa,
+                    date=current_date,
+                    defaults={"is_open": False},  # Close the villa for this date
+                )
+                current_date += timedelta(days=1)
+        else:
+            # Resort/Couple Stay: Update room availability
+            from hotel.models import RoomAvailability
+            from datetime import timedelta
+
+            # Get all booked rooms for this booking
+            booked_rooms = booking.booked_rooms.all()
+
+            current_date = booking.check_in
+            while current_date < booking.check_out:
+                for booked_room in booked_rooms:
+                    # Get or create room availability record
+                    room_avail, created = RoomAvailability.objects.get_or_create(
+                        room=booked_room.room,
+                        date=current_date,
+                        defaults={"available_count": 1},  # Default if not exists
+                    )
+
+                    # Reduce available count by booked quantity
+                    # If it becomes 0 or negative, mark as fully booked
+                    if room_avail.available_count >= booked_room.quantity:
+                        room_avail.available_count -= booked_room.quantity
+                    else:
+                        room_avail.available_count = 0  # Fully booked
+                    room_avail.save()
+
+                current_date += timedelta(days=1)
 
         return booking
 

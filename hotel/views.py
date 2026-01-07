@@ -1265,6 +1265,8 @@ def update_hotel_availability(request):
     Shows all properties with booking status and filters.
     Only vendors can access this - not admins.
     """
+    from customer.models import VillaBooking
+
     # Restrict to vendors only
     if request.user.is_superuser:
         messages.info(request, "Availability management is only available for vendors.")
@@ -1302,6 +1304,13 @@ def update_hotel_availability(request):
             messages.error(request, "Please select a property first.")
             return HttpResponseRedirect(reverse("update_villa_availability"))
 
+        # Check if this is a bulk management request
+        action_type = request.POST.get("action_type")
+        if action_type == "bulk_manage":
+            return handle_bulk_availability_management(
+                request, villa_obj, filter_status, property_type_filter
+            )
+
         selected_date = request.POST.get("selected_date")
         selected_date_obj = datetime.strptime(selected_date, "%Y-%m-%d").date()
 
@@ -1323,16 +1332,41 @@ def update_hotel_availability(request):
                         date=selected_date_obj,
                         defaults={"available_count": count_int},
                     )
+            messages.success(request, f"Availability updated for {selected_date}")
         else:
             # Handle villa availability (whole villa)
             is_open = request.POST.get("is_open", "true") == "true"
-            VillaAvailability.objects.update_or_create(
-                villa=villa_obj,
-                date=selected_date_obj,
-                defaults={"is_open": is_open},
-            )
 
-        messages.success(request, f"Availability updated for {selected_date}")
+            # Check if there's an active booking for this date
+            # If booking exists, don't allow vendor to open it (booking takes priority)
+            has_active_booking = VillaBooking.objects.filter(
+                villa=villa_obj,
+                check_in__lte=selected_date_obj,
+                check_out__gt=selected_date_obj,
+                status__in=["confirmed", "checked_in", "pending"],
+            ).exists()
+
+            if has_active_booking and is_open:
+                messages.warning(
+                    request,
+                    f"Cannot mark as available - there is an active booking on {selected_date}. "
+                    "Cancel the booking first to make it available.",
+                )
+            else:
+                VillaAvailability.objects.update_or_create(
+                    villa=villa_obj,
+                    date=selected_date_obj,
+                    defaults={"is_open": is_open},
+                )
+                if is_open:
+                    messages.success(
+                        request, f"Villa marked as available for {selected_date}"
+                    )
+                else:
+                    messages.success(
+                        request, f"Villa marked as unavailable for {selected_date}"
+                    )
+
         return HttpResponseRedirect(
             reverse("update_villa_availability")
             + f"?villa_id={villa_obj.id}&status={filter_status}&property_type={property_type_filter}"
@@ -1444,24 +1478,55 @@ def update_hotel_availability(request):
             # Villa-based availability
             raw_availability = VillaAvailability.objects.filter(villa=villa_obj)
             availability_data = defaultdict(dict)
+
+            # First, get all bookings to know which dates are booked
+            bookings = VillaBooking.objects.filter(
+                villa=villa_obj, status__in=["confirmed", "checked_in", "pending"]
+            )
+
+            # Create a set of all booked dates from bookings
+            booked_dates_from_bookings = set()
+            for booking in bookings:
+                current_date = booking.check_in
+                while current_date < booking.check_out:
+                    booked_dates_from_bookings.add(current_date.isoformat())
+                    current_date += timedelta(days=1)
+
+            # Process availability records - add ALL dates to availability_data
+            # This ensures we have data for all dates, even if no record exists
             for entry in raw_availability:
                 availability_data[entry.date.isoformat()] = {"is_open": entry.is_open}
-                # Add event for closed villas (offline booking)
-                if not entry.is_open:
-                    events.append(
-                        {
-                            "title": f"Booked (Offline)",
-                            "start": entry.date.isoformat(),
-                            "color": "#ffc107",  # Yellow for offline booking
-                            "display": "block",
-                            "allDay": True,
-                        }
-                    )
+                date_str = entry.date.isoformat()
 
-        # Get bookings for selected villa
-        bookings = VillaBooking.objects.filter(
-            villa=villa_obj, status__in=["confirmed", "checked_in", "pending"]
-        )
+                # Check if this date has a booking
+                has_booking = date_str in booked_dates_from_bookings
+
+                if not entry.is_open:
+                    if has_booking:
+                        # Booking exists - will be shown as red/orange background from booking events below
+                        # Don't add yellow event, let booking event show
+                        pass
+                    else:
+                        # Manually closed (vendor closed it, no booking)
+                        events.append(
+                            {
+                                "title": f"Unavailable (Manually Set)",
+                                "start": date_str,
+                                "color": "#ffc107",  # Yellow for manually closed
+                                "display": "background",  # Show as background
+                                "allDay": True,
+                            }
+                        )
+
+        # Get bookings for selected villa (if not already fetched above)
+        if villa_obj.property_type and villa_obj.property_type.name != "Villa":
+            bookings = VillaBooking.objects.filter(
+                villa=villa_obj, status__in=["confirmed", "checked_in", "pending"]
+            )
+        elif not "bookings" in locals():
+            bookings = VillaBooking.objects.filter(
+                villa=villa_obj, status__in=["confirmed", "checked_in", "pending"]
+            )
 
         # Create a set of all booked dates
         booked_dates_set = set()
@@ -1474,12 +1539,20 @@ def update_hotel_availability(request):
                 current_date += timedelta(days=1)
 
             # Add booking event for the calendar
+            payment_type_label = (
+                "Online" if booking.payment_type == "online" else "Offline"
+            )
+            # Use different color for offline bookings to distinguish them
+            event_color = (
+                "#dc3545" if booking.payment_type == "online" else "#ff9800"
+            )  # Orange for offline
+
             events.append(
                 {
-                    "title": f"Booked: {booking.booking_id or 'N/A'} ({booking.guest_count} guests)",
+                    "title": f"Booked ({payment_type_label}): {booking.booking_id or 'N/A'} - {booking.guest_count} guest(s)",
                     "start": booking.check_in.isoformat(),
                     "end": booking.check_out.isoformat(),
-                    "color": "#dc3545",  # Red color for booked dates
+                    "color": event_color,  # Red for online, Orange for offline
                     "display": "background",  # Show as background color
                     "allDay": True,
                 }
@@ -1594,6 +1667,158 @@ def update_hotel_availability(request):
     }
 
     return render(request, "update_hotel_availability.html", context)
+
+
+def handle_bulk_availability_management(
+    request, villa_obj, filter_status, property_type_filter
+):
+    """
+    Handle bulk availability management with status options:
+    - available: Mark as available
+    - offline_booked: Mark as offline booked (close availability)
+    - unavailable: Mark as unavailable (manually closed)
+    """
+    from datetime import timedelta
+    from customer.models import VillaBooking
+
+    bulk_from_date = request.POST.get("bulk_from_date")
+    bulk_to_date = request.POST.get("bulk_to_date")
+    bulk_status = request.POST.get(
+        "bulk_status"
+    )  # available, offline_booked, unavailable
+
+    try:
+        from_date_obj = datetime.strptime(bulk_from_date, "%Y-%m-%d").date()
+        to_date_obj = datetime.strptime(bulk_to_date, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        messages.error(request, "Invalid date range")
+        return HttpResponseRedirect(
+            reverse("update_villa_availability")
+            + f"?villa_id={villa_obj.id}&status={filter_status}&property_type={property_type_filter}"
+        )
+
+    if from_date_obj > to_date_obj:
+        messages.error(request, "'From' date must be before 'To' date.")
+        return HttpResponseRedirect(
+            reverse("update_villa_availability")
+            + f"?villa_id={villa_obj.id}&status={filter_status}&property_type={property_type_filter}"
+        )
+
+    property_type_name = (
+        villa_obj.property_type.name if villa_obj.property_type else None
+    )
+
+    updated_count = 0
+    skipped_count = 0
+    current_date = from_date_obj
+
+    if property_type_name in ["Resort", "Couple Stay"]:
+        # Room-based availability
+        bulk_rooms = request.POST.getlist("bulk_rooms[]")
+        rooms_to_update = (
+            villa_rooms.objects.filter(villa=villa_obj, id__in=bulk_rooms)
+            if bulk_rooms
+            else villa_rooms.objects.filter(villa=villa_obj)
+        )
+
+        while current_date <= to_date_obj:
+            for room in rooms_to_update:
+                # Check if room has active bookings
+                has_booking = (
+                    VillaBooking.objects.filter(
+                        villa=villa_obj,
+                        booking_type="selected_rooms",
+                        status__in=["confirmed", "checked_in", "pending"],
+                        check_in__lte=current_date,
+                        check_out__gt=current_date,
+                    )
+                    .filter(booked_rooms__room=room)
+                    .exists()
+                )
+
+                if has_booking and bulk_status == "available":
+                    skipped_count += 1
+                    continue
+
+                # Set availability based on status
+                if bulk_status == "available":
+                    # Set to 1 room available (or get from room default)
+                    available_count = 1
+                elif bulk_status == "offline_booked":
+                    # Mark as booked offline (0 available)
+                    available_count = 0
+                else:  # unavailable
+                    # Mark as unavailable (0 available)
+                    available_count = 0
+
+                RoomAvailability.objects.update_or_create(
+                    room=room,
+                    date=current_date,
+                    defaults={"available_count": available_count},
+                )
+                updated_count += 1
+
+            current_date += timedelta(days=1)
+
+        status_label = {
+            "available": "available",
+            "offline_booked": "offline booked",
+            "unavailable": "unavailable",
+        }.get(bulk_status, "updated")
+
+        messages.success(
+            request,
+            f"Updated {updated_count} room availability records to '{status_label}'. "
+            f"{skipped_count} skipped (active bookings).",
+        )
+
+    else:
+        # Villa-based availability
+        while current_date <= to_date_obj:
+            # Check if villa has active bookings
+            has_booking = VillaBooking.objects.filter(
+                villa=villa_obj,
+                booking_type="whole_villa",
+                status__in=["confirmed", "checked_in", "pending"],
+                check_in__lte=current_date,
+                check_out__gt=current_date,
+            ).exists()
+
+            if has_booking and bulk_status == "available":
+                skipped_count += 1
+                current_date += timedelta(days=1)
+                continue
+
+            # Set availability based on status
+            if bulk_status == "available":
+                is_open = True
+            else:  # offline_booked or unavailable
+                is_open = False
+
+            VillaAvailability.objects.update_or_create(
+                villa=villa_obj,
+                date=current_date,
+                defaults={"is_open": is_open},
+            )
+            updated_count += 1
+            current_date += timedelta(days=1)
+
+        status_label = {
+            "available": "available",
+            "offline_booked": "offline booked",
+            "unavailable": "unavailable",
+        }.get(bulk_status, "updated")
+
+        messages.success(
+            request,
+            f"Updated {updated_count} dates to '{status_label}'. "
+            f"{skipped_count} skipped (active bookings).",
+        )
+
+    return HttpResponseRedirect(
+        reverse("update_villa_availability")
+        + f"?villa_id={villa_obj.id}&status={filter_status}&property_type={property_type_filter}"
+    )
 
 
 from datetime import datetime, timedelta

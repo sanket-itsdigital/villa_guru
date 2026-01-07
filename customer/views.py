@@ -1042,7 +1042,7 @@ class AvailableVillasAPIView(APIView):
         # Step 4: Get all bookings for the date range to check conflicts (only Villa whole_villa bookings)
         from .models import VillaBooking
 
-        # Check for any bookings that overlap with the requested date range
+        # Check for any bookings that overlap with the requested date range (both online and offline)
         # A booking overlaps if: booking.check_in < request.check_out AND booking.check_out > request.check_in
         conflicting_bookings = VillaBooking.objects.filter(
             villa__in=villa_properties,
@@ -1053,7 +1053,7 @@ class AvailableVillasAPIView(APIView):
                 "confirmed",
                 "checked_in",
                 "pending",
-            ],  # Include pending bookings too
+            ],  # Include pending bookings too (both online and offline)
         ).values_list("villa_id", "check_in", "check_out")
 
         # Step 5: Build villa → blocked_dates mapping from bookings
@@ -1071,10 +1071,27 @@ class AvailableVillasAPIView(APIView):
         # Step 6: Build villa → closed_dates mapping from availability records
         # Only mark dates as closed if VillaAvailability record exists AND is_open=False
         # If no record exists, assume villa is open (available)
+        # Also check for offline bookings - they should block availability
         villa_closed_dates = defaultdict(set)
         for availability in availabilities:
             if not availability.is_open:
                 villa_closed_dates[availability.villa_id].add(availability.date)
+        
+        # Also check for offline bookings - they close availability automatically
+        offline_bookings = VillaBooking.objects.filter(
+            villa__in=villa_properties,
+            booking_type="whole_villa",
+            payment_type="cash",  # Offline bookings
+            check_in__lt=check_out,
+            check_out__gt=check_in,
+            status__in=["confirmed", "checked_in", "pending"],
+        )
+        
+        for booking in offline_bookings:
+            current_date = booking.check_in
+            while current_date < booking.check_out:
+                villa_closed_dates[booking.villa_id].add(current_date)
+                current_date += timedelta(days=1)
 
         # Step 7: Filter properties that are available for all required dates
         # Property types already separated above
@@ -1109,12 +1126,12 @@ class AvailableVillasAPIView(APIView):
                 villa__in=resort_couple_stay_properties
             )
 
-            # Get bookings that might block rooms
+            # Get bookings that might block rooms (both online and offline)
             conflicting_bookings = VillaBooking.objects.filter(
                 villa__in=resort_couple_stay_properties,
                 check_in__lt=check_out,
                 check_out__gt=check_in,
-                status__in=["confirmed", "checked_in"],
+                status__in=["confirmed", "checked_in", "pending"],
                 booking_type="selected_rooms",
             ).prefetch_related("booked_rooms")
 
@@ -1149,6 +1166,10 @@ class AvailableVillasAPIView(APIView):
                     # If no RoomAvailability record exists, assume room is available
                     if room_availability:
                         available_count = room_availability.available_count
+                        # If available_count is 0, room is marked as booked offline
+                        if available_count == 0:
+                            is_available = False
+                            break
                     else:
                         # No availability record means room is available by default
                         available_count = 1  # Default: at least 1 room available
@@ -1279,14 +1300,32 @@ class CancelBookingAPIView(APIView):
                 status=400,
             )
 
-        # ✅ Restore room availability manually
+        # Restore availability when booking is cancelled
+        from hotel.models import VillaAvailability, RoomAvailability
+        from customer.models import BookingRoom
+        
         current_date = booking.check_in
         while current_date < booking.check_out:
-            avail, _ = RoomAvailability.objects.get_or_create(
-                room=booking.room, date=current_date
-            )
-            avail.available_count += booking.no_of_rooms
-            avail.save()
+            if booking.booking_type == "whole_villa":
+                # Villa property: Restore availability (mark as open)
+                VillaAvailability.objects.update_or_create(
+                    villa=booking.villa,
+                    date=current_date,
+                    defaults={"is_open": True}  # Make available again
+                )
+            else:
+                # Resort/Couple Stay: Restore room availability
+                booked_rooms = BookingRoom.objects.filter(booking=booking)
+                for booked_room in booked_rooms:
+                    room_avail, created = RoomAvailability.objects.get_or_create(
+                        room=booked_room.room,
+                        date=current_date,
+                        defaults={"available_count": 1}  # Default if not exists
+                    )
+                    # Restore the booked quantity
+                    room_avail.available_count += booked_room.quantity
+                    room_avail.save()
+            
             current_date += timedelta(days=1)
 
         booking.status = "cancelled"

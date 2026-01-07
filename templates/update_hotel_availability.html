@@ -246,17 +246,117 @@
                         <div class="card-body">
                             <div class="alert alert-info">
                                 <strong>Legend:</strong>
-                                <span class="badge bg-danger ms-2">Red Background</span> = Booked (Online/Offline)
+                                <span class="badge bg-danger ms-2">Red Background</span> = Booked (Online)
+                                <span class="badge bg-warning ms-2" style="background-color: #ff9800 !important;">Orange Background</span> = Booked (Offline)
+                                <span class="badge bg-warning ms-2">Yellow Background</span> = Unavailable (Manually Set)
+                                {% if villa_obj.property_type.name in "Resort,Couple Stay" %}
                                 <span class="badge bg-primary ms-2">Blue Event</span> = Availability Set
-                                <span class="badge bg-warning ms-2">Yellow</span> = Manually Booked (Offline)
+                                {% endif %}
                             </div>
 
-                            <div class="d-flex justify-content-end mb-3">
+                            <div class="d-flex justify-content-end mb-3 gap-2">
+                                <button type="button" class="btn btn-primary" id="openBulkManager">
+                                    <i class="bi bi-calendar-check"></i> Manage Availability
+                                </button>
                                 <button type="button" class="btn btn-outline-primary" id="toggleBulkForm">
-                                    + Bulk Update Availability
+                                    + Quick Bulk Update
                                 </button>
                             </div>
 
+                            <!-- Comprehensive Bulk Management Modal -->
+                            <div class="modal fade" id="bulkManagerModal" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <form method="post" id="bulkManagerForm" action="{% url 'update_villa_availability' %}?villa_id={{ villa_obj.id }}&status={{ filter_status }}&property_type={{ property_type_filter }}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="villa_id" value="{{ villa_obj.id }}">
+                                        <input type="hidden" name="action_type" value="bulk_manage">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Manage Availability</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <!-- Date Selection -->
+                                                <div class="mb-4">
+                                                    <label class="form-label fw-bold">Select Dates</label>
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <label for="bulk_from_date">From Date</label>
+                                                            <input type="date" name="bulk_from_date" id="bulk_from_date" class="form-control" required>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="bulk_to_date">To Date</label>
+                                                            <input type="date" name="bulk_to_date" id="bulk_to_date" class="form-control" required>
+                                                        </div>
+                                                    </div>
+                                                    <small class="text-muted">All dates between From and To (inclusive) will be updated</small>
+                                                </div>
+
+                                                <!-- Status Selection -->
+                                                <div class="mb-4">
+                                                    <label class="form-label fw-bold">Set Status</label>
+                                                    <div class="btn-group w-100" role="group">
+                                                        <input type="radio" class="btn-check" name="bulk_status" id="status_available" value="available" checked>
+                                                        <label class="btn btn-outline-success" for="status_available">
+                                                            <i class="bi bi-check-circle"></i> Available
+                                                        </label>
+
+                                                        <input type="radio" class="btn-check" name="bulk_status" id="status_offline_booked" value="offline_booked">
+                                                        <label class="btn btn-outline-warning" for="status_offline_booked" style="background-color: #ff9800; color: white;">
+                                                            <i class="bi bi-x-circle"></i> Offline Booked
+                                                        </label>
+
+                                                        <input type="radio" class="btn-check" name="bulk_status" id="status_unavailable" value="unavailable">
+                                                        <label class="btn btn-outline-danger" for="status_unavailable">
+                                                            <i class="bi bi-lock"></i> Unavailable
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Room Selection for Resort/Couple Stay -->
+                                                {% if villa_obj.property_type.name in "Resort,Couple Stay" %}
+                                                <div class="mb-4" id="roomSelectionSection">
+                                                    <label class="form-label fw-bold">Select Rooms</label>
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input" type="checkbox" id="selectAllRooms">
+                                                        <label class="form-check-label" for="selectAllRooms">
+                                                            Select All Rooms
+                                                        </label>
+                                                    </div>
+                                                    <div class="row">
+                                                        {% for room in rooms %}
+                                                        <div class="col-md-6 mb-2">
+                                                            <div class="form-check">
+                                                                <input class="form-check-input room-checkbox" type="checkbox" name="bulk_rooms[]" value="{{ room.id }}" id="room_{{ room.id }}">
+                                                                <label class="form-check-label" for="room_{{ room.id }}">
+                                                                    <strong>{{ room.room_type.name|default:"Room" }}</strong> - {{ room.title }}
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                    <small class="text-muted">Select which rooms to update. If none selected, all rooms will be updated.</small>
+                                                </div>
+                                                {% endif %}
+
+                                                <!-- Summary -->
+                                                <div class="alert alert-info">
+                                                    <strong>Summary:</strong>
+                                                    <div id="bulkSummary">Select dates and status to see summary</div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="bi bi-save"></i> Apply Changes
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Quick Bulk Update Form (Existing) -->
                             <div id="bulkFormContainer" style="display: none;">
                                 <form method="post" action="{% url 'update_from_to_villa_availability' %}?villa_id={{ villa_obj.id }}">
                                     {% csrf_token %}
@@ -382,10 +482,23 @@ document.addEventListener('DOMContentLoaded', function() {
         height: 'auto',
         events: events,
         eventDidMount: function(info) {
-            if (info.event.display === 'background' && info.event.color === '#dc3545') {
-                info.el.style.backgroundColor = '#dc3545';
-                info.el.style.opacity = '0.6';
-                info.el.style.border = '2px solid #dc3545';
+            if (info.event.display === 'background') {
+                if (info.event.color === '#dc3545') {
+                    // Red for online bookings
+                    info.el.style.backgroundColor = '#dc3545';
+                    info.el.style.opacity = '0.7';
+                    info.el.style.border = '2px solid #dc3545';
+                } else if (info.event.color === '#ff9800') {
+                    // Orange for offline bookings
+                    info.el.style.backgroundColor = '#ff9800';
+                    info.el.style.opacity = '0.7';
+                    info.el.style.border = '2px solid #ff9800';
+                } else if (info.event.color === '#ffc107') {
+                    // Yellow for manually closed
+                    info.el.style.backgroundColor = '#ffc107';
+                    info.el.style.opacity = '0.6';
+                    info.el.style.border = '2px solid #ffc107';
+                }
             }
         },
         dayCellDidMount: function(info) {
@@ -448,7 +561,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleBtn = document.getElementById("toggleBulkForm");
     const formContainer = document.getElementById("bulkFormContainer");
     const cancelBtn = document.getElementById("cancelBulkForm");
+    const openBulkManagerBtn = document.getElementById("openBulkManager");
+    const bulkManagerModalEl = document.getElementById('bulkManagerModal');
+    let bulkManagerModal = null;
+    
+    if (bulkManagerModalEl) {
+        bulkManagerModal = new bootstrap.Modal(bulkManagerModalEl);
+    }
 
+    // Quick bulk form toggle
     if (toggleBtn) {
         toggleBtn.addEventListener("click", () => {
             formContainer.style.display = (formContainer.style.display === "none" || !formContainer.style.display)
@@ -461,6 +582,91 @@ document.addEventListener('DOMContentLoaded', () => {
         cancelBtn.addEventListener("click", () => {
             formContainer.style.display = "none";
         });
+    }
+
+    // Open comprehensive bulk manager modal
+    if (openBulkManagerBtn && bulkManagerModal) {
+        openBulkManagerBtn.addEventListener("click", () => {
+            bulkManagerModal.show();
+        });
+    }
+
+    // Select all rooms checkbox
+    const selectAllRooms = document.getElementById("selectAllRooms");
+    const roomCheckboxes = document.querySelectorAll(".room-checkbox");
+    
+    if (selectAllRooms) {
+        selectAllRooms.addEventListener("change", function() {
+            roomCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    }
+
+    // Update summary when dates or status change
+    const bulkFromDate = document.getElementById("bulk_from_date");
+    const bulkToDate = document.getElementById("bulk_to_date");
+    const bulkStatusRadios = document.querySelectorAll('input[name="bulk_status"]');
+    const bulkSummary = document.getElementById("bulkSummary");
+
+    function updateBulkSummary() {
+        if (bulkFromDate && bulkToDate && bulkFromDate.value && bulkToDate.value) {
+            const fromDate = new Date(bulkFromDate.value);
+            const toDate = new Date(bulkToDate.value);
+            const days = Math.ceil((toDate - fromDate) / (1000 * 60 * 60 * 24)) + 1;
+            
+            const selectedStatus = document.querySelector('input[name="bulk_status"]:checked');
+            let statusText = "Available";
+            if (selectedStatus) {
+                if (selectedStatus.value === "offline_booked") {
+                    statusText = "Offline Booked";
+                } else if (selectedStatus.value === "unavailable") {
+                    statusText = "Unavailable";
+                }
+            }
+
+            {% if villa_obj.property_type.name in "Resort,Couple Stay" %}
+            const selectedRooms = document.querySelectorAll('.room-checkbox:checked');
+            const roomText = selectedRooms.length > 0 
+                ? `${selectedRooms.length} room(s) selected`
+                : "All rooms";
+            if (bulkSummary) {
+                bulkSummary.textContent = `${days} day(s) will be set to "${statusText}" for ${roomText}`;
+            }
+            {% else %}
+            if (bulkSummary) {
+                bulkSummary.textContent = `${days} day(s) will be set to "${statusText}"`;
+            }
+            {% endif %}
+        } else {
+            if (bulkSummary) {
+                bulkSummary.textContent = "Select dates and status to see summary";
+            }
+        }
+    }
+
+    if (bulkFromDate) bulkFromDate.addEventListener("change", updateBulkSummary);
+    if (bulkToDate) bulkToDate.addEventListener("change", updateBulkSummary);
+    if (bulkStatusRadios.length > 0) {
+        bulkStatusRadios.forEach(radio => {
+            radio.addEventListener("change", updateBulkSummary);
+        });
+    }
+    if (roomCheckboxes.length > 0) {
+        roomCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener("change", updateBulkSummary);
+        });
+    }
+
+    // Set default dates (today and 30 days from now)
+    if (bulkFromDate && bulkToDate) {
+        const today = new Date();
+        const futureDate = new Date();
+        futureDate.setDate(today.getDate() + 30);
+        
+        bulkFromDate.value = today.toISOString().split('T')[0];
+        bulkToDate.value = futureDate.toISOString().split('T')[0];
+        updateBulkSummary();
     }
 });
 
