@@ -1252,14 +1252,54 @@ class AvailableVillasAPIView(APIView):
                 )
                 available_villa_ids.extend(available_resort_ids)
 
-        # Step 8: Get available properties
+        # Step 8: Add favorited villas and rooms to available list (even if not available)
+        favorite_villa_ids = set(
+            available_villa_ids
+        )  # Convert to set for easier manipulation
+
+        if request.user.is_authenticated:
+            from .models import favouritevilla
+
+            # Get user's favorites filtered by city and active status
+            user_favorites_query = favouritevilla.objects.filter(
+                user=request.user,
+                villa__city_id=city,
+                villa__is_active=True,
+                villa__go_live=True,
+            )
+
+            # Filter by property_type if provided
+            if property_type_id:
+                user_favorites_query = user_favorites_query.filter(
+                    villa__property_type_id=int(property_type_id)
+                )
+
+            # Get favorited villa IDs (whole villa favorites)
+            favorited_villa_ids = user_favorites_query.filter(
+                room__isnull=True
+            ).values_list("villa_id", flat=True)
+
+            # Add favorited villas to available list
+            favorite_villa_ids.update(favorited_villa_ids)
+
+            # Get favorited room IDs (Resort/Couple Stay room favorites)
+            favorited_room_villa_ids = (
+                user_favorites_query.filter(room__isnull=False)
+                .values_list("villa_id", flat=True)
+                .distinct()
+            )
+
+            # Add villas that have favorited rooms to available list
+            favorite_villa_ids.update(favorited_room_villa_ids)
+
+        # Step 9: Get available properties (including favorites)
         available_villas = (
-            villa.objects.filter(id__in=available_villa_ids).distinct()
-            if available_villa_ids
+            villa.objects.filter(id__in=favorite_villa_ids).distinct()
+            if favorite_villa_ids
             else villa.objects.none()
         )
 
-        # Step 7: Apply Django filters (price range, villa_star_facility, amenities)
+        # Step 10: Apply Django filters (price range, villa_star_facility, amenities)
         from .filters import AvailableVillaFilter
 
         filterset = AvailableVillaFilter(request.GET, queryset=available_villas)
@@ -1503,6 +1543,91 @@ class FavouriteVillaViewSet(viewsets.ModelViewSet):
 
             return queryset.order_by("-id")
         return favouritevilla.objects.none()
+
+    def get_object(self):
+        """
+        Override to look up by villa_id (from URL) and optional room_id (from query params)
+        instead of using the favorite record primary key.
+        """
+        # Get villa_id from URL kwargs (the :id parameter)
+        villa_id = self.kwargs.get("pk")
+        if not villa_id:
+            from rest_framework.exceptions import NotFound
+
+            raise NotFound("villa_id is required in URL")
+
+        # Get room_id from query params (optional)
+        room_id = self.request.query_params.get("room_id")
+
+        try:
+            if room_id:
+                # Get specific room favorite
+                try:
+                    room_id_int = int(room_id)
+                except (ValueError, TypeError):
+                    from rest_framework.exceptions import ValidationError
+
+                    raise ValidationError("Invalid room_id")
+
+                favorite = favouritevilla.objects.get(
+                    user=self.request.user, villa_id=villa_id, room_id=room_id_int
+                )
+            else:
+                # Get whole villa favorite (room is null)
+                favorite = favouritevilla.objects.get(
+                    user=self.request.user, villa_id=villa_id, room__isnull=True
+                )
+
+            return favorite
+        except favouritevilla.DoesNotExist:
+            from rest_framework.exceptions import NotFound
+
+            if room_id:
+                raise NotFound(
+                    f"This room (ID: {room_id}) from villa (ID: {villa_id}) is not in your favorites."
+                )
+            else:
+                raise NotFound(f"This villa (ID: {villa_id}) is not in your favorites.")
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete a favorite by villa_id (in URL) and optional room_id (in query params).
+        DELETE /customer/favourite-villas/{villa_id}/?room_id=5  - Remove specific room favorite
+        DELETE /customer/favourite-villas/{villa_id}/           - Remove whole villa favorite
+        """
+        # Get the favorite object using our custom get_object
+        instance = self.get_object()
+
+        # Store info before deletion for the response
+        is_room_favorite = instance.room is not None
+        villa_id = instance.villa.id
+        villa_name = instance.villa.name
+        room_id = instance.room.id if instance.room else None
+        room_title = instance.room.title if instance.room else None
+        favorite_id = instance.id
+
+        # Perform deletion
+        self.perform_destroy(instance)
+
+        # Return success message
+        if is_room_favorite:
+            message = f"Room '{room_title}' from '{villa_name}' has been removed from your favorites."
+        else:
+            message = f"Villa '{villa_name}' has been removed from your favorites."
+
+        return Response(
+            {
+                "success": True,
+                "message": message,
+                "favorite_id": favorite_id,
+                "villa_id": villa_id,
+                "villa_name": villa_name,
+                "room_id": room_id,
+                "room_title": room_title,
+                "favorite_type": "room" if is_room_favorite else "villa",
+            },
+            status=status.HTTP_200_OK,
+        )
 
     def destroy(self, request, *args, **kwargs):
         """
