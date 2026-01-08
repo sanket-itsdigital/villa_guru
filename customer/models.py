@@ -276,11 +276,28 @@ class TicketMessage(models.Model):
 
 
 class favouritevilla(models.Model):
+    """
+    Model to store user favorites for:
+    - Whole villas (villa is set, room is None)
+    - Individual rooms from Resort/Couple Stay (villa is set, room is set)
+    """
     user = models.ForeignKey("users.User", on_delete=models.CASCADE)
     villa = models.ForeignKey("hotel.villa", on_delete=models.CASCADE)
+    room = models.ForeignKey(
+        "hotel.villa_rooms", 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        help_text="Room ID for Resort/Couple Stay favorites. Leave null for whole villa favorites."
+    )
 
     class Meta:
-        unique_together = ("user", "villa")
+        unique_together = [("user", "villa", "room")]
+
+    def __str__(self):
+        if self.room:
+            return f"{self.user} - {self.villa.name} - {self.room.title or self.room}"
+        return f"{self.user} - {self.villa.name}"
 
 
 class PaymentTransaction(models.Model):

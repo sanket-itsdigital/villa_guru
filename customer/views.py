@@ -356,106 +356,120 @@ class CalculatePriceWithCouponAPIView(APIView):
     Calculate booking price with weekend pricing and coupon support.
     Supports both villa (whole villa) and room-based (multiple rooms) bookings.
     """
-    
+
     @swagger_auto_schema(
         operation_description="Calculate booking price with weekend pricing and coupon discount. "
-                              "villa_id is always required. For Villa property type, rooms are not needed (whole villa booking). "
-                              "For Resort and Couple Stay property types, rooms array is required.",
+        "villa_id is always required. For Villa property type, rooms are not needed (whole villa booking). "
+        "For Resort and Couple Stay property types, rooms array is required.",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=['villa_id', 'check_in', 'check_out'],
+            required=["villa_id", "check_in", "check_out"],
             properties={
-                'villa_id': openapi.Schema(
-                    type=openapi.TYPE_INTEGER, 
-                    description='Villa ID (required). Property type determines if rooms are needed.'
+                "villa_id": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Villa ID (required). Property type determines if rooms are needed.",
                 ),
-                'rooms': openapi.Schema(
+                "rooms": openapi.Schema(
                     type=openapi.TYPE_ARRAY,
                     items=openapi.Schema(
                         type=openapi.TYPE_OBJECT,
                         properties={
-                            'room_id': openapi.Schema(type=openapi.TYPE_INTEGER),
-                            'quantity': openapi.Schema(type=openapi.TYPE_INTEGER, default=1, description='Optional, defaults to 1')
-                        }
+                            "room_id": openapi.Schema(type=openapi.TYPE_INTEGER),
+                            "quantity": openapi.Schema(
+                                type=openapi.TYPE_INTEGER,
+                                default=1,
+                                description="Optional, defaults to 1",
+                            ),
+                        },
                     ),
-                    description='Required for Resort and Couple Stay properties. Optional for Villa properties. Format: [{"room_id": 1}, {"room_id": 2}] or [{"room_id": 1, "quantity": 2}]'
+                    description='Required for Resort and Couple Stay properties. Optional for Villa properties. Format: [{"room_id": 1}, {"room_id": 2}] or [{"room_id": 1, "quantity": 2}]',
                 ),
-                'check_in': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='Check-in date (YYYY-MM-DD)'),
-                'check_out': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description='Check-out date (YYYY-MM-DD)'),
-                'coupon_code': openapi.Schema(type=openapi.TYPE_STRING, description='Optional coupon code to apply')
-            }
+                "check_in": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format=openapi.FORMAT_DATE,
+                    description="Check-in date (YYYY-MM-DD)",
+                ),
+                "check_out": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format=openapi.FORMAT_DATE,
+                    description="Check-out date (YYYY-MM-DD)",
+                ),
+                "coupon_code": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Optional coupon code to apply",
+                ),
+            },
         ),
         responses={
-            200: openapi.Response(description='Price calculation successful'),
-            400: openapi.Response(description='Invalid request or coupon')
+            200: openapi.Response(description="Price calculation successful"),
+            400: openapi.Response(description="Invalid request or coupon"),
         },
-        tags=["Bookings"]
+        tags=["Bookings"],
     )
     def post(self, request):
         try:
-            villa_id = request.data.get('villa_id')
-            rooms = request.data.get('rooms', [])
-            check_in_str = request.data.get('check_in')
-            check_out_str = request.data.get('check_out')
-            coupon_code = request.data.get('coupon_code', '').strip()
-            
+            villa_id = request.data.get("villa_id")
+            rooms = request.data.get("rooms", [])
+            check_in_str = request.data.get("check_in")
+            check_out_str = request.data.get("check_out")
+            coupon_code = request.data.get("coupon_code", "").strip()
+
             # Validate villa_id is required
             if not villa_id:
                 return Response(
                     {"error": "villa_id is required"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             # Validate dates
             if not check_in_str or not check_out_str:
                 return Response(
                     {"error": "check_in and check_out dates are required"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             try:
                 check_in = datetime.strptime(check_in_str, "%Y-%m-%d").date()
                 check_out = datetime.strptime(check_out_str, "%Y-%m-%d").date()
             except ValueError:
                 return Response(
                     {"error": "Invalid date format. Use YYYY-MM-DD"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             if check_in >= check_out:
                 return Response(
                     {"error": "check_out must be after check_in"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             if check_in < date.today():
                 return Response(
                     {"error": "check_in date cannot be in the past"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             nights = (check_out - check_in).days
             if nights == 0:
                 nights = 1
-            
+
             # Get villa and determine booking type based on property type
             try:
                 villa_obj = villa.objects.get(id=villa_id)
             except villa.DoesNotExist:
                 return Response(
-                    {"error": "Villa not found"},
-                    status=status.HTTP_404_NOT_FOUND
+                    {"error": "Villa not found"}, status=status.HTTP_404_NOT_FOUND
                 )
-            
+
             # Determine booking type based on property type
             property_type_name = None
             if villa_obj.property_type:
                 property_type_name = villa_obj.property_type.name
-            
+
             # Calculate base price
             total_base_amount = Decimal("0.00")
             booking_type = None
-            
+
             # If property type is Villa, it's whole villa booking (rooms not needed)
             if property_type_name == "Villa":
                 booking_type = "whole_villa"
@@ -465,36 +479,42 @@ class CalculatePriceWithCouponAPIView(APIView):
                 booking_type = "selected_rooms"
                 if not rooms or not isinstance(rooms, list) or len(rooms) == 0:
                     return Response(
-                        {"error": "rooms array is required for Resort and Couple Stay properties"},
-                        status=status.HTTP_400_BAD_REQUEST
+                        {
+                            "error": "rooms array is required for Resort and Couple Stay properties"
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
                     )
-                
+
                 # Validate all rooms belong to this villa
                 for room_data in rooms:
-                    room_id = room_data.get('room_id')
+                    room_id = room_data.get("room_id")
                     if not room_id:
                         return Response(
                             {"error": "Each room object must have a room_id"},
-                            status=status.HTTP_400_BAD_REQUEST
+                            status=status.HTTP_400_BAD_REQUEST,
                         )
                     try:
                         room = villa_rooms.objects.get(id=room_id, villa=villa_obj)
                     except villa_rooms.DoesNotExist:
                         return Response(
-                            {"error": f"Room with id {room_id} not found or does not belong to this villa"},
-                            status=status.HTTP_404_NOT_FOUND
+                            {
+                                "error": f"Room with id {room_id} not found or does not belong to this villa"
+                            },
+                            status=status.HTTP_404_NOT_FOUND,
                         )
             else:
                 return Response(
-                    {"error": "Invalid property type. Must be Villa, Resort, or Couple Stay"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    {
+                        "error": "Invalid property type. Must be Villa, Resort, or Couple Stay"
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             # Calculate daily prices (with weekend pricing applied per day)
             current_date = check_in
             while current_date < check_out:
                 day_total = Decimal("0.00")
-                
+
                 if booking_type == "whole_villa":
                     # Get price for this specific date (includes weekend pricing)
                     price_for_date = villa_obj.get_marked_up_price(date=current_date)
@@ -503,103 +523,134 @@ class CalculatePriceWithCouponAPIView(APIView):
                 else:
                     # Room-based: calculate for each room
                     for room_data in rooms:
-                        room_id = room_data.get('room_id')
-                        quantity = int(room_data.get('quantity', 1))  # Default to 1 if not specified
-                        
+                        room_id = room_data.get("room_id")
+                        quantity = int(
+                            room_data.get("quantity", 1)
+                        )  # Default to 1 if not specified
+
                         room = villa_rooms.objects.get(id=room_id, villa=villa_obj)
-                        
+
                         # Get date-specific pricing if exists
                         try:
-                            room_pricing = RoomPricing.objects.get(room=room, date=current_date)
+                            room_pricing = RoomPricing.objects.get(
+                                room=room, date=current_date
+                            )
                             base_price = room_pricing.price_per_night
                         except RoomPricing.DoesNotExist:
                             base_price = room.price_per_night
-                        
+
                         # Apply weekend pricing if applicable
-                        if villa_obj.weekend_percentage and current_date.weekday() in [4, 5, 6]:
-                            weekend_multiplier = Decimal(1) + (villa_obj.weekend_percentage / 100)
+                        if villa_obj.weekend_percentage and current_date.weekday() in [
+                            4,
+                            5,
+                            6,
+                        ]:
+                            weekend_multiplier = Decimal(1) + (
+                                villa_obj.weekend_percentage / 100
+                            )
                             price_per_night = base_price * weekend_multiplier
                         else:
                             price_per_night = base_price
-                        
+
                         room_day_total = price_per_night * quantity
                         day_total += room_day_total
-                
+
                 total_base_amount += day_total
                 current_date += timedelta(days=1)
-            
+
             # Calculate average price per night for GST calculation
-            avg_price_per_night = total_base_amount / nights if nights > 0 else Decimal("0.00")
-            
+            avg_price_per_night = (
+                total_base_amount / nights if nights > 0 else Decimal("0.00")
+            )
+
             # Calculate GST
-            gst_percent = Decimal("0.05") if avg_price_per_night < 7500 else Decimal("0.12")
+            gst_percent = (
+                Decimal("0.05") if avg_price_per_night < 7500 else Decimal("0.12")
+            )
             gst_amount = total_base_amount * gst_percent
-            
+
             # Subtotal before coupon
             subtotal_before_coupon = total_base_amount + gst_amount
-            
+
             # Apply coupon if provided
             coupon_applied = False
             coupon_discount = Decimal("0.00")
             coupon_details = None
             final_total = subtotal_before_coupon
-            
+
             if coupon_code:
                 try:
-                    coupon_obj = coupon.objects.get(code=coupon_code.upper(), is_active=True)
-                    
+                    coupon_obj = coupon.objects.get(
+                        code=coupon_code.upper(), is_active=True
+                    )
+
                     # Validate coupon dates
                     from django.utils import timezone
+
                     now = timezone.now()
                     if now < coupon_obj.start_date or now > coupon_obj.end_date:
                         return Response(
                             {
                                 "error": "Coupon is not valid for current date",
                                 "coupon_valid_from": coupon_obj.start_date.isoformat(),
-                                "coupon_valid_until": coupon_obj.end_date.isoformat()
+                                "coupon_valid_until": coupon_obj.end_date.isoformat(),
                             },
-                            status=status.HTTP_400_BAD_REQUEST
+                            status=status.HTTP_400_BAD_REQUEST,
                         )
-                    
+
                     # Check minimum purchase
                     if subtotal_before_coupon < coupon_obj.min_purchase:
                         return Response(
                             {
                                 "error": f"Minimum purchase amount of ₹{coupon_obj.min_purchase} required for this coupon",
                                 "minimum_purchase": float(coupon_obj.min_purchase),
-                                "current_subtotal": float(subtotal_before_coupon)
+                                "current_subtotal": float(subtotal_before_coupon),
                             },
-                            status=status.HTTP_400_BAD_REQUEST
+                            status=status.HTTP_400_BAD_REQUEST,
                         )
-                    
+
                     # Calculate discount
                     if coupon_obj.type == "percent":
-                        discount = subtotal_before_coupon * (coupon_obj.discount_percentage / 100)
+                        discount = subtotal_before_coupon * (
+                            coupon_obj.discount_percentage / 100
+                        )
                         if coupon_obj.max_discount:
                             discount = min(discount, coupon_obj.max_discount)
                     else:  # amount type
                         discount = coupon_obj.discount_amount
-                    
+
                     coupon_discount = discount
                     final_total = subtotal_before_coupon - coupon_discount
                     coupon_applied = True
-                    
+
                     coupon_details = {
                         "code": coupon_obj.code,
                         "title": coupon_obj.title,
                         "type": coupon_obj.type,
-                        "discount_percentage": float(coupon_obj.discount_percentage) if coupon_obj.discount_percentage else None,
-                        "discount_amount": float(coupon_obj.discount_amount) if coupon_obj.discount_amount else None,
-                        "max_discount": float(coupon_obj.max_discount) if coupon_obj.max_discount else None,
-                        "applied_discount": float(coupon_discount)
+                        "discount_percentage": (
+                            float(coupon_obj.discount_percentage)
+                            if coupon_obj.discount_percentage
+                            else None
+                        ),
+                        "discount_amount": (
+                            float(coupon_obj.discount_amount)
+                            if coupon_obj.discount_amount
+                            else None
+                        ),
+                        "max_discount": (
+                            float(coupon_obj.max_discount)
+                            if coupon_obj.max_discount
+                            else None
+                        ),
+                        "applied_discount": float(coupon_discount),
                     }
-                    
+
                 except coupon.DoesNotExist:
                     return Response(
                         {"error": "Invalid or inactive coupon code"},
-                        status=status.HTTP_400_BAD_REQUEST
+                        status=status.HTTP_400_BAD_REQUEST,
                     )
-            
+
             # Calculate other charges (for reference, not included in final_total)
             commission_percent = Decimal("0.10")
             commission = total_base_amount * commission_percent
@@ -609,45 +660,51 @@ class CalculatePriceWithCouponAPIView(APIView):
             tds_percent = Decimal("0.001")
             tcs_amount = total_base_amount * tcs_percent
             tds_amount = total_base_amount * tds_percent
-            
-            return Response({
-                "booking_type": booking_type,
-                "villa_id": villa_obj.id if villa_obj else None,
-                "villa_name": villa_obj.name if villa_obj else None,
-                "check_in": check_in_str,
-                "check_out": check_out_str,
-                "nights": nights,
-                "price_summary": {
-                    "base_amount": float(total_base_amount),
-                    "gst_percentage": float(gst_percent * 100),
-                    "gst_amount": float(gst_amount),
-                    "subtotal_before_coupon": float(subtotal_before_coupon),
-                    "coupon_applied": coupon_applied,
-                    "coupon_discount": float(coupon_discount) if coupon_applied else 0.00,
-                    "final_total": float(final_total),
-                    "average_price_per_night": float(avg_price_per_night)
+
+            return Response(
+                {
+                    "booking_type": booking_type,
+                    "villa_id": villa_obj.id if villa_obj else None,
+                    "villa_name": villa_obj.name if villa_obj else None,
+                    "check_in": check_in_str,
+                    "check_out": check_out_str,
+                    "nights": nights,
+                    "price_summary": {
+                        "base_amount": float(total_base_amount),
+                        "gst_percentage": float(gst_percent * 100),
+                        "gst_amount": float(gst_amount),
+                        "subtotal_before_coupon": float(subtotal_before_coupon),
+                        "coupon_applied": coupon_applied,
+                        "coupon_discount": (
+                            float(coupon_discount) if coupon_applied else 0.00
+                        ),
+                        "final_total": float(final_total),
+                        "average_price_per_night": float(avg_price_per_night),
+                    },
+                    "coupon_details": coupon_details,
+                    "breakdown": {
+                        "base_amount": float(total_base_amount),
+                        "gst_amount": float(gst_amount),
+                        "subtotal": float(subtotal_before_coupon),
+                        "discount": float(coupon_discount) if coupon_applied else 0.00,
+                        "total": float(final_total),
+                    },
+                    "internal_calculation": {
+                        "commission": float(commission),
+                        "commission_gst": float(commission_gst),
+                        "tcs_amount": float(tcs_amount),
+                        "tds_amount": float(tds_amount),
+                    },
                 },
-                "coupon_details": coupon_details,
-                "breakdown": {
-                    "base_amount": float(total_base_amount),
-                    "gst_amount": float(gst_amount),
-                    "subtotal": float(subtotal_before_coupon),
-                    "discount": float(coupon_discount) if coupon_applied else 0.00,
-                    "total": float(final_total)
-                },
-                "internal_calculation": {
-                    "commission": float(commission),
-                    "commission_gst": float(commission_gst),
-                    "tcs_amount": float(tcs_amount),
-                    "tds_amount": float(tds_amount)
-                }
-            }, status=status.HTTP_200_OK)
-            
+                status=status.HTTP_200_OK,
+            )
+
         except Exception as e:
             import traceback
+
             return Response(
                 {"error": str(e), "traceback": traceback.format_exc()},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
@@ -1076,7 +1133,7 @@ class AvailableVillasAPIView(APIView):
         for availability in availabilities:
             if not availability.is_open:
                 villa_closed_dates[availability.villa_id].add(availability.date)
-        
+
         # Also check for offline bookings - they close availability automatically
         offline_bookings = VillaBooking.objects.filter(
             villa__in=villa_properties,
@@ -1086,7 +1143,7 @@ class AvailableVillasAPIView(APIView):
             check_out__gt=check_in,
             status__in=["confirmed", "checked_in", "pending"],
         )
-        
+
         for booking in offline_bookings:
             current_date = booking.check_in
             while current_date < booking.check_out:
@@ -1303,7 +1360,7 @@ class CancelBookingAPIView(APIView):
         # Restore availability when booking is cancelled
         from hotel.models import VillaAvailability, RoomAvailability
         from customer.models import BookingRoom
-        
+
         current_date = booking.check_in
         while current_date < booking.check_out:
             if booking.booking_type == "whole_villa":
@@ -1311,7 +1368,7 @@ class CancelBookingAPIView(APIView):
                 VillaAvailability.objects.update_or_create(
                     villa=booking.villa,
                     date=current_date,
-                    defaults={"is_open": True}  # Make available again
+                    defaults={"is_open": True},  # Make available again
                 )
             else:
                 # Resort/Couple Stay: Restore room availability
@@ -1320,12 +1377,12 @@ class CancelBookingAPIView(APIView):
                     room_avail, created = RoomAvailability.objects.get_or_create(
                         room=booked_room.room,
                         date=current_date,
-                        defaults={"available_count": 1}  # Default if not exists
+                        defaults={"available_count": 1},  # Default if not exists
                     )
                     # Restore the booked quantity
                     room_avail.available_count += booked_room.quantity
                     room_avail.save()
-            
+
             current_date += timedelta(days=1)
 
         booking.status = "cancelled"
@@ -1390,24 +1447,97 @@ class TicketMessageViewSet(viewsets.ViewSet):
 
 
 class FavouriteVillaViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet to manage favorites for:
+    - Whole villas (POST with villa_id only)
+    - Resort/Couple Stay rooms (POST with villa_id and room_id)
+
+    GET /customer/favourite-villas/ - List all favorites
+    POST /customer/favourite-villas/ - Add favorite (villa or room)
+    DELETE /customer/favourite-villas/{id}/ - Remove favorite
+    """
+
     queryset = favouritevilla.objects.all().order_by("-id")
     serializer_class = FavouriteVillaSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
         user = self.request.user
-        villa_obj = serializer.validated_data["villa"]
+        villa_obj = serializer.validated_data.get("villa")
+        room_obj = serializer.validated_data.get("room")
 
-        if favouritevilla.objects.filter(user=user, villa=villa_obj).exists():
-            raise ValidationError("You have already added this villa to favourites.")
+        # Check if already favorited
+        if room_obj:
+            # Room favorite - check unique combination
+            if favouritevilla.objects.filter(
+                user=user, villa=villa_obj, room=room_obj
+            ).exists():
+                raise ValidationError("You have already added this room to favourites.")
+        else:
+            # Villa favorite - check if villa is already favorited (without room)
+            if favouritevilla.objects.filter(
+                user=user, villa=villa_obj, room__isnull=True
+            ).exists():
+                raise ValidationError(
+                    "You have already added this villa to favourites."
+                )
 
         serializer.save(user=user)
 
     def get_queryset(self):
-        # Optionally filter by current user
+        # Filter by current user
         if self.request.user.is_authenticated:
-            return favouritevilla.objects.filter(user=self.request.user)
+            queryset = favouritevilla.objects.filter(user=self.request.user)
+
+            # Optional filtering by type
+            favorite_type = self.request.query_params.get("type")
+            if favorite_type == "villa":
+                queryset = queryset.filter(room__isnull=True)
+            elif favorite_type == "room":
+                queryset = queryset.filter(room__isnull=False)
+
+            # Optional filtering by villa_id
+            villa_id = self.request.query_params.get("villa_id")
+            if villa_id:
+                queryset = queryset.filter(villa_id=villa_id)
+
+            return queryset.order_by("-id")
         return favouritevilla.objects.none()
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete a favorite and return a proper success message.
+        """
+        instance = self.get_object()
+
+        # Store info before deletion for the message
+        is_room_favorite = instance.room is not None
+        villa_name = instance.villa.name
+        room_title = instance.room.title if instance.room else None
+        favorite_id = instance.id
+
+        # Perform deletion
+        self.perform_destroy(instance)
+
+        # Return success message
+        if is_room_favorite:
+            message = f"Room '{room_title}' from '{villa_name}' has been removed from your favorites."
+        else:
+            message = f"Villa '{villa_name}' has been removed from your favorites."
+
+        return Response(
+            {
+                "success": True,
+                "message": message,
+                "favorite_id": favorite_id,
+                "villa_id": instance.villa.id,
+                "villa_name": villa_name,
+                "room_id": instance.room.id if instance.room else None,
+                "room_title": room_title,
+                "favorite_type": "room" if is_room_favorite else "villa",
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class VillaReviewViewSet(viewsets.ModelViewSet):
