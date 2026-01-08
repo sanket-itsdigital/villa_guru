@@ -144,8 +144,22 @@ def list_event_bookings(request):
         except (ValueError, TypeError):
             pass  # Invalid event_id, ignore filter
     
-    # Get all events for filter dropdown
-    all_events = event.objects.all().order_by("-start_date")
+    # Get only current and future events for filter dropdown
+    from django.utils import timezone
+    from django.db.models import Q
+    current_time = timezone.now()
+    today_start = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # Include events that:
+    # 1. Start today or in the future (start_date >= today at 00:00:00)
+    # 2. OR are currently ongoing (started but not ended yet)
+    all_events = event.objects.filter(
+        Q(start_date__gte=today_start)  # Events starting today or future
+        | (
+            Q(start_date__lt=current_time)
+            & (Q(end_date__isnull=True) | Q(end_date__gte=current_time))
+        )  # Events that have started but haven't ended
+    ).order_by("start_date")
     
     # Pagination
     paginator = Paginator(queryset, 30)  # Show 30 bookings per page

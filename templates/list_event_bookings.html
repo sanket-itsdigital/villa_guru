@@ -269,7 +269,7 @@
                           </td>
                           <td>
                             {% if booking.user %}
-                              {{ booking.user.first_name|default:booking.user.mobile }}
+                              {{ booking.user.first_name|default:booking.user.mobile|default:"N/A" }}
                             {% else %}
                               <span class="text-muted">Guest</span>
                             {% endif %}
@@ -362,6 +362,15 @@
     var tableRows = tableElement.find('tbody tr').length;
     console.log('Table rows found:', tableRows);
 
+    // Count columns to verify structure
+    var headerCols = tableElement.find('thead tr th').length;
+    var bodyCols = tableElement.find('tbody tr:first td').length;
+    console.log('Header columns:', headerCols, 'Body columns:', bodyCols);
+    
+    if (headerCols !== bodyCols && bodyCols > 0) {
+      console.warn('Column count mismatch detected. Header:', headerCols, 'Body:', bodyCols);
+    }
+
     // Initialize DataTable with proper configuration
     var table = tableElement.DataTable({
       "order": [[ 0, "desc" ]],
@@ -369,6 +378,18 @@
       "searching": true,  // Enable searching
       "paging": true,     // Enable paging
       "info": true,       // Enable info
+      "autoWidth": false, // Disable auto width calculation
+      "columnDefs": [
+        { "width": "5%", "targets": 0 },   // #
+        { "width": "5%", "targets": 1 },   // ID
+        { "width": "15%", "targets": 2 },  // Event Name
+        { "width": "12%", "targets": 3 },  // Customer Name
+        { "width": "12%", "targets": 4 },  // Phone Number
+        { "width": "15%", "targets": 5 },  // Email
+        { "width": "10%", "targets": 6 },  // Number of People
+        { "width": "10%", "targets": 7 },  // User
+        { "width": "16%", "targets": 8 }  // Booked At
+      ],
       "language": {
         "search": "",
         "searchPlaceholder": "Search by customer name, email, phone...",
