@@ -590,37 +590,82 @@ class VillaBookingSerializer(serializers.ModelSerializer):
 
 class FavouriteVillaSerializer(serializers.ModelSerializer):
     villa_name = serializers.CharField(source="villa.name", read_only=True)
-    room_title = serializers.CharField(source="room.title", read_only=True, allow_null=True)
-    room_id = serializers.IntegerField(source="room.id", read_only=True, allow_null=True)
+    room_title = serializers.CharField(
+        source="room.title", read_only=True, allow_null=True
+    )
+    room_id = serializers.IntegerField(
+        source="room.id", read_only=True, allow_null=True
+    )
     favorite_type = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = favouritevilla
-        fields = ["id", "user", "villa", "room", "villa_name", "room_title", "room_id", "favorite_type"]
-        read_only_fields = ["user", "villa_name", "room_title", "room_id", "favorite_type"]
-    
+        fields = [
+            "id",
+            "user",
+            "villa",
+            "room",
+            "villa_name",
+            "room_title",
+            "room_id",
+            "favorite_type",
+        ]
+        read_only_fields = [
+            "user",
+            "villa_name",
+            "room_title",
+            "room_id",
+            "favorite_type",
+        ]
+
     def get_favorite_type(self, obj):
         """Returns 'villa' for whole villa, 'room' for room favorite"""
         return "room" if obj.room else "villa"
-    
+
+
+class EventBookingSerializer(serializers.ModelSerializer):
+    event_name = serializers.CharField(source="event.name", read_only=True)
+
+    class Meta:
+        model = EventBooking
+        fields = [
+            "id",
+            "event",
+            "event_name",
+            "name",
+            "phone_number",
+            "email",
+            "number_of_people",
+            "user",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["user", "created_at", "updated_at", "event_name"]
+
     def validate(self, data):
         """Ensure either villa is provided, and room belongs to villa if provided"""
         villa_obj = data.get("villa")
         room_obj = data.get("room")
-        
+
         if not villa_obj:
             raise serializers.ValidationError("villa is required")
-        
+
         # If room is provided, ensure it belongs to the villa
         if room_obj:
             if room_obj.villa != villa_obj:
-                raise serializers.ValidationError("Room does not belong to the specified villa")
-            
+                raise serializers.ValidationError(
+                    "Room does not belong to the specified villa"
+                )
+
             # Check property type - rooms should only be favorited for Resort/Couple Stay
-            property_type_name = villa_obj.property_type.name if villa_obj.property_type else None
+            property_type_name = (
+                villa_obj.property_type.name if villa_obj.property_type else None
+            )
             if property_type_name == "Villa":
-                raise serializers.ValidationError("Cannot favorite individual rooms for Villa property type. Use villa favorite instead.")
-        
+                raise serializers.ValidationError(
+                    "Cannot favorite individual rooms for Villa property type. Use villa favorite instead."
+                )
+
         return data
 
 

@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, render
 # Create your views here.
 
 
-from rest_framework import viewsets
+from rest_framework import viewsets, generics, permissions
 from .models import VillaBooking
 from .serializers import VillaBookingSerializer
 
@@ -698,7 +698,6 @@ class CalculatePriceWithCouponAPIView(APIView):
                 },
                 status=status.HTTP_200_OK,
             )
-
         except Exception as e:
             import traceback
 
@@ -706,6 +705,180 @@ class CalculatePriceWithCouponAPIView(APIView):
                 {"error": str(e), "traceback": traceback.format_exc()},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class EventBookingCreateAPIView(APIView):
+    """
+    API for customers to book events by filling a form with their details.
+    POST /customer/event-bookings/
+    Body: {
+        "event": 1,
+        "name": "John Doe",
+        "phone_number": "+919876543210",
+        "email": "john@example.com",
+        "number_of_people": 5
+    }
+    """
+
+    permission_classes = []  # Allow public access (no authentication required)
+
+    @swagger_auto_schema(
+        operation_description="Create a new event booking. Customers can fill a form with their basic details.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["event", "name", "phone_number", "email", "number_of_people"],
+            properties={
+                "event": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Event ID to book",
+                    example=1,
+                ),
+                "name": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Customer's full name",
+                    example="John Doe",
+                ),
+                "phone_number": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Customer's phone number",
+                    example="+919876543210",
+                ),
+                "email": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format=openapi.FORMAT_EMAIL,
+                    description="Customer's email address",
+                    example="john@example.com",
+                ),
+                "number_of_people": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Number of people attending the event",
+                    example=5,
+                ),
+            },
+        ),
+        responses={
+            201: openapi.Response(
+                description="Event booking created successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "success": openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                        "message": openapi.Schema(type=openapi.TYPE_STRING),
+                        "booking": openapi.Schema(type=openapi.TYPE_OBJECT),
+                    },
+                ),
+            ),
+            400: "Bad Request - Validation error",
+            404: "Event not found",
+        },
+        tags=["Event Bookings"],
+    )
+    def post(self, request):
+        from .models import EventBooking
+        from masters.models import event
+
+        event_id = request.data.get("event")
+        name = request.data.get("name")
+        phone_number = request.data.get("phone_number")
+        email = request.data.get("email")
+        number_of_people = request.data.get("number_of_people")
+
+        # Validate required fields
+        if not all([event_id, name, phone_number, email, number_of_people]):
+            return Response(
+                {
+                    "success": False,
+                    "message": "All fields are required: event, name, phone_number, email, number_of_people",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate number_of_people
+        try:
+            number_of_people = int(number_of_people)
+            if number_of_people <= 0:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "number_of_people must be greater than 0",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except (ValueError, TypeError):
+            return Response(
+                {
+                    "success": False,
+                    "message": "number_of_people must be a valid integer",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate event exists
+        try:
+            event_obj = event.objects.get(id=event_id)
+        except event.DoesNotExist:
+            return Response(
+                {"success": False, "message": "Event not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Create booking
+        booking = EventBooking.objects.create(
+            event=event_obj,
+            name=name,
+            phone_number=phone_number,
+            email=email,
+            number_of_people=number_of_people,
+            user=request.user if request.user.is_authenticated else None,
+        )
+
+        from .serializers import EventBookingSerializer
+
+        serializer = EventBookingSerializer(booking)
+        return Response(
+            {
+                "success": True,
+                "message": "Event booking created successfully",
+                "booking": serializer.data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class EventBookingListAPIView(generics.ListAPIView):
+    """
+    API to list all event bookings (for admin dashboard).
+    GET /customer/event-bookings/list/
+    Requires authentication.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        from .models import EventBooking
+
+        return EventBooking.objects.all().order_by("-created_at")
+
+    def get_serializer_class(self):
+        from .serializers import EventBookingSerializer
+
+        return EventBookingSerializer
+
+    @swagger_auto_schema(
+        operation_description="List all event bookings. Requires authentication.",
+        responses={200: "List of event bookings"},
+        tags=["Event Bookings"],
+    )
+    def get(self, request, *args, **kwargs):
+        from .serializers import EventBookingSerializer
+
+        # Only allow superusers to see all bookings
+        if not request.user.is_superuser:
+            return Response(
+                {"error": "You do not have permission to view event bookings."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().get(request, *args, **kwargs)
 
 
 # views.py

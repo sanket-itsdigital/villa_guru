@@ -41,7 +41,12 @@ urlpatterns = [
     path(
         "villa-resort-and-couple-stay/bookings/<int:pk>/",
         VillaBookingViewSet.as_view(
-            {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"}
+            {
+                "get": "retrieve",
+                "put": "update",
+                "patch": "partial_update",
+                "delete": "destroy",
+            }
         ),
         name="villa-resort-couple-stay-booking-detail",
     ),
@@ -79,6 +84,17 @@ urlpatterns = [
         "villas/<int:villa_id>/reviews/",
         VillaReviewListAPIView.as_view(),
         name="villa-reviews-list",
+    ),
+    # Event Bookings
+    path(
+        "event-bookings/",
+        EventBookingCreateAPIView.as_view(),
+        name="event-booking-create",
+    ),
+    path(
+        "event-bookings/list/",
+        EventBookingListAPIView.as_view(),
+        name="event-booking-list",
     ),
 ] + router.urls
 

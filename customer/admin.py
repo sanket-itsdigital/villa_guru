@@ -55,3 +55,11 @@ class VillaReviewAdmin(admin.ModelAdmin):
     list_filter = ['rating', 'created_at']
     search_fields = ['user__mobile', 'user__email', 'villa__name', 'comment']
     readonly_fields = ['created_at', 'updated_at']
+
+@admin.register(EventBooking)
+class EventBookingAdmin(admin.ModelAdmin):
+    list_display = ['id', 'event', 'name', 'phone_number', 'email', 'number_of_people', 'user', 'created_at']
+    list_filter = ['event', 'created_at']
+    search_fields = ['name', 'phone_number', 'email', 'event__name']
+    readonly_fields = ['created_at', 'updated_at']
+    date_hierarchy = 'created_at'

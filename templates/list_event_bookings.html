@@ -1,0 +1,480 @@
+{% extends "partials/adminBase.html" %} 
+{% load static %} 
+{% block title %}Event Bookings List{% endblock title %} 
+{% block extra_css %}
+<link
+  href="{% static 'libs/admin-resources/jquery.vectormap/jquery-jvectormap-1.2.2.css' %}"
+  rel="stylesheet"
+  type="text/css"
+/>
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+/>
+<style>
+  body {
+    background-color: gainsboro;
+    color: #780000 !important;
+  }
+
+  .card {
+    background-color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background-color: #780000 !important;
+    color: #ffffff;
+    border-radius: 8px 8px 0 0;
+    padding: 20px;
+  }
+
+  .card-title {
+    margin: 0;
+  }
+
+  .card-body {
+    padding: 20px;
+  }
+
+  .table thead {
+    background-color: gray;
+    color: white;
+  }
+
+  .table tbody tr {
+    background-color: white;
+    color: black;
+  }
+
+  .table tbody tr:hover {
+    background-color: #f0d28c;
+    color: #780000 !important;
+  }
+
+  .stats-card {
+    background: linear-gradient(135deg, #780000 0%, #a00000 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .stats-card h3 {
+    color: white;
+    margin: 0;
+  }
+
+  .form-select:focus,
+  .form-control:focus {
+    border-color: #780000 !important;
+    box-shadow: 0 0 0 0.2rem rgba(120, 0, 0, 0.25) !important;
+  }
+
+  .input-group-text {
+    border-radius: 8px 0 0 8px;
+    flex-shrink: 0;
+  }
+
+  .input-group {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  .input-group .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .form-select-lg,
+  .input-group-lg .form-control {
+    font-size: 1rem;
+  }
+
+  .form-label {
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .form-label i {
+    margin-right: 5px;
+  }
+
+  .card-body {
+    padding: 20px;
+    overflow-x: visible;
+  }
+
+  .row.g-3 {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .row.g-3 > * {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  @media (max-width: 768px) {
+    .table-responsive {
+      overflow-x: auto;
+    }
+    
+    .col-md-4,
+    .col-md-8 {
+      margin-bottom: 15px;
+      width: 100%;
+    }
+
+    .input-group {
+      width: 100% !important;
+    }
+
+    #searchBox {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+  }
+
+  @media (max-width: 992px) {
+    .col-md-8 {
+      margin-top: 15px;
+    }
+  }
+</style>
+{% endblock extra_css %} 
+
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      <!-- Page title -->
+      <div class="row">
+        <div class="col-12">
+          <div
+            class="page-title-box d-sm-flex align-items-center justify-content-between"
+          >
+            <h4 class="mb-sm-0 font-size-18">Event Bookings List</h4>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics Cards -->
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="stats-card">
+            <h6 class="text-white-50 mb-2">Total Bookings</h6>
+            <h3 class="mb-0">{{ total_bookings }}</h3>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="stats-card">
+            <h6 class="text-white-50 mb-2">Total People</h6>
+            <h3 class="mb-0">{{ total_people }}</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Event Bookings</h5>
+              </div>
+              <div class="card-body">
+                <!-- Filter and Search Section -->
+                <div class="row mb-3 g-3">
+                  <div class="col-md-4 col-sm-12">
+                    <form method="get" action="{% url 'list_event_bookings' %}" id="filterForm">
+                      <label for="eventFilter" class="form-label fw-bold" style="color: #780000;">
+                        <i class="fas fa-filter"></i> Filter by Event
+                      </label>
+                      <select 
+                        name="event" 
+                        id="eventFilter" 
+                        class="form-select form-select-lg"
+                        style="border: 2px solid #780000; border-radius: 8px; padding: 10px; width: 100%;"
+                        onchange="document.getElementById('filterForm').submit();"
+                      >
+                        <option value="">All Events</option>
+                        {% for event in events %}
+                          <option value="{{ event.id }}" {% if selected_event == event.id %}selected{% endif %}>
+                            {{ event.name }} - {{ event.start_date|date:"M d, Y" }}
+                          </option>
+                        {% endfor %}
+                      </select>
+                    </form>
+                  </div>
+                  <div class="col-md-8 col-sm-12">
+                    <label for="searchBox" class="form-label fw-bold" style="color: #780000;">
+                      <i class="fas fa-search"></i> Search Bookings
+                    </label>
+                    <div class="input-group input-group-lg" style="width: 100%; display: flex; flex-wrap: nowrap;">
+                      <span class="input-group-text" style="background-color: #780000; color: white; border: 2px solid #780000; border-radius: 8px 0 0 8px; flex-shrink: 0; padding: 10px 15px;">
+                        <i class="fas fa-search"></i>
+                      </span>
+                      <input 
+                        type="text" 
+                        id="searchBox" 
+                        class="form-control" 
+                        placeholder="Search by customer name, email, phone number..."
+                        style="border: 2px solid #780000; border-left: none; border-radius: 0 8px 8px 0; padding: 10px 15px; flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box;"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table
+                    id="datatable"
+                    class="table table-bordered table-striped"
+                  >
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>ID</th>
+                        <th>Event Name</th>
+                        <th>Customer Name</th>
+                        <th>Phone Number</th>
+                        <th>Email</th>
+                        <th>Number of People</th>
+                        <th>User</th>
+                        <th>Booked At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% if bookings %} 
+                        {% for booking in bookings %}
+                        <tr>
+                          <td>{{ forloop.counter }}</td>
+                          <td>{{ booking.id }}</td>
+                          <td>
+                            <strong>{{ booking.event.name }}</strong>
+                            {% if booking.event.start_date %}
+                              <br>
+                              <small class="text-muted">
+                                {{ booking.event.start_date|date:"M d, Y" }}
+                              </small>
+                            {% endif %}
+                          </td>
+                          <td>{{ booking.name }}</td>
+                          <td>{{ booking.phone_number }}</td>
+                          <td>{{ booking.email }}</td>
+                          <td>
+                            <span class="badge bg-primary">{{ booking.number_of_people }} people</span>
+                          </td>
+                          <td>
+                            {% if booking.user %}
+                              {{ booking.user.first_name|default:booking.user.mobile }}
+                            {% else %}
+                              <span class="text-muted">Guest</span>
+                            {% endif %}
+                          </td>
+                          <td>{{ booking.created_at|date:"M d, Y h:i A" }}</td>
+                        </tr>
+                        {% endfor %}
+                      {% else %}
+                        <tr>
+                          <td colspan="9" class="text-center">
+                            <p class="text-muted">No event bookings found.</p>
+                          </td>
+                        </tr>
+                      {% endif %}
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if bookings.has_other_pages %}
+                <nav aria-label="Page navigation">
+                  <ul class="pagination justify-content-center mt-4">
+                    {% if bookings.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ bookings.previous_page_number }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in bookings.paginator.page_range %}
+                      {% if bookings.number == num %}
+                        <li class="page-item active">
+                          <span class="page-link">{{ num }}</span>
+                        </li>
+                      {% elif num > bookings.number|add:'-3' and num < bookings.number|add:'3' %}
+                        <li class="page-item">
+                          <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                      {% endif %}
+                    {% endfor %}
+                    
+                    {% if bookings.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ bookings.next_page_number }}">Next</a>
+                    </li>
+                    {% endif %}
+                  </ul>
+                </nav>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+  $(document).ready(function() {
+    // Check if jQuery and DataTable are loaded
+    if (typeof $ === 'undefined') {
+      console.error('jQuery is not loaded');
+      return;
+    }
+    
+    if (typeof $.fn.DataTable === 'undefined') {
+      console.error('DataTables is not loaded');
+      return;
+    }
+
+    // Check if table exists
+    var tableElement = $('#datatable');
+    if (tableElement.length === 0) {
+      console.error('Table with id "datatable" not found');
+      return;
+    }
+
+    // Check if table has data
+    var tableRows = tableElement.find('tbody tr').length;
+    console.log('Table rows found:', tableRows);
+
+    // Initialize DataTable with proper configuration
+    var table = tableElement.DataTable({
+      "order": [[ 0, "desc" ]],
+      "pageLength": 30,
+      "searching": true,  // Enable searching
+      "paging": true,     // Enable paging
+      "info": true,       // Enable info
+      "language": {
+        "search": "",
+        "searchPlaceholder": "Search by customer name, email, phone...",
+        "lengthMenu": "Show _MENU_ entries",
+        "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+        "infoEmpty": "No entries found",
+        "infoFiltered": "(filtered from _MAX_ total entries)",
+        "zeroRecords": "No matching records found"
+      },
+      "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+      "drawCallback": function() {
+        // Hide DataTables default search since we have custom one
+        $('.dataTables_filter').hide();
+      }
+    });
+
+    console.log('DataTable initialized:', table);
+
+    // Setup search box immediately
+    var searchBox = $('#searchBox');
+    
+    if (searchBox.length === 0) {
+      console.error('Search box with id "searchBox" not found');
+      return;
+    }
+
+    console.log('Search box found, setting up events');
+
+    // Remove any existing event listeners to avoid duplicates
+    searchBox.off('keyup input paste change');
+
+    // Sync custom search box with DataTables search - use debounce for better performance
+    var searchTimeout;
+    searchBox.on('keyup input', function() {
+      clearTimeout(searchTimeout);
+      var self = this;
+      searchTimeout = setTimeout(function() {
+        var searchValue = $(self).val() || '';
+        console.log('Searching for:', searchValue);
+        if (table) {
+          table.search(searchValue).draw();
+          console.log('Search executed, filtered rows:', table.rows({search: 'applied'}).count());
+        }
+      }, 300); // 300ms debounce
+    });
+
+    // Handle paste events
+    searchBox.on('paste', function() {
+      var self = this;
+      setTimeout(function() {
+        var searchValue = $(self).val() || '';
+        console.log('Paste search for:', searchValue);
+        if (table) {
+          table.search(searchValue).draw();
+        }
+      }, 10);
+    });
+
+    // Also trigger on change (for programmatic changes)
+    searchBox.on('change', function() {
+      var searchValue = $(this).val() || '';
+      console.log('Change search for:', searchValue);
+      if (table) {
+        table.search(searchValue).draw();
+      }
+    });
+
+    // Test search functionality
+    console.log('Search functionality initialized successfully');
+    console.log('Table instance:', table);
+    console.log('Search box element:', searchBox);
+
+    // Ensure search box maintains proper width
+    $(window).on('resize', function() {
+      var searchContainer = $('#searchBox').closest('.input-group');
+      $('#searchBox').css({
+        'width': '100%',
+        'max-width': '100%',
+        'box-sizing': 'border-box'
+      });
+      searchContainer.css('width', '100%');
+    });
+
+    // Initial width fix on page load
+    setTimeout(function() {
+      var searchContainer = $('#searchBox').closest('.input-group');
+      $('#searchBox').css({
+        'width': '100%',
+        'max-width': '100%',
+        'box-sizing': 'border-box'
+      });
+      searchContainer.css({
+        'width': '100%',
+        'display': 'flex',
+        'flex-wrap': 'nowrap'
+      });
+    }, 100);
+
+    // Custom styling for length menu
+    $('.dataTables_length select').addClass('form-select');
+    $('.dataTables_length select').css({
+      'border': '2px solid #780000',
+      'border-radius': '8px',
+      'padding': '5px 10px'
+    });
+  });
+</script>
+{% endblock extra_js %}
+

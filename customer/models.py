@@ -421,3 +421,47 @@ class BookingRoom(models.Model):
     
     def __str__(self):
         return f"{self.booking.booking_id} - {self.room} (Qty: {self.quantity})"
+
+
+class EventBooking(models.Model):
+    """
+    Model to store event booking information from customers.
+    Customers fill a form with their basic details to book an event.
+    """
+    event = models.ForeignKey(
+        "masters.event",
+        on_delete=models.CASCADE,
+        related_name="bookings",
+        help_text="The event being booked"
+    )
+    name = models.CharField(
+        max_length=255,
+        help_text="Customer's full name"
+    )
+    phone_number = models.CharField(
+        max_length=20,
+        help_text="Customer's phone number"
+    )
+    email = models.EmailField(
+        help_text="Customer's email address"
+    )
+    number_of_people = models.PositiveIntegerField(
+        help_text="Number of people attending the event"
+    )
+    user = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="User who made the booking (if logged in)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Event Booking"
+        verbose_name_plural = "Event Bookings"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} - {self.event.name} ({self.number_of_people} people)"

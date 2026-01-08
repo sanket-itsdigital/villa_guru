@@ -47,6 +47,7 @@ schema_view = get_schema_view(
 urlpatterns = [
 
     path('', dashboard, name="dashboard"),
+    path('event-bookings/', list_event_bookings, name="list_event_bookings"),
 
     path('admin/', admin.site.urls),
 

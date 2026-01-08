@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 
 from django.db.models import Sum
 from django.db.models import Count
+from django.shortcuts import redirect
 # from petprofile.models import *
 
 
@@ -113,6 +114,57 @@ def dashboard(request):
     }
 
     return render(request, 'adminDashboard.html', context)
+
+
+@login_required(login_url='login_admin')
+def list_event_bookings(request):
+    """
+    View to list all event bookings in admin dashboard.
+    Only accessible to superusers.
+    """
+    from customer.models import EventBooking
+    from masters.models import event
+    from django.core.paginator import Paginator
+    
+    if not request.user.is_superuser:
+        from django.contrib import messages
+        messages.error(request, "You do not have permission to view event bookings.")
+        return redirect('dashboard')
+    
+    # Get all event bookings
+    queryset = EventBooking.objects.all().order_by("-created_at")
+    
+    # Filter by event if provided
+    event_id = request.GET.get("event")
+    selected_event_id = None
+    if event_id:
+        try:
+            selected_event_id = int(event_id)
+            queryset = queryset.filter(event_id=selected_event_id)
+        except (ValueError, TypeError):
+            pass  # Invalid event_id, ignore filter
+    
+    # Get all events for filter dropdown
+    all_events = event.objects.all().order_by("-start_date")
+    
+    # Pagination
+    paginator = Paginator(queryset, 30)  # Show 30 bookings per page
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    
+    # Statistics (based on filtered queryset)
+    total_bookings = queryset.count()
+    total_people = queryset.aggregate(total=Sum('number_of_people'))['total'] or 0
+    
+    context = {
+        "bookings": page_obj,
+        "total_bookings": total_bookings,
+        "total_people": total_people,
+        "events": all_events,
+        "selected_event": selected_event_id,
+    }
+    
+    return render(request, 'list_event_bookings.html', context)
 
 
 
