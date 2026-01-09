@@ -1613,7 +1613,10 @@ class AvailableVillasAPIView(APIView):
 
         # Step 9: Get available properties (including favorites)
         available_villas = (
-            villa.objects.filter(id__in=favorite_villa_ids).distinct()
+            villa.objects.filter(id__in=favorite_villa_ids)
+            .select_related("property_type", "city", "user")
+            .prefetch_related("rooms__room_type", "rooms__room_type__amenities")
+            .distinct()
             if favorite_villa_ids
             else villa.objects.none()
         )
@@ -1627,7 +1630,46 @@ class AvailableVillasAPIView(APIView):
         serializer = VillaSerializer(
             filtered_villas, many=True, context={"request": request}
         )
-        return Response(serializer.data)
+
+        # Get room types for each property and modify response
+        from masters.models import room_type
+        from masters.serializers import room_type_serializer
+
+        # Create a mapping of villa_id to villa object for quick lookup
+        villa_dict = {v.id: v for v in filtered_villas}
+
+        response_data = []
+        for villa_data in serializer.data:
+            # Remove rooms field
+            villa_data.pop("rooms", None)
+
+            # Get room types for this property (only for Resort/Couple Stay)
+            property_type_name = villa_data.get("property_type", {}).get("name", "")
+            villa_id = villa_data.get("id")
+
+            if property_type_name in ["Resort", "Couple Stay"]:
+                # Get unique room types from this property's rooms
+                villa_obj = villa_dict.get(villa_id)
+                if villa_obj:
+                    room_types_qs = (
+                        room_type.objects.filter(rooms__villa=villa_obj)
+                        .distinct()
+                        .prefetch_related("amenities", "rooms__images")
+                    )
+
+                    room_types_serializer = room_type_serializer(
+                        room_types_qs, many=True, context={"request": request}
+                    )
+                    villa_data["room_types"] = room_types_serializer.data
+                else:
+                    villa_data["room_types"] = []
+            else:
+                # Villa properties don't have individual room types
+                villa_data["room_types"] = []
+
+            response_data.append(villa_data)
+
+        return Response(response_data)
 
 
 class TopPicksByGuestsAPIView(APIView):
