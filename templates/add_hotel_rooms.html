@@ -195,6 +195,18 @@
                             {% endif %}
                         </div>
 
+                        <div class="mb-4">
+                            <label class="form-label">Number of Rooms <span class="text-danger">*</span>:</label>
+                            {{ form.room_count }}
+                            {% if form.room_count.errors %}
+                                <div class="text-danger">{{ form.room_count.errors.0 }}</div>
+                            {% endif %}
+                            {% if form.room_count.help_text %}
+                                <small class="form-text text-muted">{{ form.room_count.help_text }}</small>
+                            {% else %}
+                                <small class="form-text text-muted">Enter how many physical rooms of this type are available in the property. Each room type can only be added once per property.</small>
+                            {% endif %}
+                        </div>
 
                         <div class="mb-4">
                             <label class="form-label">Bed Type:</label>

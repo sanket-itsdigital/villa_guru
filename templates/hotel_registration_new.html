@@ -308,6 +308,76 @@
       .right-panel::-webkit-scrollbar-thumb:hover {
         background: #000;
       }
+
+      /* Property Type Selection Cards */
+      .property-type-card {
+        display: block;
+        border: 3px solid #e9ecef;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #ffffff;
+        position: relative;
+        height: 100%;
+      }
+
+      .property-type-card:hover {
+        border-color: #780000;
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(120, 0, 0, 0.15);
+      }
+
+      .property-type-radio {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .property-type-radio:checked + .property-type-content {
+        color: #780000;
+      }
+
+      .property-type-radio:checked ~ .property-type-content,
+      .property-type-card:has(.property-type-radio:checked) {
+        border-color: #780000;
+        background: linear-gradient(135deg, #fff 0%, #fff5f5 100%);
+        box-shadow: 0 4px 15px rgba(120, 0, 0, 0.2);
+      }
+
+      .property-type-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #636e72;
+        transition: all 0.3s ease;
+      }
+
+      .property-type-content i {
+        color: #780000;
+        margin-bottom: 0.5rem;
+      }
+
+      .property-type-content h6 {
+        font-weight: 600;
+        margin: 0.5rem 0;
+        font-size: 1.1rem;
+      }
+
+      .property-type-radio:checked + .property-type-content i,
+      .property-type-card:has(.property-type-radio:checked) .property-type-content i {
+        color: #780000;
+        transform: scale(1.1);
+      }
+
+      .property-type-radio:checked + .property-type-content h6,
+      .property-type-card:has(.property-type-radio:checked) .property-type-content h6 {
+        color: #780000;
+        font-weight: 700;
+      }
     </style>
   </head>
   <body>
@@ -376,15 +446,29 @@
                
             </div>
 
-            <form method="POST" enctype="multipart/form-data">
-              {% csrf_token %} {% if messages %}
-              <div class="messages">
+            <form method="POST" enctype="multipart/form-data" id="vendorRegistrationForm">
+              {% csrf_token %} 
+              
+              {% if messages %}
+              <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-bottom: 20px;">
                 {% for message in messages %}
-                <p style="color: red">{{ message }}</p>
+                  {% if message.tags == 'error' %}
+                    <p class="mb-1"><strong>Error:</strong> {{ message }}</p>
+                  {% elif message.tags == 'success' %}
+                    <p class="mb-1 text-success"><strong>Success:</strong> {{ message }}</p>
+                  {% else %}
+                    <p class="mb-1">{{ message }}</p>
+                  {% endif %}
                 {% endfor %}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
               </div>
-              {% endif %} {% if error %}
-              <div class="messages"><p style="color: red">{{ error }}</p></div>
+              {% endif %} 
+              
+              {% if error %}
+              <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-bottom: 20px;">
+                <p class="mb-0"><strong>Error:</strong> {{ error }}</p>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
               {% endif %}
 
               <!-- Personal Details Form -->
@@ -496,9 +580,77 @@
                 <div class="step-indicator">Step 1 of 5</div>
               </div>
 
+              <!-- Property Type Selection -->
+              <div class="form-section">
+                <h5 class="section-title">Select Property Type</h5>
+                <p class="text-muted text-center mb-3" style="font-size: 0.9rem;">
+                  Please select the type of property you want to register. You can only select one property type.
+                </p>
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <label class="property-type-card">
+                      <input
+                        type="radio"
+                        name="property_type"
+                        value="Villa"
+                        id="property_type_villa"
+                        required
+                        class="property-type-radio"
+                        {% if property_type == 'Villa' %}checked{% endif %}
+                      />
+                      <div class="property-type-content">
+                        <i class="fas fa-home fa-3x mb-2"></i>
+                        <h6>Villa</h6>
+                        <p class="small text-muted">Whole property booking</p>
+                      </div>
+                    </label>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label class="property-type-card">
+                      <input
+                        type="radio"
+                        name="property_type"
+                        value="Resort"
+                        id="property_type_resort"
+                        required
+                        class="property-type-radio"
+                        {% if property_type == 'Resort' %}checked{% endif %}
+                      />
+                      <div class="property-type-content">
+                        <i class="fas fa-hotel fa-3x mb-2"></i>
+                        <h6>Resort</h6>
+                        <p class="small text-muted">Room-based booking</p>
+                      </div>
+                    </label>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label class="property-type-card">
+                      <input
+                        type="radio"
+                        name="property_type"
+                        value="Couple Stay"
+                        id="property_type_couple"
+                        required
+                        class="property-type-radio"
+                        {% if property_type == 'Couple Stay' %}checked{% endif %}
+                      />
+                      <div class="property-type-content">
+                        <i class="fas fa-heart fa-3x mb-2"></i>
+                        <h6>Couple Stay</h6>
+                        <p class="small text-muted">Room-based booking</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                <div id="property-type-error" class="text-danger text-center mt-2" style="display: none;">
+                  Please select a property type
+                </div>
+                <div class="step-indicator">Step 2 of 6</div>
+              </div>
+
               <!-- villa Details Form -->
               <div class="form-section">
-                <h5 class="section-title">Villa Details</h5>
+                <h5 class="section-title">Property Details</h5>
                 <div class="mb-3">
                   <div class="input-group">
                     <span class="input-group-text"
@@ -611,6 +763,8 @@
                         {% endfor %}
                       </ul>
                     </div>
+                <div class="step-indicator">Step 3 of 6</div>
+
                   </div>
                 </div>
               </div>
@@ -645,7 +799,7 @@
                   <div class="text-danger">{{ form.pan_number.errors.0 }}</div>
                   {% endif %}
                 </div>
-                <div class="step-indicator">Step 3 of 5</div>
+                <div class="step-indicator">Step 4 of 6</div>
               </div>
 
               <!-- Bank Details -->
@@ -698,20 +852,20 @@
                   </div>
                   {% endif %}
                 </div>
-                <div class="step-indicator">Step 4 of 5</div>
+                <div class="step-indicator">Step 5 of 6</div>
               </div>
 
               <!-- About villa -->
               <div class="form-section">
-                <h5 class="section-title">About Villa</h5>
+                <h5 class="section-title">About Property</h5>
                 <div class="mb-3 input-group">
                   {{ form.description }} {% if form.description.errors %}
                   <div class="text-danger">{{ form.description.errors.0 }}</div>
                   {% endif %}
                 </div>
 
-                <!-- villa Image Upload -->
-                <p>Villa Image</p>
+                <!-- Property Image Upload -->
+                <p>Property Image</p>
                 <div class="input-group mb-3">
                   <span class="input-group-text"
                     ><i class="fas fa-image"></i
@@ -743,11 +897,24 @@
                     class="row row-cols-2 row-cols-sm-3 row-cols-md-4 g-3 mt-2"
                   ></div>
                 </div>
-                <div class="step-indicator">Step 5 of 5</div>
+                <div class="step-indicator">Step 6 of 6</div>
               </div>
 
-              <button type="submit" class="btn-next">Submit</button>
+              <button type="submit" class="btn-next" id="submitBtn">Submit</button>
             </form>
+            
+            <script>
+              // Form submission handler
+              document.getElementById('vendorRegistrationForm').addEventListener('submit', function(e) {
+                const submitBtn = document.getElementById('submitBtn');
+                if (submitBtn) {
+                  submitBtn.disabled = true;
+                  submitBtn.textContent = 'Submitting...';
+                }
+                // Allow form to submit
+                return true;
+              });
+            </script>
           </div>
         </div>
       </div>
@@ -833,6 +1000,47 @@
 
       password.addEventListener("input", checkPasswordMatch);
       confirmPassword.addEventListener("input", checkPasswordMatch);
+
+      // Property Type Validation
+      const propertyTypeRadios = document.querySelectorAll('.property-type-radio');
+      const propertyTypeError = document.getElementById('property-type-error');
+      const submitBtn = document.getElementById('submitBtn');
+
+      // Visual feedback when property type is selected
+      propertyTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+          propertyTypeError.style.display = 'none';
+          // Remove checked class from all cards
+          document.querySelectorAll('.property-type-card').forEach(card => {
+            card.classList.remove('selected');
+          });
+          // Add checked class to selected card
+          if (this.checked) {
+            this.closest('.property-type-card').classList.add('selected');
+          }
+        });
+      });
+
+      // Form validation before submit
+      const form = document.getElementById('vendorRegistrationForm');
+      if (form) {
+        form.addEventListener('submit', function(e) {
+        const selectedPropertyType = document.querySelector('.property-type-radio:checked');
+        if (!selectedPropertyType) {
+          e.preventDefault();
+            const propertyTypeError = document.getElementById('property-type-error');
+            if (propertyTypeError) {
+          propertyTypeError.style.display = 'block';
+          propertyTypeError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+              alert('Please select a property type');
+            }
+          return false;
+        }
+          // Allow form to submit
+          return true;
+      });
+      }
     </script>
   </body>
 </html>

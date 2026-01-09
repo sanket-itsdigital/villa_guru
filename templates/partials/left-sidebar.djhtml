@@ -175,17 +175,6 @@
 
         <li>
           <a href="javascript: void(0);" class="has-arrow">
-            <i data-feather="grid"></i>
-            <span>Room Type</span>
-          </a>
-          <ul class="sub-menu">
-            <li><a href="{% url 'add_room_type' %}">Add Room Type</a></li>
-            <li><a href="{% url 'list_room_type' %}">List Room Type</a></li>
-          </ul>
-        </li>
-
-        <li>
-          <a href="javascript: void(0);" class="has-arrow">
             <i data-feather="star"></i>
             <span>Room Amenity</span>
           </a>
@@ -225,11 +214,33 @@
         <li>
           <a href="javascript: void(0);" class="has-arrow">
             <i data-feather="layers"></i>
-            <span data-key="t-authentication">Villa Management</span>
+            <span data-key="t-authentication">
+              {% if request.user.property_type %}
+                {{ request.user.property_type.name }} Management
+              {% else %}
+                Villa Management
+              {% endif %}
+            </span>
           </a>
           <ul class="sub-menu" aria-expanded="false">
-            <li><a href="{% url 'list_villa' %}">List Villa</a></li>
-            <li><a href="{% url 'add_villa' %}">Add Villa</a></li>
+            <li><a href="{% url 'list_villa' %}">List Properties</a></li>
+            {% if request.user.property_type and request.user.property_type.name == 'Villa' %}
+              <li><a href="{% url 'add_villa' %}">Add Villa</a></li>
+            {% elif request.user.property_type and request.user.property_type.name == 'Resort' %}
+              {% if not request.user.villas.exists %}
+                <li><a href="{% url 'add_villa' %}">Add Resort</a></li>
+              {% else %}
+                <li class="text-muted" style="padding-left: 20px; color: #999;">You can only have one Resort</li>
+              {% endif %}
+            {% elif request.user.property_type and request.user.property_type.name == 'Couple Stay' %}
+              {% if not request.user.villas.exists %}
+                <li><a href="{% url 'add_villa' %}">Add Couple Stay</a></li>
+              {% else %}
+                <li class="text-muted" style="padding-left: 20px; color: #999;">You can only have one Couple Stay</li>
+              {% endif %}
+            {% else %}
+              <li><a href="{% url 'add_villa' %}">Add Property</a></li>
+            {% endif %}
           </ul>
         </li>
 
@@ -247,6 +258,7 @@
           </ul>
         </li>
         
+        {% if request.user.property_type and request.user.property_type.name != 'Villa' %}
         <li>
           <a href="javascript: void(0);" class="has-arrow">
             <i data-feather="home"></i>
@@ -265,6 +277,19 @@
           </a>
           <ul class="sub-menu">
             <li><a href="{% url 'add_room_type' %}">Add Room Type</a></li>
+            <li><a href="{% url 'list_room_type' %}">List Room Type</a></li>
+          </ul>
+        </li>
+        {% endif %}
+        {% endif %}
+        
+        {% if request.user.is_superuser %}
+        <li>
+          <a href="javascript: void(0);" class="has-arrow">
+            <i data-feather="grid"></i>
+            <span>Room Type</span>
+          </a>
+          <ul class="sub-menu">
             <li><a href="{% url 'list_room_type' %}">List Room Type</a></li>
           </ul>
         </li>

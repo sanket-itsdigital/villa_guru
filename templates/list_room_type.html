@@ -70,9 +70,26 @@
     font-weight: bold;
   }
 
+  .amenities-badge {
+    display: inline-block;
+    margin: 2px;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .amenities-container {
+    max-width: 400px;
+    word-wrap: break-word;
+  }
+
   @media (max-width: 768px) {
     .table-responsive {
       overflow-x: auto;
+    }
+    
+    .amenities-container {
+      max-width: 200px;
     }
   }
 </style>
@@ -111,6 +128,7 @@
                       <tr>
                         <th>#</th>
                         <th>Name</th>
+                        <th>Amenities</th>
                         {% if request.user.is_superuser %}
                         <th>Created By</th>
                         {% endif %}
@@ -122,6 +140,21 @@
                       <tr>
                         <td>{{ forloop.counter }}</td>
                         <td><strong>{{ i.name }}</strong></td>
+                        <td>
+                          {% if i.amenities.all %}
+                            <div class="amenities-container">
+                              {% for amenity in i.amenities.all %}
+                                <span class="badge bg-success amenities-badge">
+                                  <i class="bi bi-check-circle"></i> {{ amenity.name }}
+                                </span>
+                              {% endfor %}
+                            </div>
+                          {% else %}
+                            <span class="text-muted" style="font-style: italic;">
+                              <i class="bi bi-dash-circle"></i> No amenities assigned
+                            </span>
+                          {% endif %}
+                        </td>
                         {% if request.user.is_superuser %}
                         <td>
                           {% if i.user %}
@@ -154,7 +187,7 @@
                       </tr>
                       {% endfor %} {% else %}
                       <tr>
-                        <td colspan="{% if request.user.is_superuser %}4{% else %}3{% endif %}" class="text-center text-muted">
+                        <td colspan="{% if request.user.is_superuser %}5{% else %}4{% endif %}" class="text-center text-muted">
                           No room types found. 
                           {% if not request.user.is_superuser %}
                           <a href="{% url 'add_room_type' %}">Create your first room type</a>

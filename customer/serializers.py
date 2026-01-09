@@ -47,6 +47,11 @@ class VillaRoomSerializer(serializers.ModelSerializer):
         amenities = obj.villa_amenities.all()
         return villa_amenity_serializer(amenities, many=True).data
 
+    room_count = serializers.IntegerField(read_only=True)
+    available_count = serializers.SerializerMethodField()
+    total_rooms = serializers.SerializerMethodField()
+    booked_count = serializers.SerializerMethodField()
+
     class Meta:
         model = villa_rooms
         fields = [
@@ -56,6 +61,10 @@ class VillaRoomSerializer(serializers.ModelSerializer):
             "title",
             "price_per_night",
             "max_guest_count",
+            "room_count",
+            "total_rooms",
+            "available_count",
+            "booked_count",
             "capacity",
             "view",
             "bed_type",
@@ -63,7 +72,19 @@ class VillaRoomSerializer(serializers.ModelSerializer):
             "images",
             "villa_details",
         ]
-        read_only_fields = ["villa_details", "booking_id", "villa_amenity_details"]
+        read_only_fields = ["villa_details", "booking_id", "villa_amenity_details", "room_count"]
+    
+    def get_available_count(self, obj):
+        """Get available room count (set by view if available)"""
+        return getattr(obj, 'available_count', getattr(obj, 'room_count', 1))
+    
+    def get_total_rooms(self, obj):
+        """Get total room count"""
+        return getattr(obj, 'total_rooms', getattr(obj, 'room_count', 1))
+    
+    def get_booked_count(self, obj):
+        """Get booked room count"""
+        return getattr(obj, 'booked_count', 0)
 
     def get_villa_details(self, obj):
         # avoid full villa -> rooms -> villa recursion
@@ -454,54 +475,68 @@ class VillaBookingSerializer(serializers.ModelSerializer):
                         f"Room {room_id} does not belong to this villa."
                     )
 
+                # Get total room count for this room type
+                total_room_count = room.room_count if hasattr(room, 'room_count') and room.room_count else 1
+
                 # Check availability for each date
                 from datetime import timedelta
+                from collections import defaultdict
+
+                # Calculate booked quantities per date for this room
+                conflicting_bookings = (
+                    BookingModel.objects.filter(
+                        booked_rooms__room=room,
+                        check_in__lt=check_out,
+                        check_out__gt=check_in,
+                        status__in=["confirmed", "checked_in", "pending"],
+                        booking_type="selected_rooms",
+                    )
+                    .exclude(id=self.instance.id if self.instance else None)
+                    .prefetch_related("booked_rooms")
+                )
+
+                room_booked_dates = defaultdict(int)
+                for booking in conflicting_bookings:
+                    booking_room = booking.booked_rooms.filter(room=room).first()
+                    if booking_room:
+                        current_date = max(check_in, booking.check_in)
+                        end_date = min(check_out, booking.check_out)
+                        while current_date < end_date:
+                            room_booked_dates[current_date] += booking_room.quantity
+                            current_date += timedelta(days=1)
 
                 current_date = check_in
+                min_available = float('inf')
+                
                 while current_date < check_out:
+                    # Get RoomAvailability record for this date (if exists, it may override)
                     room_availability = RoomAvailability.objects.filter(
                         room=room, date=current_date
                     ).first()
 
-                    # Check existing bookings (exclude current booking if updating)
-                    conflicting_bookings = (
-                        BookingModel.objects.filter(
-                            villa=villa,
-                            check_in__lt=check_out,
-                            check_out__gt=check_in,
-                            status__in=["confirmed", "checked_in", "pending"],
-                            booking_type="selected_rooms",
-                        )
-                        .exclude(id=self.instance.id if self.instance else None)
-                        .prefetch_related("booked_rooms")
-                    )
-
-                    booked_quantity = 0
-                    for booking in conflicting_bookings:
-                        for booked_room in booking.booked_rooms.all():
-                            if booked_room.room_id == room_id:
-                                booked_quantity += booked_room.quantity
-
-                    # If no RoomAvailability record exists, assume room is available (default: 1)
-                    # If record exists but available_count is 0, room is marked as booked (offline)
-                    if room_availability:
-                        available_count = room_availability.available_count
-                        # If available_count is 0, room is marked as booked (offline) - not available
-                        if available_count == 0:
-                            raise serializers.ValidationError(
-                                f"Room {room_id} is not available for the selected dates. "
-                                f"Room is marked as booked (offline) on {current_date}."
-                            )
-                    else:
-                        # No availability record means room is available by default
-                        available_count = 1  # Default: at least 1 room available
-
-                    available = available_count - booked_quantity
-
-                    if available < quantity:
+                    # If RoomAvailability exists and available_count is 0, room is marked as unavailable
+                    if room_availability and room_availability.available_count == 0:
                         raise serializers.ValidationError(
-                            f"Room {room_id} is not available for the selected dates. "
-                            f"Only {available} room(s) available on {current_date}."
+                            f"Room {room.room_type.name if room.room_type else 'Room'} is not available on {current_date} (marked as closed)."
+                        )
+                    
+                    # Calculate booked count for this date
+                    booked_count = room_booked_dates.get(current_date, 0)
+                    
+                    # Calculate available count: room_count - booked_count
+                    # If RoomAvailability exists, use its available_count as the base
+                    if room_availability:
+                        available_count = room_availability.available_count - booked_count
+                    else:
+                        available_count = total_room_count - booked_count
+                    
+                    min_available = min(min_available, available_count)
+
+                    # Check if requested quantity exceeds available
+                    if quantity > available_count:
+                        raise serializers.ValidationError(
+                            f"Cannot book {quantity} room(s) of type {room.room_type.name if room.room_type else 'Room'}. "
+                            f"Only {available_count} room(s) available on {current_date} (Total: {total_room_count}, Booked: {booked_count})."
                         )
 
                     current_date += timedelta(days=1)

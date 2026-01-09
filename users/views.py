@@ -822,14 +822,30 @@ import json
 
 
 def vendor_request(request):
-
+    """
+    Show pending vendor requests (users with is_service_provider=True and is_active=False).
+    These are vendors who have registered but not yet approved by admin.
+    """
+    from django.core.paginator import Paginator
+    from django.contrib import messages
+    
+    # Get pending vendor users (not active yet)
     data = (
-        villa.objects.filter(is_active=False)
-        .select_related("user", "city", "property_type")
-        .prefetch_related("amenities", "rooms")
+        User.objects.filter(is_service_provider=True, is_active=False)
+        .select_related("property_type")
+        .order_by("-date_joined")
     )
+    
+    # Debug: Check if there are any pending vendors
+    total_pending = data.count()
+    if total_pending == 0:
+        messages.info(request, "No pending vendor requests at this time.")
+    
+    paginator = Paginator(data, 30)  # Show 30 vendors per page
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
 
-    context = {"data": data}
+    context = {"data": page_obj}
 
     return render(request, "vendor_request_list.html", context)
 
@@ -850,22 +866,37 @@ def send_test_email(request, subject, body, user_instance):
 
 
 def activate_vendor_request(request, user_id):
+    """
+    Activate a vendor request by setting is_active=True.
+    Also activates any associated villas.
+    """
+    try:
+        user_instance = User.objects.get(id=user_id, is_service_provider=True)
+        
+        # Activate the user
+        user_instance.is_active = True
+        user_instance.save()
 
-    user_instance = User.objects.get(id=user_id)
-    user_instance.is_active = True
+        # Activate all villas associated with this user
+        villas = villa.objects.filter(user=user_instance, is_active=False)
+        for villa_instance in villas:
+            villa_instance.is_active = True
+            villa_instance.save()
 
-    user_instance.save()
-
-    villa_instance = villa.objects.get(user=user_instance)
-    villa_instance.is_active = True
-
-    villa_instance.save()
-
-    msg = "Hi, Your account is activated login and completed your profile" + str(
-        villa_instance.id
-    )
-
-    send_test_email(request, "Your account is actiated", msg, user_instance)
+        # Send activation email
+        msg = f"Hi {user_instance.first_name},\n\nYour vendor account has been activated. You can now login to the vendor panel and manage your properties.\n\nThank you for joining Villa Guru!"
+        
+        if user_instance.email:
+            try:
+                send_test_email(request, "Your Vendor Account is Activated", msg, user_instance)
+            except Exception as e:
+                print(f"Failed to send email: {e}")
+        
+        messages.success(request, f"Vendor {user_instance.first_name} {user_instance.last_name} has been activated successfully.")
+    except User.DoesNotExist:
+        messages.error(request, "Vendor not found.")
+    except Exception as e:
+        messages.error(request, f"Error activating vendor: {str(e)}")
 
     return redirect("vendor_request")
 
@@ -876,8 +907,8 @@ from hotel.forms import villa_Form
 def register_vendor(request):
 
     if request.method == "POST":
-
-        form = villa_Form(request.POST, request.FILES)  # ⬅️ Preserve submitted data
+        # Create form initially - we'll recreate it with proper property_type ID later
+        form = villa_Form(request.POST, request.FILES)
 
         first_name = request.POST.get("first_name")
         last_name = request.POST.get("last_name")
@@ -885,29 +916,60 @@ def register_vendor(request):
         mobile = request.POST.get("mobile")
         password = request.POST.get("password")
         confirm_password = request.POST.get("confirm_password")
+        property_type_name = request.POST.get("property_type")
 
+        # Preserve form data for error display
+        context_data = {
+                "form": form,
+            "first_name": first_name or "",
+            "last_name": last_name or "",
+            "email": email or "",
+            "mobile": mobile or "",
+            "property_type": property_type_name or "",
+        }
+
+        # Validate all required fields
         if not all([first_name, last_name, email, mobile, password, confirm_password]):
-            print("----1----")
-            context = {"form": form, "error": "All fields are required."}
-            return render(request, "hotel_registration_new.html", context)
+            messages.error(request, "All fields are required.")
+            return render(request, "hotel_registration_new.html", context_data)
 
+        # Validate property type
+        if not property_type_name:
+            messages.error(request, "Please select a property type (Villa, Resort, or Couple Stay).")
+            return render(request, "hotel_registration_new.html", context_data)
+
+        # Validate property type value
+        valid_property_types = ["Villa", "Resort", "Couple Stay"]
+        if property_type_name not in valid_property_types:
+            messages.error(request, "Invalid property type selected.")
+            return render(request, "hotel_registration_new.html", context_data)
+
+        # Validate passwords match
         if password != confirm_password:
-            print("----2----")
-            context = {"form": form, "error": "Passwords do not match."}
-            return render(request, "hotel_registration_new.html", context)
+            messages.error(request, "Passwords do not match.")
+            return render(request, "hotel_registration_new.html", context_data)
 
+        # Check if email already exists
         if User.objects.filter(email=email).exists():
-            print("----3----")
-            context = {"form": form, "error": "Email already registered."}
-            return render(request, "hotel_registration_new.html", context)
+            messages.error(request, "Email already registered. Please use a different email.")
+            context_data["email"] = ""
+            return render(request, "hotel_registration_new.html", context_data)
 
+        # Check if mobile already exists
         if User.objects.filter(mobile=mobile).exists():
-            print("----4---")
-            context = {"form": form, "error": "Mobile number already registered."}
-            return render(request, "hotel_registration_new.html", context)
+            messages.error(request, "Mobile number already registered. Please use a different mobile number.")
+            context_data["mobile"] = ""
+            return render(request, "hotel_registration_new.html", context_data)
 
         try:
-            # Create the user
+            # Get or create property type
+            from masters.models import property_type
+            try:
+                property_type_obj = property_type.objects.get(name=property_type_name)
+            except property_type.DoesNotExist:
+                property_type_obj = property_type.objects.create(name=property_type_name)
+
+            # Create the vendor user with property type
             user = User.objects.create_user(
                 email=email,
                 mobile=mobile,
@@ -915,46 +977,73 @@ def register_vendor(request):
                 first_name=first_name,
                 last_name=last_name,
                 is_service_provider=True,
-                is_active=False,
+                is_active=False,  # Pending admin approval
+                property_type=property_type_obj,  # Store property type
             )
 
+            # Update POST data to include property_type ID for form validation
+            # Create a mutable copy of POST data
+            from django.http import QueryDict
+            mutable_post = request.POST.copy()
+            mutable_post['property_type'] = property_type_obj.id
+            
+            # Recreate form with updated POST data
+            form = villa_Form(mutable_post, request.FILES)
+
+            # Validate villa form
             if not request.user.is_superuser:
-                form.fields.pop("profit_margin")
+                if hasattr(form, 'fields') and 'profit_margin' in form.fields:
+                    form.fields.pop("profit_margin")
 
             if form.is_valid():
                 villa_obj = form.save(commit=False)
                 if not request.user.is_superuser:
                     villa_obj.user = user  # auto-assign vendor user
+                villa_obj.property_type = property_type_obj  # Set property type on villa
+                villa_obj.is_active = False  # Villa also pending
                 villa_obj.save()
                 form.save_m2m()
 
+                # Save villa images
                 for img in request.FILES.getlist("image"):
                     VillaImage.objects.create(villa=villa_obj, image=img)
 
+                # Show success message
+                messages.success(
+                    request,
+                    "Registration successful! Your request has been submitted for admin approval. "
+                    "You will be able to login once your account is approved."
+                )
                 return render(request, "hotel_registration_succful.html")
 
             else:
-                print(form.errors)
-                context = {"form": form}
-                return render(request, "hotel_registration_new.html", context)
+                # Form validation failed - rollback user
+                user.delete()
+                messages.error(request, "Please fill all property details correctly.")
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f"{field}: {error}")
+                return render(request, "hotel_registration_new.html", context_data)
 
         except Exception as e:
             print(f"Registration failed: {e}")
-            user.delete()  # optional: rollback user if villa fails
-            context = {
-                "form": form,
-                "error": "Something went wrong during registration. Please try again.",
-            }
-            return render(request, "hotel_registration_new.html", context)
+            import traceback
+            traceback.print_exc()
+            # Rollback user if created
+            if 'user' in locals():
+                try:
+                    user.delete()
+                except:
+                    pass
+            messages.error(request, f"Something went wrong during registration: {str(e)}. Please try again.")
+            return render(request, "hotel_registration_new.html", context_data)
 
     else:
-
+        # GET request - show form
         form = villa_Form()
-
         context = {
             "form": form,
         }
-
         return render(request, "hotel_registration_new.html", context)
 
 
@@ -1088,7 +1177,8 @@ def provider_user_list(request):
 
     data = (
         User.objects.filter(is_service_provider=True)
-        .select_related("villa")
+        .select_related("property_type")  # Forward relationship
+        .prefetch_related("villas")  # Reverse relationship (villa has ForeignKey to User)
         .order_by("-date_joined")
     )
 

@@ -113,6 +113,9 @@
                                                 <th>Package</th>
                                                 <th>Price/Night</th>
                                                 <th>Max Guests</th>
+                                                <th>Total Rooms</th>
+                                                <th>Available</th>
+                                                <th>Booked</th>
                                                 <th>Bed Type</th>
                                                 <th>View</th>
                                                 <th>Actions</th>
@@ -131,6 +134,15 @@
                                                     <td>{{ room.get_title_display }}</td>
                                                     <td><strong>₹{{ room.price_per_night|floatformat:2 }}</strong></td>
                                                     <td>{{ room.max_guest_count }}</td>
+                                                    <td>
+                                                        <span class="badge bg-info">{{ room.room_count|default:1 }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-success">{{ room.available_count|default:room.room_count|default:1 }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-warning">{{ room.booked_count|default:0 }}</span>
+                                                    </td>
                                                     <td>{{ room.bed_type|default:"-" }}</td>
                                                     <td>{{ room.view|default:"-" }}</td>
                                                     <td>

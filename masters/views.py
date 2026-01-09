@@ -685,19 +685,49 @@ class get_villa_amenity(ListAPIView):
 
 @login_required(login_url="login_admin")
 def add_room_type(request):
+    """
+    Add room type - Only vendors can add room types, not admins.
+    Vendors can assign room amenities to the room type.
+    """
+    from django.contrib import messages
+    
+    # Restrict admin from adding room types
+    if request.user.is_superuser:
+        messages.warning(
+            request,
+            "Admins cannot add room types. Only vendors can create room types for their properties."
+        )
+        return redirect("list_room_type")
+    
+    # Only allow service providers (vendors)
+    if not request.user.is_service_provider:
+        messages.error(request, "You don't have permission to add room types.")
+        return redirect("list_room_type")
+    
+    # Check if vendor has property_type (should be Resort or Couple Stay for room management)
+    if request.user.property_type and request.user.property_type.name == "Villa":
+        messages.info(
+            request,
+            "Room types are only available for Resort and Couple Stay properties. "
+            "Villa properties are booked as whole units."
+        )
+        return redirect("list_room_type")
 
     if request.method == "POST":
-
         forms = room_type_Form(request.POST, request.FILES)
 
         if forms.is_valid():
             instance = forms.save(commit=False)
-            # For vendors: assign the room type to the current user
-            if request.user.is_service_provider and not request.user.is_superuser:
-                instance.user = request.user
-            # For admins: user field can be null (system-wide room type)
+            # Assign the room type to the current vendor user
+            instance.user = request.user
             instance.save()
-            messages.success(request, "Room type added successfully!")
+            # Save many-to-many relationships (amenities)
+            forms.save_m2m()
+            messages.success(
+                request, 
+                f"Room type '{instance.name}' added successfully! "
+                f"You can now use this room type when adding rooms to your properties."
+            )
             return redirect("list_room_type")
         else:
             print(forms.errors)
@@ -705,12 +735,7 @@ def add_room_type(request):
             return render(request, "add_room_type.html", context)
 
     else:
-
         form = room_type_Form()
-        # Hide user field from form - it will be set automatically
-        if request.user.is_service_provider and not request.user.is_superuser:
-            form.fields.pop('user', None)
-
         return render(request, "add_room_type.html", {"form": form})
 
 
@@ -735,6 +760,8 @@ def update_room_type(request, room_type_id):
             if request.user.is_service_provider and not request.user.is_superuser:
                 instance.user = request.user
             instance.save()
+            # Save many-to-many relationships (amenities)
+            forms.save_m2m()
             messages.success(request, "Room type updated successfully!")
             return redirect("list_room_type")
         else:
@@ -743,25 +770,19 @@ def update_room_type(request, room_type_id):
             return render(request, "add_room_type.html", context)
 
     else:
-
         forms = room_type_Form(instance=instance)
-        # Hide user field from form for vendors
-        if request.user.is_service_provider and not request.user.is_superuser:
-            forms.fields.pop('user', None)
-
         context = {"form": forms}
-
         return render(request, "add_room_type.html", context)
 
 
 @login_required(login_url="login_admin")
 def list_room_type(request):
     if request.user.is_superuser:
-        # Admin: show all room types
-        data = room_type.objects.all().order_by("-id")
+        # Admin: show all room types with amenities prefetched
+        data = room_type.objects.prefetch_related('amenities').all().order_by("-id")
     else:
-        # Vendor: show only their own room types
-        data = room_type.objects.filter(user=request.user).order_by("-id")
+        # Vendor: show only their own room types with amenities prefetched
+        data = room_type.objects.prefetch_related('amenities').filter(user=request.user).order_by("-id")
     
     return render(request, "list_room_type.html", {"data": data})
 

@@ -1103,6 +1103,100 @@ class VillaRoomDetailAPIView(generics.RetrieveAPIView):
     lookup_url_kwarg = "room_id"  # matches your URL param
 
 
+class PropertyRoomTypesAPIView(APIView):
+    """
+    Get all room types for a specific property (Villa/Resort/Couple Stay).
+
+    Query Parameters:
+    - property_id (required): ID of the property (villa/resort/couple stay)
+
+    Returns a list of unique room types used in that property's rooms.
+    For Villa properties, returns empty list as villas don't have individual rooms.
+    """
+
+    def get(self, request):
+        from hotel.models import villa, villa_rooms
+        from masters.serializers import room_type_serializer
+        from rest_framework.exceptions import ValidationError
+
+        property_id = request.query_params.get("property_id")
+
+        if not property_id:
+            return Response(
+                {"error": "property_id is required as query parameter."}, status=400
+            )
+
+        try:
+            property_id = int(property_id)
+        except ValueError:
+            return Response(
+                {"error": "property_id must be a valid integer."}, status=400
+            )
+
+        # Get the property
+        try:
+            property_obj = villa.objects.select_related("property_type").get(
+                id=property_id
+            )
+        except villa.DoesNotExist:
+            return Response(
+                {"error": f"Property with id {property_id} not found."}, status=404
+            )
+
+        # Check property type
+        property_type_name = (
+            property_obj.property_type.name if property_obj.property_type else None
+        )
+
+        # Villa properties don't have individual room types
+        if property_type_name == "Villa":
+            return Response(
+                {
+                    "property_id": property_id,
+                    "property_name": property_obj.name,
+                    "property_type": property_type_name,
+                    "message": "Villa properties are booked as whole units and do not have individual room types.",
+                    "room_types": [],
+                }
+            )
+
+        # For Resort and Couple Stay, get unique room types from their rooms
+        if property_type_name in ["Resort", "Couple Stay"]:
+            # Get all unique room types used in this property's rooms
+            from masters.models import room_type
+
+            room_types = (
+                room_type.objects.filter(rooms__villa=property_obj)
+                .distinct()
+                .prefetch_related("amenities")
+            )
+
+            serializer = room_type_serializer(
+                room_types, many=True, context={"request": request}
+            )
+
+            return Response(
+                {
+                    "property_id": property_id,
+                    "property_name": property_obj.name,
+                    "property_type": property_type_name,
+                    "room_types_count": room_types.count(),
+                    "room_types": serializer.data,
+                }
+            )
+
+        # Unknown property type
+        return Response(
+            {
+                "property_id": property_id,
+                "property_name": property_obj.name,
+                "property_type": property_type_name,
+                "message": "Unknown property type.",
+                "room_types": [],
+            }
+        )
+
+
 from rest_framework import generics
 from rest_framework.exceptions import ValidationError
 from django.db.models import Count
@@ -1175,33 +1269,48 @@ class AvailableRoomsAPIView(generics.ListAPIView):
                     current_date += timedelta(days=1)
 
         # Check each room for availability across all dates
+        # Now using room_count instead of RoomAvailability.available_count
         truly_available_room_ids = []
+        room_availability_data = {}  # Store availability info for each room
 
         for room in rooms:
             is_available = True
             current_date = from_date
+            min_available = float("inf")  # Track minimum available across all dates
+
+            # Get total room count for this room type
+            total_room_count = (
+                room.room_count
+                if hasattr(room, "room_count") and room.room_count
+                else 1
+            )
 
             while current_date < to_date:
-                # Get RoomAvailability record for this date
+                # Get RoomAvailability record for this date (if exists, it may override)
                 room_availability = RoomAvailability.objects.filter(
                     room=room, date=current_date
                 ).first()
 
-                # If no RoomAvailability record exists, assume room is available
-                if room_availability:
-                    available_count = room_availability.available_count
-                    # If available_count is 0, room is marked as booked (offline) - not available
-                    if available_count == 0:
-                        is_available = False
-                        break
-                else:
-                    # No availability record means room is available by default
-                    available_count = 1  # Default: at least 1 room available
+                # If RoomAvailability exists and available_count is 0, room is marked as unavailable
+                if room_availability and room_availability.available_count == 0:
+                    is_available = False
+                    min_available = 0
+                    break
 
+                # Calculate booked count for this date
                 booked_count = room_booked_dates[room.id].get(current_date, 0)
 
-                # Room is not available if booked_count >= available_count
-                if available_count <= booked_count:
+                # Calculate available count: room_count - booked_count
+                # If RoomAvailability exists, use its available_count as the base
+                if room_availability:
+                    available_count = room_availability.available_count - booked_count
+                else:
+                    available_count = total_room_count - booked_count
+
+                min_available = min(min_available, available_count)
+
+                # Room is not available if available_count <= 0
+                if available_count <= 0:
                     is_available = False
                     break
 
@@ -1209,12 +1318,41 @@ class AvailableRoomsAPIView(generics.ListAPIView):
 
             if is_available:
                 truly_available_room_ids.append(room.id)
+                # Store availability data for serializer
+                room_availability_data[room.id] = {
+                    "total_rooms": total_room_count,
+                    "available_rooms": (
+                        max(0, min_available)
+                        if min_available != float("inf")
+                        else total_room_count
+                    ),
+                    "booked_rooms": (
+                        total_room_count - max(0, min_available)
+                        if min_available != float("inf")
+                        else 0
+                    ),
+                }
 
-        qs = villa_rooms.objects.filter(id__in=truly_available_room_ids)
+        qs = (
+            villa_rooms.objects.filter(id__in=truly_available_room_ids)
+            .select_related("room_type", "villa")
+            .prefetch_related("villa_amenities", "images")
+        )
 
         # Apply other filters
         filterset = VillaRoomFilter(self.request.GET, queryset=qs)
-        return filterset.qs
+        filtered_qs = filterset.qs
+
+        # Add availability data to each room object for serializer
+        for room in filtered_qs:
+            if room.id in room_availability_data:
+                room.available_count = room_availability_data[room.id][
+                    "available_rooms"
+                ]
+                room.total_rooms = room_availability_data[room.id]["total_rooms"]
+                room.booked_count = room_availability_data[room.id]["booked_rooms"]
+
+        return filtered_qs
 
 
 class AvailableVillasAPIView(APIView):
@@ -1381,33 +1519,41 @@ class AvailableVillasAPIView(APIView):
                         current_date += timedelta(days=1)
 
             # Check each room for availability across all dates
+            # Now using room_count instead of RoomAvailability
             truly_available_room_ids = []
 
             for room in resort_rooms:
                 is_available = True
                 current_date = check_in
 
+                # Get total room count for this room type
+                total_room_count = room.room_count if hasattr(room, "room_count") else 1
+
                 while current_date < check_out:
-                    # Get RoomAvailability record for this date
+                    # Get RoomAvailability record for this date (if exists, it may override)
                     room_availability = RoomAvailability.objects.filter(
                         room=room, date=current_date
                     ).first()
 
-                    # If no RoomAvailability record exists, assume room is available
-                    if room_availability:
-                        available_count = room_availability.available_count
-                        # If available_count is 0, room is marked as booked offline
-                        if available_count == 0:
-                            is_available = False
-                            break
-                    else:
-                        # No availability record means room is available by default
-                        available_count = 1  # Default: at least 1 room available
+                    # If RoomAvailability exists and available_count is 0, room is marked as unavailable
+                    if room_availability and room_availability.available_count == 0:
+                        is_available = False
+                        break
 
+                    # Calculate booked count for this date
                     booked_count = room_booked_dates[room.id].get(current_date, 0)
 
-                    # Room is not available if booked_count >= available_count
-                    if available_count <= booked_count:
+                    # Calculate available count: room_count - booked_count
+                    # If RoomAvailability exists, use its available_count as the base
+                    if room_availability:
+                        available_count = (
+                            room_availability.available_count - booked_count
+                        )
+                    else:
+                        available_count = total_room_count - booked_count
+
+                    # Room is not available if available_count <= 0
+                    if available_count <= 0:
                         is_available = False
                         break
 

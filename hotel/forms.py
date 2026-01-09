@@ -18,7 +18,7 @@ class villa_Form(forms.ModelForm):
         fields = '__all__'
         widgets = {
             'user': forms.Select(attrs={'class': 'form-control'}),
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': "Villa Name"}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': "Property Name"}),
             'category': forms.Select(attrs={'class': 'form-control', 'placeholder': "Category (e.g. Budget)"}),
             'no_of_rooms': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': "Number of Villa"}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': "Address"}),
@@ -116,6 +116,7 @@ class villa_rooms_Form(forms.ModelForm):
             'main_image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'price_per_night': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
             'max_guest_count': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
+            'room_count': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'step': '1'}),
             'refundable': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'meals_included': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'bed_type': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 1 Queen Bed + 1 Double Bed'}),
@@ -126,9 +127,18 @@ class villa_rooms_Form(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
+        # Ensure instance is set (for new forms, Django should create one, but ensure it exists)
+        if self.instance is None:
+            from .models import villa_rooms
+            self.instance = villa_rooms()
+        
         # Make villa field required with help text
         self.fields['villa'].required = True
-        self.fields['price_per_night'].help_text = 'Enter the price per night for this specific room. Each room can have different pricing.'
+        self.fields['price_per_night'].help_text = 'Enter the price per night for this room type.'
+        self.fields['room_count'].help_text = 'Number of physical rooms of this type available in the property. Each room type can only be added once per property.'
+        self.fields['room_count'].required = True
+        self.fields['room_count'].min_value = 1
         
         # Filter room types based on user
         if user and user.is_service_provider and not user.is_superuser:
@@ -138,10 +148,35 @@ class villa_rooms_Form(forms.ModelForm):
             self.fields['room_type'].queryset = room_type.objects.filter(
                 Q(user=user) | Q(user__isnull=True)
             )
-            self.fields['room_type'].help_text = 'Select the type of room. You can create your own room types in Room Type Management.'
+            self.fields['room_type'].help_text = 'Select the type of room. You can create your own room types in Room Type Management. Amenities from the selected room type will be pre-selected below.'
+            
+            # Add JavaScript to auto-populate amenities when room_type changes
+            self.fields['room_type'].widget.attrs['onchange'] = 'updateAmenitiesFromRoomType(this)'
         else:
             # Admin: show all room types
             self.fields['room_type'].help_text = 'Select the type of room (e.g., Standard, Deluxe, Suite).'
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        villa = cleaned_data.get('villa')
+        room_type = cleaned_data.get('room_type')
+        
+        if villa and room_type:
+            # Check if this room_type already exists for this villa (excluding current instance)
+            from .models import villa_rooms
+            existing = villa_rooms.objects.filter(villa=villa, room_type=room_type)
+            
+            # If updating, exclude current instance
+            # self.instance is set by ModelForm, so we can safely check it
+            if self.instance and self.instance.pk:
+                existing = existing.exclude(pk=self.instance.pk)
+            
+            if existing.exists():
+                raise forms.ValidationError({
+                    'room_type': f'This room type is already assigned to {villa.name}. Each room type can only be used once per property. Please edit the existing entry or choose a different room type.'
+                })
+        
+        return cleaned_data
 
 
 class VillaPricingForm(forms.ModelForm):

@@ -290,9 +290,19 @@ class villa_rooms(models.Model):
     villa_amenities = models.ManyToManyField(
         "masters.villa_amenity", blank=True
     )  # Optional: for extra features
+    
+    room_count = models.PositiveIntegerField(
+        default=1,
+        help_text="Number of physical rooms of this type available in the property"
+    )
+
+    class Meta:
+        unique_together = [("villa", "room_type")]
+        verbose_name = "Villa Room"
+        verbose_name_plural = "Villa Rooms"
 
     def __str__(self):
-        return f" {self.room_type} - ₹{self.price_per_night}"
+        return f"{self.room_type.name if self.room_type else 'Room'} (x{self.room_count}) - ₹{self.price_per_night}"
 
 
 class villa_roomsImage(models.Model):

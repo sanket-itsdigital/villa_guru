@@ -100,26 +100,29 @@ class villa_amenity_Form(forms.ModelForm):
 class room_type_Form(forms.ModelForm):
     class Meta:
         model = room_type
-        fields = '__all__'
+        fields = ['name', 'amenities']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control', 'id': 'name',
                 'placeholder': 'e.g., Standard Room, Deluxe Room, Suite'
             }),
-            'user': forms.Select(attrs={
-                'class': 'form-control'
+            'amenities': forms.CheckboxSelectMultiple(attrs={
+                'class': 'form-check-input'
             })
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # For admins: show user field to assign to specific vendor
-        # For vendors: user field will be hidden and auto-assigned
-        if 'user' in self.fields:
-            from users.models import User
-            self.fields['user'].queryset = User.objects.filter(is_service_provider=True)
-            self.fields['user'].required = False
-            self.fields['user'].help_text = "Leave empty for system-wide room type (admin only). For vendors, this is auto-assigned."
+        # Only show amenities that are available
+        if 'amenities' in self.fields:
+            self.fields['amenities'].queryset = villa_amenity.objects.all().order_by('name')
+            self.fields['amenities'].required = False
+            self.fields['amenities'].help_text = "Select the amenities that will be available for this room type. These amenities will be automatically assigned when you create rooms using this room type."
+            # Style the checkboxes better
+            self.fields['amenities'].widget.attrs.update({
+                'class': 'form-check-input',
+                'style': 'margin-right: 5px;'
+            })
         
 class villa_type_Form(forms.ModelForm):
     class Meta:

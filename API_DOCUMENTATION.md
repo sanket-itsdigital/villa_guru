@@ -426,7 +426,102 @@ Content-Type: application/json
 
 ---
 
-### 10. Get Available Rooms
+### 10. Get Property Room Types
+
+**Endpoint:** `GET /customer/property-room-types/`
+
+**Description:** Get all room types available for a specific property (Resort or Couple Stay). For Villa properties, returns an empty list as villas are booked as whole units.
+
+**Request Headers:**
+```
+Content-Type: application/json
+Authorization: Bearer <token> (optional)
+```
+
+**Query Parameters:**
+- `property_id` (required): ID of the property (villa/resort/couple stay)
+
+**Example Request:**
+```
+GET /customer/property-room-types/?property_id=3
+```
+
+**Success Response (200 OK) - For Resort/Couple Stay:**
+```json
+{
+  "property_id": 3,
+  "property_name": "Beach Resort",
+  "property_type": "Resort",
+  "room_types_count": 2,
+  "room_types": [
+    {
+      "id": 1,
+      "name": "Deluxe Room",
+      "user": null,
+      "created_by": null,
+      "amenities": [
+        {
+          "id": 1,
+          "name": "WiFi"
+        },
+        {
+          "id": 2,
+          "name": "AC"
+        }
+      ],
+      "amenities_list": ["WiFi", "AC"]
+    },
+    {
+      "id": 2,
+      "name": "Suite",
+      "user": 2,
+      "created_by": {
+        "id": 2,
+        "name": "John Doe",
+        "email": "vendor@example.com"
+      },
+      "amenities": [
+        {
+          "id": 3,
+          "name": "Mini Bar"
+        }
+      ],
+      "amenities_list": ["Mini Bar"]
+    }
+  ]
+}
+```
+
+**Success Response (200 OK) - For Villa:**
+```json
+{
+  "property_id": 1,
+  "property_name": "Luxury Villa",
+  "property_type": "Villa",
+  "message": "Villa properties are booked as whole units and do not have individual room types.",
+  "room_types": []
+}
+```
+
+**Error Responses:**
+
+**400 Bad Request:**
+```json
+{
+  "error": "property_id is required as query parameter."
+}
+```
+
+**404 Not Found:**
+```json
+{
+  "error": "Property with id 999 not found."
+}
+```
+
+---
+
+### 11. Get Available Rooms
 
 **Endpoint:** `GET /customer/available-rooms/`
 
@@ -438,16 +533,31 @@ Content-Type: application/json
 ```
 
 **Query Parameters:**
-- `check_in` (required): Check-in date (YYYY-MM-DD)
-- `check_out` (required): Check-out date (YYYY-MM-DD)
-- `villa_id` (optional): Filter by villa ID
+- `villa_id` (required): ID of the property (villa/resort/couple stay)
+- `from_date` (required): Check-in date (YYYY-MM-DD)
+- `to_date` (required): Check-out date (YYYY-MM-DD)
 - `room_type` (optional): Filter by room type ID
-- `price_min` (optional): Minimum price
-- `price_max` (optional): Maximum price
+- `price_min` (optional): Minimum price per night
+- `price_max` (optional): Maximum price per night
+- `title` (optional): Filter by package type (e.g., "room_only", "breakfast")
+- `bed_type` (optional): Filter by bed type (partial match)
+- `capacity` (optional): Filter by capacity (partial match)
+- `view` (optional): Filter by view (partial match)
+- `villa_amenities` (optional): Filter by amenity IDs (comma-separated)
 
 **Example Request:**
 ```
-GET /customer/available-rooms/?check_in=2024-01-15&check_out=2024-01-20&villa_id=1
+GET /customer/available-rooms/?villa_id=5&from_date=2026-04-08&to_date=2026-04-09
+```
+
+**Example Request with Room Type Filter:**
+```
+GET /customer/available-rooms/?villa_id=5&from_date=2026-04-08&to_date=2026-04-09&room_type=2
+```
+
+**Example Request with Multiple Filters:**
+```
+GET /customer/available-rooms/?villa_id=5&from_date=2026-04-08&to_date=2026-04-09&room_type=2&price_min=1000&price_max=5000
 ```
 
 **Success Response (200 OK):**
@@ -466,7 +576,7 @@ GET /customer/available-rooms/?check_in=2024-01-15&check_out=2024-01-20&villa_id
 
 ---
 
-### 11. Get Available Villas
+### 12. Get Available Villas
 
 **Endpoint:** `POST /customer/available-villas/`
 

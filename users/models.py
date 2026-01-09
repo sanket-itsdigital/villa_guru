@@ -37,6 +37,16 @@ class User(AbstractUser):
     # Email is optional
 
     email_verified = models.BooleanField(default=False)
+    
+    # Property type for vendors (one vendor can have only one property type)
+    property_type = models.ForeignKey(
+        "masters.property_type",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="vendors",
+        help_text="Property type for vendor (Villa, Resort, or Couple Stay). One vendor can have only one property type."
+    )
 
     username = None  # Remove username field
 

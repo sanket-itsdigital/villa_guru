@@ -61,7 +61,13 @@ class room_type(models.Model):
         null=True,
         blank=True,
         related_name="room_types",
-        help_text="Vendor who created this room type. If null, it's a system-wide room type (admin created)."
+        help_text="Vendor who created this room type. Only vendors can create room types."
+    )
+    amenities = models.ManyToManyField(
+        "masters.villa_amenity",
+        blank=True,
+        related_name="room_types",
+        help_text="Room amenities that will be available for this room type"
     )
 
     class Meta:

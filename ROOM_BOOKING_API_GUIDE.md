@@ -80,18 +80,33 @@ GET /customer/available-rooms/
 Returns rooms that are available for specific check-in and check-out dates. Only shows rooms for **Resort** and **Couple Stay** properties.
 
 ### Query Parameters (Required)
-- `hotel_id` (required): Villa/Resort ID
+- `villa_id` (required): Villa/Resort/Couple Stay ID
 - `from_date` (required): Check-in date (YYYY-MM-DD)
 - `to_date` (required): Check-out date (YYYY-MM-DD)
 
 ### Query Parameters (Optional)
-- `room_type`: Filter by room type ID
-- `price_min`: Minimum price filter
-- `price_max`: Maximum price filter
+- `room_type` (optional): Filter by room type ID - Returns only rooms of the specified room type
+- `price_min` (optional): Minimum price per night filter
+- `price_max` (optional): Maximum price per night filter
+- `title` (optional): Filter by package type (e.g., "room_only", "breakfast", "all_meals")
+- `bed_type` (optional): Filter by bed type (partial match, case-insensitive)
+- `capacity` (optional): Filter by capacity description (partial match, case-insensitive)
+- `view` (optional): Filter by view description (partial match, case-insensitive)
+- `villa_amenities` (optional): Filter by amenity IDs (comma-separated, e.g., "1,2,3")
 
-### Example Request
+### Example Request (Basic)
 ```bash
-GET /customer/available-rooms/?hotel_id=3&from_date=2026-02-01&to_date=2026-02-05
+GET /customer/available-rooms/?villa_id=5&from_date=2026-04-08&to_date=2026-04-09
+```
+
+### Example Request (With Room Type Filter)
+```bash
+GET /customer/available-rooms/?villa_id=5&from_date=2026-04-08&to_date=2026-04-09&room_type=2
+```
+
+### Example Request (With Multiple Filters)
+```bash
+GET /customer/available-rooms/?villa_id=5&from_date=2026-04-08&to_date=2026-04-09&room_type=2&price_min=1000&price_max=5000
 ```
 
 ### Example Response
@@ -99,19 +114,50 @@ GET /customer/available-rooms/?hotel_id=3&from_date=2026-02-01&to_date=2026-02-0
 [
   {
     "id": 1,
-    "room_type": 1,
-    "room_type_name": "Deluxe",
-    "title": "Ocean View Room",
+    "room_type": 2,
+    "room_type_name": "Deluxe Room",
+    "title": "room_only",
     "price_per_night": "5000.00",
     "max_guest_count": 2,
+    "room_count": 4,
+    "total_rooms": 4,
+    "available_count": 2,
+    "booked_count": 2,
+    "capacity": "2 Adults",
+    "view": "Ocean View",
+    "bed_type": "King Size",
+    "villa_amenity_details": [
+      {
+        "id": 1,
+        "name": "WiFi"
+      },
+      {
+        "id": 2,
+        "name": "AC"
+      }
+    ],
+    "images": [
+      {
+        "id": 1,
+        "image": "/media/hotels/room1.jpg"
+      }
+    ],
     "villa_details": {
-      "id": 3,
+      "id": 5,
       "name": "Beach Resort",
-      "villa_id": "VG003"
+      "villa_id": "RS-005",
+      "city": "Goa",
+      "address": "123 Beach Road"
     }
   }
 ]
 ```
+
+### Notes
+- The `room_type` filter accepts the room type ID (integer)
+- When `room_type` is provided, only rooms of that specific type are returned
+- The response includes `room_count`, `available_count`, and `booked_count` to show availability
+- `available_count` shows how many rooms of this type are available for the specified date range
 
 ---
 

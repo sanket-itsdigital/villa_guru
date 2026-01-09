@@ -78,3 +78,29 @@ class HomeBannerSerializer(serializers.ModelSerializer):
         if obj.image and request:
             return request.build_absolute_uri(obj.image.url)
         return obj.image.url if obj.image else None
+
+
+class room_type_serializer(serializers.ModelSerializer):
+    """Serializer for room types with amenities"""
+    amenities = villa_amenity_serializer(many=True, read_only=True)
+    amenities_list = serializers.SerializerMethodField()
+    created_by = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = room_type
+        fields = ['id', 'name', 'user', 'created_by', 'amenities', 'amenities_list']
+        read_only_fields = ['user']
+    
+    def get_amenities_list(self, obj):
+        """Return list of amenity names"""
+        return [amenity.name for amenity in obj.amenities.all()]
+    
+    def get_created_by(self, obj):
+        """Return user details if room type was created by a vendor"""
+        if obj.user:
+            return {
+                'id': obj.user.id,
+                'name': f"{obj.user.first_name} {obj.user.last_name}".strip() or obj.user.mobile,
+                'email': obj.user.email
+            }
+        return None

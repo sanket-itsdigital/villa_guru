@@ -55,16 +55,15 @@
           <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
 
-            {% if not request.user.is_superuser %}
             <div class="alert alert-info mb-4">
               <i class="bi bi-info-circle"></i> 
               <strong>Note:</strong> This room type will be available only for your properties. 
               You can use it when adding rooms to your Resort or Couple Stay properties.
+              The amenities you select here will be automatically assigned to rooms created with this room type.
             </div>
-            {% endif %}
             
             <div class="mb-4">
-              <label for="name" class="form-label">Room Type Name:</label>
+              <label for="name" class="form-label">Room Type Name <span class="text-danger">*</span>:</label>
               {{ form.name }}
               {% if form.name.errors %}
                 <div class="text-danger">{{ form.name.errors.0 }}</div>
@@ -72,18 +71,31 @@
               <small class="form-text text-muted">e.g., Standard Room, Deluxe Room, Suite, Family Room, etc.</small>
             </div>
             
-            {% if request.user.is_superuser and form.user %}
             <div class="mb-4">
-              <label for="user" class="form-label">Assign to Vendor (Optional):</label>
-              {{ form.user }}
-              {% if form.user.errors %}
-                <div class="text-danger">{{ form.user.errors.0 }}</div>
+              <label class="form-label">Room Amenities:</label>
+              {% if form.amenities.errors %}
+                <div class="text-danger">{{ form.amenities.errors.0 }}</div>
               {% endif %}
-              {% if form.user.help_text %}
-              <small class="form-text text-muted">{{ form.user.help_text }}</small>
+              <div class="row mt-2">
+                {% for amenity in form.amenities %}
+                  <div class="col-md-4 col-sm-6 mb-2">
+                    <div class="form-check">
+                      {{ amenity.tag }}
+                      <label class="form-check-label" for="{{ amenity.id_for_label }}">
+                        {{ amenity.choice_label }}
+                      </label>
+                    </div>
+                  </div>
+                {% empty %}
+                  <div class="col-12">
+                    <p class="text-muted">No amenities available. Please contact admin to add amenities first.</p>
+                  </div>
+                {% endfor %}
+              </div>
+              {% if form.amenities.help_text %}
+                <small class="form-text text-muted">{{ form.amenities.help_text }}</small>
               {% endif %}
             </div>
-            {% endif %}
 
             <div class="text-center">
               <button type="submit" class="btn btn-primary custom-button">
