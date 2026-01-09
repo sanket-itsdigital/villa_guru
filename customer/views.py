@@ -1071,6 +1071,41 @@ class VillaDetailAPIView(generics.RetrieveAPIView):
         context["request"] = self.request
         return context
 
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Override retrieve to remove rooms field and add room_types field.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        villa_data = serializer.data
+
+        # Remove rooms field
+        villa_data.pop("rooms", None)
+
+        # Get room types for this property (only for Resort/Couple Stay)
+        from masters.models import room_type
+        from masters.serializers import room_type_serializer
+
+        property_type_name = villa_data.get("property_type", {}).get("name", "")
+
+        if property_type_name in ["Resort", "Couple Stay"]:
+            # Get unique room types from this property's rooms
+            room_types_qs = (
+                room_type.objects.filter(rooms__villa=instance)
+                .distinct()
+                .prefetch_related("amenities", "rooms__images")
+            )
+
+            room_types_serializer = room_type_serializer(
+                room_types_qs, many=True, context={"request": request}
+            )
+            villa_data["room_types"] = room_types_serializer.data
+        else:
+            # Villa properties don't have individual room types
+            villa_data["room_types"] = []
+
+        return Response(villa_data)
+
 
 class VillaRoomListAPIView(generics.ListAPIView):
     """
