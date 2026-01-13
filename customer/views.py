@@ -1008,11 +1008,12 @@ class VillaListAPIView(generics.ListAPIView):
 
                     while current_date < check_out:
                         # Use automatic calculation method - it handles everything
-                        room_availability = RoomAvailability.get_or_calculate_availability(
-                            room=room,
-                            date=current_date
+                        room_availability = (
+                            RoomAvailability.get_or_calculate_availability(
+                                room=room, date=current_date
+                            )
                         )
-                        
+
                         # Check if manually closed
                         if room_availability.is_manually_closed:
                             is_available = False
@@ -1095,7 +1096,9 @@ class VillaDetailAPIView(generics.RetrieveAPIView):
             )
 
             room_types_serializer = room_type_serializer(
-                room_types_qs, many=True, context={"request": request}
+                room_types_qs,
+                many=True,
+                context={"request": request, "villa": instance},
             )
             villa_data["room_types"] = room_types_serializer.data
         else:
@@ -1205,7 +1208,9 @@ class PropertyRoomTypesAPIView(APIView):
             )
 
             serializer = room_type_serializer(
-                room_types, many=True, context={"request": request}
+                room_types,
+                many=True,
+                context={"request": request, "villa": property_obj},
             )
 
             return Response(
@@ -1321,10 +1326,9 @@ class AvailableRoomsAPIView(generics.ListAPIView):
             while current_date < to_date:
                 # Use automatic calculation method - it handles everything
                 room_availability = RoomAvailability.get_or_calculate_availability(
-                    room=room,
-                    date=current_date
+                    room=room, date=current_date
                 )
-                
+
                 # Check if manually closed
                 if room_availability.is_manually_closed:
                     is_available = False
@@ -1558,15 +1562,14 @@ class AvailableVillasAPIView(APIView):
                 while current_date < check_out:
                     # Use automatic calculation method - it handles everything
                     room_availability = RoomAvailability.get_or_calculate_availability(
-                        room=room,
-                        date=current_date
+                        room=room, date=current_date
                     )
-                    
+
                     # Check if manually closed
                     if room_availability.is_manually_closed:
                         is_available = False
                         break
-                    
+
                     # Get the calculated available count
                     available_count = room_availability.available_count
 
@@ -1676,7 +1679,9 @@ class AvailableVillasAPIView(APIView):
                     )
 
                     room_types_serializer = room_type_serializer(
-                        room_types_qs, many=True, context={"request": request}
+                        room_types_qs,
+                        many=True,
+                        context={"request": request, "villa": villa_obj},
                     )
                     villa_data["room_types"] = room_types_serializer.data
                 else:

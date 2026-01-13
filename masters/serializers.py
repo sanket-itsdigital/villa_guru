@@ -97,6 +97,7 @@ class room_type_serializer(serializers.ModelSerializer):
     amenities_list = serializers.SerializerMethodField()
     created_by = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
+    price_per_night = serializers.SerializerMethodField()
 
     class Meta:
         model = room_type
@@ -108,6 +109,7 @@ class room_type_serializer(serializers.ModelSerializer):
             "amenities",
             "amenities_list",
             "images",
+            "price_per_night",
         ]
         read_only_fields = ["user"]
 
@@ -158,3 +160,32 @@ class room_type_serializer(serializers.ModelSerializer):
                         all_images.append({"id": room_image.id, "image": image_url})
 
         return all_images
+
+    def get_price_per_night(self, obj):
+        """
+        Get price per night for this room type.
+        If context has 'villa', get price from rooms of this room_type in that villa.
+        Otherwise, get the first available price from any room using this room_type.
+        """
+        from hotel.models import villa_rooms
+        
+        # Check if villa is provided in context (from VillaDetailAPIView)
+        villa = self.context.get('villa')
+        
+        if villa:
+            # Get price from rooms of this room_type in the specific villa
+            rooms = villa_rooms.objects.filter(
+                room_type=obj,
+                villa=villa
+            ).order_by('price_per_night')
+            
+            if rooms.exists():
+                # Return the price from the first room (or could return min/max)
+                return float(rooms.first().price_per_night)
+        
+        # Fallback: get price from any room using this room_type
+        rooms = obj.rooms.all().order_by('price_per_night')
+        if rooms.exists():
+            return float(rooms.first().price_per_night)
+        
+        return None
