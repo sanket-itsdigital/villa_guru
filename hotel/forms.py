@@ -49,6 +49,8 @@ class villa_Form(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': "Description", 'style': "padding: 10px"}),
             'about': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': "About the property - detailed information", 'style': "padding: 10px"}),
             'specialties': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': "Specialties - unique features and selling points", 'style': "padding: 10px"}),
+            'guest_policy': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': "Guest policy information - rules and guidelines for guests", 'style': "padding: 10px"}),
+            'room_policy': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': "Room policy information - rules and guidelines for rooms", 'style': "padding: 10px"}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_featured': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'go_live': forms.CheckboxInput(attrs={'class': 'form-check-input'}),

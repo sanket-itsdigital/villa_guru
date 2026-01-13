@@ -366,6 +366,34 @@ Villa{% endblock title %} {% block extra_css %}
                         <p>{{ data.description }}</p>
                       </div>
                       {% endif %}
+
+                      {% if data.about %}
+                      <div class="mt-3">
+                        <h6>About:</h6>
+                        <p>{{ data.about }}</p>
+                      </div>
+                      {% endif %}
+
+                      {% if data.specialties %}
+                      <div class="mt-3">
+                        <h6>Specialties:</h6>
+                        <p>{{ data.specialties }}</p>
+                      </div>
+                      {% endif %}
+
+                      {% if data.guest_policy %}
+                      <div class="mt-3">
+                        <h6>Guest Policy:</h6>
+                        <p style="white-space: pre-wrap;">{{ data.guest_policy }}</p>
+                      </div>
+                      {% endif %}
+
+                      {% if data.room_policy %}
+                      <div class="mt-3">
+                        <h6>Room Policy:</h6>
+                        <p style="white-space: pre-wrap;">{{ data.room_policy }}</p>
+                      </div>
+                      {% endif %}
                     </div>
                   </div>
                 </div>

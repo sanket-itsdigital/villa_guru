@@ -72,14 +72,12 @@
                      
 <form method="get">
     <div class="row">
-        {% for field in filterset.form %}
-            <div class="col-md-3 mb-2">
-                <label>{{ field.label }}</label>
-                {{ field }}
-            </div>
-        {% endfor %}
+        <div class="col-md-3 mb-2">
+            <label for="id_property_type">Property Type</label>
+            {{ filterset.form.property_type }}
+        </div>
         <div class="col-md-3 mb-2 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary me-2">Apply</button>
+            <button type="submit" class="btn btn-primary me-2" style="background-color: #dc3545; border-color: #dc3545;">Apply</button>
             <a href="{% url 'list_villa' %}" class="btn btn-secondary">Reset</a>
         </div>
     </div>
@@ -97,6 +95,7 @@
                                                 <th>#</th>
                                                 <th>Villa ID</th>
                                                 <th>Name</th>
+                                                <th>Property Type</th>
                                                 <th>City</th>
                                                 <th>Star Rating</th>
                                                 <th>Star Facility</th>
@@ -118,6 +117,13 @@
                                                 <td>{{ forloop.counter }}</td>
                                                 <td>{{ hotel.villa_id|default:"-" }}</td>
                                                 <td>{{ hotel.name }}</td>
+                                                <td>
+                                                    {% if hotel.property_type %}
+                                                        {{ hotel.property_type.get_name_display }}
+                                                    {% else %}
+                                                        <span class="text-muted">-</span>
+                                                    {% endif %}
+                                                </td>
                                                 <td>{% if hotel.city %}{{ hotel.city.name }}{% else %}-{% endif %}</td>
                                                 <td>{{ hotel.star_rating|default:"-" }}</td>
                                                 <td>

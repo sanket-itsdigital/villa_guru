@@ -158,6 +158,8 @@ class VillaSerializer(serializers.ModelSerializer):
             "description",
             "about",
             "specialties",
+            "guest_policy",
+            "room_policy",
             "is_active",
             "created_at",
             "gst_number",

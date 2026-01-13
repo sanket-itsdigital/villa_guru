@@ -90,6 +90,16 @@ class villa(models.Model):
         null=True,
         help_text="Special features, unique selling points, or specialties of the property"
     )
+    guest_policy = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Guest policy information for the property"
+    )
+    room_policy = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Room policy information for the property"
+    )
     is_active = models.BooleanField(default=True)
     go_live = models.BooleanField(default=False)
     price_per_night = models.DecimalField(

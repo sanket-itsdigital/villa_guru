@@ -243,6 +243,24 @@
                             {% endif %}
                             <small class="form-text text-muted">Special features, unique selling points, or specialties of the property</small>
                         </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Guest Policy:</label>
+                            {{ form.guest_policy }}
+                            {% if form.guest_policy.errors %}
+                                <div class="text-danger">{{ form.guest_policy.errors.0 }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Guest policy information - rules and guidelines for guests staying at the property</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Room Policy:</label>
+                            {{ form.room_policy }}
+                            {% if form.room_policy.errors %}
+                                <div class="text-danger">{{ form.room_policy.errors.0 }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Room policy information - rules and guidelines for room usage and booking</small>
+                        </div>
                         
                         <div class="mb-4">
                             <label class="form-label">Pincode:</label>
