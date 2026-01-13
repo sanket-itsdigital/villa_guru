@@ -53,6 +53,11 @@ urlpatterns = [
     path("villas/", VillaListAPIView.as_view(), name="villa-list"),
     path("villas/<int:villa_id>/", VillaDetailAPIView.as_view(), name="villa-detail"),
     path(
+        "active-resorts-and-couple-stays/",
+        ActiveResortAndCoupleStayListAPIView.as_view(),
+        name="active-resorts-and-couple-stays",
+    ),
+    path(
         "resort-and-couple-stay/<int:villa_id>/rooms/",
         VillaRoomListAPIView.as_view(),
         name="villa-room-list",
