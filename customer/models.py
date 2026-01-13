@@ -375,6 +375,10 @@ class VillaReview(models.Model):
     comment = models.TextField(
         help_text="Review comment/feedback",
     )
+    is_approved = models.BooleanField(
+        default=True,
+        help_text="Whether the review has been approved by admin",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -724,10 +724,11 @@ class VillaReviewSerializer(serializers.ModelSerializer):
             "villa",
             "rating",
             "comment",
+            "is_approved",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["user", "created_at", "updated_at"]
+        read_only_fields = ["user", "is_approved", "created_at", "updated_at"]
 
     def get_user(self, obj):
         """Return user ID"""

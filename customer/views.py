@@ -2149,8 +2149,8 @@ class VillaReviewCreateAPIView(generics.CreateAPIView):
         return super().post(request, *args, **kwargs)
 
     def perform_create(self, serializer):
-        """Set the user to the current authenticated user."""
-        serializer.save(user=self.request.user)
+        """Set the user to the current authenticated user and is_approved to False."""
+        serializer.save(user=self.request.user, is_approved=False)
 
 
 class VillaReviewListAPIView(generics.ListAPIView):
