@@ -6,8 +6,6 @@ __pycache__/
 warangle/firebase_key.json
 media
 .env
-# Ignore wsgi.py
-warangle/wsgi.py
 
 static/
 
