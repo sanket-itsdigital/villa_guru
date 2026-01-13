@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import *
 from hotel.models import *
 from masters.serializers import villa_amenity_serializer
-
+from django.db.models import Q
 
 from datetime import timedelta
 
@@ -485,13 +485,25 @@ class VillaBookingSerializer(serializers.ModelSerializer):
                 from collections import defaultdict
 
                 # Calculate booked quantities per date for this room
+                # Include all active bookings (confirmed, checked_in, pending, or paid)
+                # EXCLUDE cancelled bookings explicitly
+                # Standard overlap condition: booking.check_in < check_out AND booking.check_out > check_in
                 conflicting_bookings = (
                     BookingModel.objects.filter(
                         booked_rooms__room=room,
-                        check_in__lt=check_out,
-                        check_out__gt=check_in,
-                        status__in=["confirmed", "checked_in", "pending"],
+                        check_in__lt=check_out,  # Booking starts before requested check-out
+                        check_out__gt=check_in,  # Booking ends after requested check-in
                         booking_type="selected_rooms",
+                    )
+                    .exclude(
+                        status="cancelled"  # Explicitly exclude cancelled bookings
+                    )
+                    .filter(
+                        # Include bookings that are either:
+                        # 1. Paid (regardless of status), OR
+                        # 2. Active status (confirmed, checked_in, pending)
+                        Q(payment_status="paid") | 
+                        Q(status__in=["confirmed", "checked_in", "pending"])
                     )
                     .exclude(id=self.instance.id if self.instance else None)
                     .prefetch_related("booked_rooms")
@@ -511,31 +523,29 @@ class VillaBookingSerializer(serializers.ModelSerializer):
                 min_available = float('inf')
                 
                 while current_date < check_out:
-                    # Get RoomAvailability record for this date (if exists, it may override)
-                    room_availability = RoomAvailability.objects.filter(
-                        room=room, date=current_date
-                    ).first()
-
-                    # If RoomAvailability exists and available_count is 0, room is marked as unavailable
-                    if room_availability and room_availability.available_count == 0:
+                    # Use automatic calculation method - it handles everything
+                    room_availability = RoomAvailability.get_or_calculate_availability(
+                        room=room,
+                        date=current_date
+                    )
+                    
+                    # Check if manually closed
+                    if room_availability.is_manually_closed:
                         raise serializers.ValidationError(
                             f"Room {room.room_type.name if room.room_type else 'Room'} is not available on {current_date} (marked as closed)."
                         )
                     
-                    # Calculate booked count for this date
-                    booked_count = room_booked_dates.get(current_date, 0)
+                    # Get the calculated available count
+                    available_count = room_availability.available_count
                     
-                    # Calculate available count: room_count - booked_count
-                    # If RoomAvailability exists, use its available_count as the base
-                    if room_availability:
-                        available_count = room_availability.available_count - booked_count
-                    else:
-                        available_count = total_room_count - booked_count
+                    # Ensure available_count is not negative
+                    available_count = max(0, available_count)
                     
                     min_available = min(min_available, available_count)
 
                     # Check if requested quantity exceeds available
                     if quantity > available_count:
+                        booked_count = room_booked_dates.get(current_date, 0)
                         raise serializers.ValidationError(
                             f"Cannot book {quantity} room(s) of type {room.room_type.name if room.room_type else 'Room'}. "
                             f"Only {available_count} room(s) available on {current_date} (Total: {total_room_count}, Booked: {booked_count})."
@@ -595,7 +605,8 @@ class VillaBookingSerializer(serializers.ModelSerializer):
                 )
                 current_date += timedelta(days=1)
         else:
-            # Resort/Couple Stay: Update room availability
+            # Resort/Couple Stay: Update room availability automatically
+            # The signal will handle this, but we can also trigger it manually here
             from hotel.models import RoomAvailability
             from datetime import timedelta
 
@@ -605,21 +616,11 @@ class VillaBookingSerializer(serializers.ModelSerializer):
             current_date = booking.check_in
             while current_date < booking.check_out:
                 for booked_room in booked_rooms:
-                    # Get or create room availability record
-                    room_avail, created = RoomAvailability.objects.get_or_create(
+                    # Use automatic calculation method - it will update availability based on all bookings
+                    RoomAvailability.get_or_calculate_availability(
                         room=booked_room.room,
-                        date=current_date,
-                        defaults={"available_count": 1},  # Default if not exists
+                        date=current_date
                     )
-
-                    # Reduce available count by booked quantity
-                    # If it becomes 0 or negative, mark as fully booked
-                    if room_avail.available_count >= booked_room.quantity:
-                        room_avail.available_count -= booked_room.quantity
-                    else:
-                        room_avail.available_count = 0  # Fully booked
-                    room_avail.save()
-
                 current_date += timedelta(days=1)
 
         return booking

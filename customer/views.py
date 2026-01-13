@@ -1007,24 +1007,22 @@ class VillaListAPIView(generics.ListAPIView):
                     current_date = check_in
 
                     while current_date < check_out:
-                        # Get RoomAvailability record for this date
-                        room_availability = RoomAvailability.objects.filter(
-                            room=room, date=current_date
-                        ).first()
+                        # Use automatic calculation method - it handles everything
+                        room_availability = RoomAvailability.get_or_calculate_availability(
+                            room=room,
+                            date=current_date
+                        )
+                        
+                        # Check if manually closed
+                        if room_availability.is_manually_closed:
+                            is_available = False
+                            break
 
-                        # If no RoomAvailability record exists, assume room is available
-                        # Otherwise use the available_count from the record
-                        if room_availability:
-                            available_count = room_availability.available_count
-                        else:
-                            # No availability record means room is available by default
-                            # You can set a default value here if needed (e.g., 1 or room quantity)
-                            available_count = 1  # Default: at least 1 room available
+                        # Get the calculated available count
+                        available_count = room_availability.available_count
 
-                        booked_count = room_booked_dates[room.id].get(current_date, 0)
-
-                        # Room is not available if booked_count >= available_count
-                        if available_count <= booked_count:
+                        # Room is not available if available_count <= 0
+                        if available_count <= 0:
                             is_available = False
                             break
 
@@ -1321,27 +1319,20 @@ class AvailableRoomsAPIView(generics.ListAPIView):
             )
 
             while current_date < to_date:
-                # Get RoomAvailability record for this date (if exists, it may override)
-                room_availability = RoomAvailability.objects.filter(
-                    room=room, date=current_date
-                ).first()
-
-                # If RoomAvailability exists and available_count is 0, room is marked as unavailable
-                if room_availability and room_availability.available_count == 0:
+                # Use automatic calculation method - it handles everything
+                room_availability = RoomAvailability.get_or_calculate_availability(
+                    room=room,
+                    date=current_date
+                )
+                
+                # Check if manually closed
+                if room_availability.is_manually_closed:
                     is_available = False
                     min_available = 0
                     break
 
-                # Calculate booked count for this date
-                booked_count = room_booked_dates[room.id].get(current_date, 0)
-
-                # Calculate available count: room_count - booked_count
-                # If RoomAvailability exists, use its available_count as the base
-                if room_availability:
-                    available_count = room_availability.available_count - booked_count
-                else:
-                    available_count = total_room_count - booked_count
-
+                # Get the calculated available count
+                available_count = room_availability.available_count
                 min_available = min(min_available, available_count)
 
                 # Room is not available if available_count <= 0
@@ -1565,27 +1556,19 @@ class AvailableVillasAPIView(APIView):
                 total_room_count = room.room_count if hasattr(room, "room_count") else 1
 
                 while current_date < check_out:
-                    # Get RoomAvailability record for this date (if exists, it may override)
-                    room_availability = RoomAvailability.objects.filter(
-                        room=room, date=current_date
-                    ).first()
-
-                    # If RoomAvailability exists and available_count is 0, room is marked as unavailable
-                    if room_availability and room_availability.available_count == 0:
+                    # Use automatic calculation method - it handles everything
+                    room_availability = RoomAvailability.get_or_calculate_availability(
+                        room=room,
+                        date=current_date
+                    )
+                    
+                    # Check if manually closed
+                    if room_availability.is_manually_closed:
                         is_available = False
                         break
-
-                    # Calculate booked count for this date
-                    booked_count = room_booked_dates[room.id].get(current_date, 0)
-
-                    # Calculate available count: room_count - booked_count
-                    # If RoomAvailability exists, use its available_count as the base
-                    if room_availability:
-                        available_count = (
-                            room_availability.available_count - booked_count
-                        )
-                    else:
-                        available_count = total_room_count - booked_count
+                    
+                    # Get the calculated available count
+                    available_count = room_availability.available_count
 
                     # Room is not available if available_count <= 0
                     if available_count <= 0:

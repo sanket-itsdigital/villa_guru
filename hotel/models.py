@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import Q
+from datetime import timedelta
 
 
 class villa(models.Model):
@@ -337,15 +339,156 @@ class VillaAvailability(models.Model):
 
 
 class RoomAvailability(models.Model):
-    room = models.ForeignKey("hotel.villa_rooms", on_delete=models.CASCADE)
+    """
+    Model to track room availability per date.
+    - Stores room_id and available_rooms count for each date
+    - Automatically calculates availability from total_room_count - active_bookings
+    - Can be manually overridden by vendors to close/reduce availability
+    """
+    room = models.ForeignKey("hotel.villa_rooms", on_delete=models.CASCADE, related_name="availability_records")
     date = models.DateField()
-    available_count = models.PositiveIntegerField(default=0)
+    available_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Current available rooms for this date. Automatically calculated from bookings, but can be manually overridden."
+    )
+    is_manually_closed = models.BooleanField(
+        default=False,
+        help_text="If True, room is manually closed for this date (vendor override)"
+    )
 
     class Meta:
         unique_together = ("room", "date")
+        ordering = ["date", "room"]
 
     def __str__(self):
         return f"{self.room} - {self.date} - {self.available_count} available"
+
+    def calculate_available_count(self):
+        """
+        Automatically calculate available rooms for this date based on:
+        - Total room count (room.room_count)
+        - Active bookings for this date
+        Returns the calculated available count.
+        """
+        from customer.models import VillaBooking, BookingRoom
+        from datetime import date as date_class
+        
+        # Get total room count
+        total_rooms = self.room.room_count if hasattr(self.room, 'room_count') and self.room.room_count else 1
+        
+        # If manually closed, return 0
+        if self.is_manually_closed:
+            return 0
+        
+        # Get all active bookings for this room on this date
+        # Booking overlaps if: booking.check_in < date+1 AND booking.check_out > date
+        active_bookings = VillaBooking.objects.filter(
+            booked_rooms__room=self.room,
+            check_in__lt=self.date + timedelta(days=1),  # Booking starts before or on this date
+            check_out__gt=self.date,  # Booking ends after this date
+            booking_type="selected_rooms",
+        ).exclude(
+            status="cancelled"  # Exclude cancelled bookings
+        ).filter(
+            # Include paid or active bookings
+            Q(payment_status="paid") | 
+            Q(status__in=["confirmed", "checked_in", "pending"])
+        ).distinct()
+        
+        # Calculate total booked quantity for this date
+        total_booked = 0
+        for booking in active_bookings:
+            booking_room = booking.booked_rooms.filter(room=self.room).first()
+            if booking_room:
+                total_booked += booking_room.quantity
+        
+        # Available = total - booked
+        available = total_rooms - total_booked
+        return max(0, available)  # Ensure non-negative
+    
+    def update_availability(self):
+        """
+        Update available_count based on current bookings.
+        Call this method to refresh availability when bookings change.
+        """
+        if not self.is_manually_closed:
+            self.available_count = self.calculate_available_count()
+            self.save(update_fields=['available_count'])
+    
+    @classmethod
+    def get_or_calculate_availability(cls, room, date):
+        """
+        Get or create RoomAvailability record and calculate availability automatically.
+        If record doesn't exist, creates it with calculated availability.
+        If exists and not manually closed, updates it with current calculated availability.
+        This method ensures availability is always current based on actual bookings.
+        """
+        room_avail, created = cls.objects.get_or_create(
+            room=room,
+            date=date,
+            defaults={"available_count": 0, "is_manually_closed": False}  # Will be calculated below
+        )
+        
+        # Calculate and update availability if not manually closed
+        if not room_avail.is_manually_closed:
+            calculated = room_avail.calculate_available_count()
+            # Always update to ensure it's current (bookings may have changed)
+            if room_avail.available_count != calculated:
+                room_avail.available_count = calculated
+                room_avail.save(update_fields=['available_count'])
+        
+        return room_avail
+
+
+# Signal to auto-update room availability when bookings change
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+from customer.models import VillaBooking, BookingRoom
+
+
+@receiver(post_save, sender=VillaBooking)
+@receiver(post_delete, sender=VillaBooking)
+def update_room_availability_on_booking_change(sender, instance, **kwargs):
+    """
+    Automatically update room availability when bookings are created, updated, or deleted.
+    This ensures availability is always current.
+    """
+    if instance.booking_type == "selected_rooms":
+        from datetime import timedelta
+        
+        # Update availability for all dates in the booking range
+        current_date = instance.check_in
+        while current_date < instance.check_out:
+            # Get all rooms booked in this booking
+            booked_rooms = instance.booked_rooms.all()
+            for booked_room in booked_rooms:
+                # Use the automatic calculation method
+                RoomAvailability.get_or_calculate_availability(
+                    room=booked_room.room,
+                    date=current_date
+                )
+            current_date += timedelta(days=1)
+
+
+@receiver(post_save, sender=BookingRoom)
+@receiver(post_delete, sender=BookingRoom)
+def update_room_availability_on_booking_room_change(sender, instance, **kwargs):
+    """
+    Automatically update room availability when BookingRoom records change.
+    """
+    booking = instance.booking
+    if booking and booking.booking_type == "selected_rooms":
+        from datetime import timedelta
+        
+        # Update availability for all dates in the booking range
+        current_date = booking.check_in
+        while current_date < booking.check_out:
+            # Use the automatic calculation method
+            RoomAvailability.get_or_calculate_availability(
+                room=instance.room,
+                date=current_date
+            )
+            current_date += timedelta(days=1)
 
 
 class VillaPricing(models.Model):

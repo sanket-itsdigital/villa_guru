@@ -1667,12 +1667,29 @@ def update_hotel_availability(request):
                 if count is not None and count != "":
                     count_int = int(count)
                     # Save/update room availability
-                    # If count is 0, room is marked as booked (offline)
-                    RoomAvailability.objects.update_or_create(
+                    # If count is 0, room is marked as manually closed
+                    # Otherwise, set the available count (will be auto-calculated if not manually closed)
+                    room_avail, created = RoomAvailability.objects.update_or_create(
                         room=room,
                         date=selected_date_obj,
-                        defaults={"available_count": count_int},
+                        defaults={
+                            "available_count": count_int,
+                            "is_manually_closed": (count_int == 0)
+                        },
                     )
+                    # If manually setting a specific count, mark as not manually closed
+                    # and let the system calculate from bookings
+                    if count_int > 0:
+                        # Vendor is setting a manual override (reducing availability)
+                        # Keep is_manually_closed=False but use the set count
+                        room_avail.is_manually_closed = False
+                        room_avail.available_count = count_int
+                        room_avail.save()
+                    else:
+                        # Count is 0 = manually closed
+                        room_avail.is_manually_closed = True
+                        room_avail.available_count = 0
+                        room_avail.save()
             messages.success(request, f"Availability updated for {selected_date}")
         else:
             # Handle villa availability (whole villa)
@@ -2083,20 +2100,34 @@ def handle_bulk_availability_management(
 
                 # Set availability based on status
                 if bulk_status == "available":
-                    # Set to 1 room available (or get from room default)
-                    available_count = 1
+                    # Mark as available - let system auto-calculate from bookings
+                    is_manually_closed = False
+                    # Get current calculated availability or use room_count
+                    room_avail = RoomAvailability.get_or_calculate_availability(
+                        room=room,
+                        date=current_date
+                    )
+                    # Don't override if already calculated correctly
                 elif bulk_status == "offline_booked":
-                    # Mark as booked offline (0 available)
-                    available_count = 0
+                    # Mark as manually closed (offline booking)
+                    RoomAvailability.objects.update_or_create(
+                        room=room,
+                        date=current_date,
+                        defaults={
+                            "available_count": 0,
+                            "is_manually_closed": True
+                        },
+                    )
                 else:  # unavailable
-                    # Mark as unavailable (0 available)
-                    available_count = 0
-
-                RoomAvailability.objects.update_or_create(
-                    room=room,
-                    date=current_date,
-                    defaults={"available_count": available_count},
-                )
+                    # Mark as manually closed (unavailable)
+                    RoomAvailability.objects.update_or_create(
+                        room=room,
+                        date=current_date,
+                        defaults={
+                            "available_count": 0,
+                            "is_manually_closed": True
+                        },
+                    )
                 updated_count += 1
 
             current_date += timedelta(days=1)
@@ -2249,11 +2280,17 @@ def update_from_to_hotel_availability(request):
                         ).exists()
 
                         if not has_booking:
+                            count_int = int(count)
                             RoomAvailability.objects.update_or_create(
                                 room=room,
                                 date=current_date,
-                                defaults={"available_count": int(count)},
+                                defaults={
+                                    "available_count": count_int,
+                                    "is_manually_closed": (count_int == 0)
+                                },
                             )
+                            # If setting a specific count > 0, it's a manual override
+                            # If count is 0, it's manually closed
                             updated_count += 1
                 current_date += timedelta(days=1)
         else:
