@@ -75,6 +75,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://rabbitstaybackend.pythonanywhere.com",
     "https://rabbitstay.com",
     "https://rabbitstays.com",
+    "https://villaguru.in"
 ]
 
 
