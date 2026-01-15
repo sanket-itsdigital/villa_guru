@@ -931,16 +931,14 @@ class VillaListAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         from datetime import datetime, timedelta, date
-        from hotel.models import RoomAvailability
         from .models import VillaBooking
         from django.db.models import Count, Q
 
-        # Base queryset: Only Resort and Couple Stay properties
-        qs = villa.objects.annotate(room_count=Count("rooms")).filter(
+        # Base queryset: Only Villa properties
+        qs = villa.objects.filter(
             go_live=True,
             is_active=True,
-            property_type__name__in=["Resort", "Couple Stay"],
-            room_count__gt=0,
+            property_type__name="Villa",
         )
 
         # Get query parameters
@@ -969,80 +967,23 @@ class VillaListAPIView(generics.ListAPIView):
 
                 total_days = (check_out - check_in).days
 
-                # Get all rooms for these resorts
-                resort_rooms = villa_rooms.objects.filter(
-                    villa__in=qs.values_list("id", flat=True)
-                )
-
-                # Get bookings that might block rooms
+                # For Villas, check whole villa bookings (not room-based)
+                # Get bookings that conflict with the requested date range
                 conflicting_bookings = VillaBooking.objects.filter(
                     villa__in=qs.values_list("id", flat=True),
                     check_in__lt=check_out,
                     check_out__gt=check_in,
                     status__in=["confirmed", "checked_in"],
-                    booking_type="selected_rooms",
-                ).prefetch_related("booked_rooms")
+                    booking_type="whole_villa",
+                ).exclude(status="cancelled")
 
-                # Calculate booked quantities per room per date
-                from collections import defaultdict
+                # Get villa IDs that are already booked for this date range
+                booked_villa_ids = conflicting_bookings.values_list(
+                    "villa_id", flat=True
+                ).distinct()
 
-                room_booked_dates = defaultdict(lambda: defaultdict(int))
-
-                for booking in conflicting_bookings:
-                    for booked_room in booking.booked_rooms.all():
-                        current_date = max(check_in, booking.check_in)
-                        end_date = min(check_out, booking.check_out)
-                        while current_date < end_date:
-                            room_booked_dates[booked_room.room_id][
-                                current_date
-                            ] += booked_room.quantity
-                            current_date += timedelta(days=1)
-
-                # Check each room for availability across all dates
-                # If RoomAvailability record doesn't exist, assume room is available (default behavior)
-                truly_available_room_ids = []
-
-                for room in resort_rooms:
-                    is_available = True
-                    current_date = check_in
-
-                    while current_date < check_out:
-                        # Use automatic calculation method - it handles everything
-                        room_availability = (
-                            RoomAvailability.get_or_calculate_availability(
-                                room=room, date=current_date
-                            )
-                        )
-
-                        # Check if manually closed
-                        if room_availability.is_manually_closed:
-                            is_available = False
-                            break
-
-                        # Get the calculated available count
-                        available_count = room_availability.available_count
-
-                        # Room is not available if available_count <= 0
-                        if available_count <= 0:
-                            is_available = False
-                            break
-
-                        current_date += timedelta(days=1)
-
-                    if is_available:
-                        truly_available_room_ids.append(room.id)
-
-                # Get villas that have at least one available room
-                if truly_available_room_ids:
-                    available_villa_ids = (
-                        villa_rooms.objects.filter(id__in=truly_available_room_ids)
-                        .values_list("villa_id", flat=True)
-                        .distinct()
-                    )
-                    qs = qs.filter(id__in=available_villa_ids)
-                else:
-                    # No rooms available for the date range, return empty queryset
-                    qs = villa.objects.none()
+                # Filter out booked villas - only return available villas
+                qs = qs.exclude(id__in=booked_villa_ids)
 
             except (ValueError, TypeError):
                 # Invalid date format, return empty queryset or all resorts
