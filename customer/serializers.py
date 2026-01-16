@@ -772,3 +772,47 @@ class VillaReviewSerializer(serializers.ModelSerializer):
                         "You have already reviewed this villa. You can update your existing review."
                     )
         return data
+
+
+class EnquirySerializer(serializers.ModelSerializer):
+    """
+    Serializer for property enquiries.
+    """
+    location_name = serializers.CharField(source="location.name", read_only=True)
+    property_type_name = serializers.CharField(source="property_type.name", read_only=True)
+
+    class Meta:
+        model = Enquiry
+        fields = [
+            "id",
+            "name",
+            "location",
+            "location_name",
+            "check_in",
+            "check_out",
+            "property_type",
+            "property_type_name",
+            "number_of_guests",
+            "phone_number",
+            "email",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["created_at", "updated_at"]
+
+    def validate(self, data):
+        """Validate enquiry data"""
+        check_in = data.get("check_in")
+        check_out = data.get("check_out")
+
+        if check_in and check_out:
+            if check_in >= check_out:
+                raise serializers.ValidationError(
+                    {"check_out": "Check-out date must be after check-in date."}
+                )
+            if check_in < today_date.today():
+                raise serializers.ValidationError(
+                    {"check_in": "Check-in date cannot be in the past."}
+                )
+
+        return data

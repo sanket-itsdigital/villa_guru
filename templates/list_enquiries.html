@@ -1,0 +1,586 @@
+{% extends "partials/adminBase.html" %} 
+{% load static %} 
+{% block title %}Property Enquiries List{% endblock title %} 
+{% block extra_css %}
+<link
+  href="{% static 'libs/admin-resources/jquery.vectormap/jquery-jvectormap-1.2.2.css' %}"
+  rel="stylesheet"
+  type="text/css"
+/>
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+/>
+<style>
+  body {
+    background-color: gainsboro;
+    color: #780000 !important;
+  }
+
+  .card {
+    background-color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    background-color: #780000 !important;
+    color: #ffffff;
+    border-radius: 8px 8px 0 0;
+    padding: 20px;
+  }
+
+  .card-title {
+    margin: 0;
+  }
+
+  .card-body {
+    padding: 20px;
+  }
+
+  .table thead {
+    background-color: gray;
+    color: white;
+  }
+
+  .table tbody tr {
+    background-color: white;
+    color: black;
+  }
+
+  .table tbody tr:hover {
+    background-color: #f0d28c;
+    color: #780000 !important;
+  }
+
+  .stats-card {
+    background: linear-gradient(135deg, #780000 0%, #a00000 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .stats-card h3 {
+    color: white;
+    margin: 0;
+  }
+
+  .form-select:focus,
+  .form-control:focus {
+    border-color: #780000 !important;
+    box-shadow: 0 0 0 0.2rem rgba(120, 0, 0, 0.25) !important;
+  }
+
+  .input-group-text {
+    border-radius: 8px 0 0 8px;
+    flex-shrink: 0;
+  }
+
+  .input-group {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  .input-group .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .form-select-lg,
+  .input-group-lg .form-control {
+    font-size: 1rem;
+  }
+
+  .form-label {
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .form-label i {
+    margin-right: 5px;
+  }
+
+  .card-body {
+    padding: 20px;
+    overflow-x: visible;
+  }
+
+  .row.g-3 {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .row.g-3 > * {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  @media (max-width: 768px) {
+    .table-responsive {
+      overflow-x: auto;
+    }
+    
+    .col-md-4,
+    .col-md-8 {
+      margin-bottom: 15px;
+      width: 100%;
+    }
+
+    .input-group {
+      width: 100% !important;
+    }
+
+    #searchBox {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+  }
+
+  @media (max-width: 992px) {
+    .col-md-8 {
+      margin-top: 15px;
+    }
+  }
+  
+  /* Enquiry Form Styles */
+  #enquiryForm .form-control,
+  #enquiryForm .form-select {
+    border: 2px solid #780000;
+    border-radius: 8px;
+    padding: 8px 12px;
+  }
+  
+  #enquiryForm .form-control:focus,
+  #enquiryForm .form-select:focus {
+    border-color: #780000;
+    box-shadow: 0 0 0 0.2rem rgba(120, 0, 0, 0.25);
+  }
+  
+  #enquiryForm .form-label {
+    color: #780000;
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+  
+  #enquiryForm .btn-primary:hover {
+    background-color: #a00000 !important;
+    border-color: #a00000 !important;
+  }
+  
+  @media (max-width: 768px) {
+    .col-md-4.col-lg-3 {
+      margin-bottom: 20px;
+    }
+  }
+</style>
+{% endblock extra_css %} 
+
+{% block content %}
+<div class="main-content">
+  <div class="page-content">
+    <div class="container-fluid">
+      <!-- Page title -->
+      <div class="row">
+        <div class="col-12">
+          <div
+            class="page-title-box d-sm-flex align-items-center justify-content-between"
+          >
+            <h4 class="mb-sm-0 font-size-18">Property Enquiries List</h4>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <!-- Statistics Cards -->
+      <div class="row mb-4">
+        <div class="col-md-12">
+          <div class="stats-card">
+            <h6 class="text-white-50 mb-2">Total Enquiries</h6>
+            <h3 class="mb-0">{{ total_enquiries }}</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="row">
+          <!-- Left Side: Enquiry Form -->
+          <div class="col-md-4 col-lg-3 mb-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Create New Enquiry</h5>
+              </div>
+              <div class="card-body">
+                <form method="post" action="{% url 'list_enquiries' %}" id="enquiryForm">
+                  {% csrf_token %}
+                  <div class="mb-3">
+                    <label for="name" class="form-label fw-bold" style="color: #780000;">Name *</label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="location" class="form-label fw-bold" style="color: #780000;">Location *</label>
+                    <select class="form-select" id="location" name="location" required>
+                      <option value="">Select Location</option>
+                      {% for location in locations %}
+                        <option value="{{ location.id }}">{{ location.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="property_type" class="form-label fw-bold" style="color: #780000;">Property Type *</label>
+                    <select class="form-select" id="property_type" name="property_type" required>
+                      <option value="">Select Property Type</option>
+                      {% for prop_type in property_types %}
+                        <option value="{{ prop_type.id }}">{{ prop_type.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="check_in" class="form-label fw-bold" style="color: #780000;">Check In *</label>
+                    <input type="date" class="form-control" id="check_in" name="check_in" required>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="check_out" class="form-label fw-bold" style="color: #780000;">Check Out *</label>
+                    <input type="date" class="form-control" id="check_out" name="check_out" required>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="number_of_guests" class="form-label fw-bold" style="color: #780000;">Number of Guests *</label>
+                    <input type="number" class="form-control" id="number_of_guests" name="number_of_guests" min="1" required>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="phone_number" class="form-label fw-bold" style="color: #780000;">Phone Number *</label>
+                    <input type="tel" class="form-control" id="phone_number" name="phone_number" required>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="email" class="form-label fw-bold" style="color: #780000;">Email *</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                  </div>
+                  
+                  <button type="submit" class="btn btn-primary w-100" style="background-color: #780000; border-color: #780000;">
+                    <i class="fas fa-plus"></i> Create Enquiry
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Right Side: Enquiries List -->
+          <div class="col-md-8 col-lg-9">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Property Enquiries</h5>
+              </div>
+              <div class="card-body">
+                <!-- Filter and Search Section -->
+                <div class="row mb-3 g-3">
+                  <div class="col-md-6 col-sm-12">
+                    <form method="get" action="{% url 'list_enquiries' %}" id="filterForm">
+                      <label for="propertyTypeFilter" class="form-label fw-bold" style="color: #780000;">
+                        <i class="fas fa-filter"></i> Filter by Property Type
+                      </label>
+                      <select 
+                        name="property_type" 
+                        id="propertyTypeFilter" 
+                        class="form-select form-select-lg"
+                        style="border: 2px solid #780000; border-radius: 8px; padding: 10px; width: 100%;"
+                        onchange="document.getElementById('filterForm').submit();"
+                      >
+                        <option value="">All Property Types</option>
+                        {% for prop_type in property_types %}
+                          <option value="{{ prop_type.id }}" {% if selected_property_type == prop_type.id %}selected{% endif %}>
+                            {{ prop_type.name }}
+                          </option>
+                        {% endfor %}
+                      </select>
+                    </form>
+                  </div>
+                  <div class="col-md-6 col-sm-12">
+                    <label for="searchBox" class="form-label fw-bold" style="color: #780000;">
+                      <i class="fas fa-search"></i> Search Enquiries
+                    </label>
+                    <div class="input-group input-group-lg" style="width: 100%; display: flex; flex-wrap: nowrap;">
+                      <span class="input-group-text" style="background-color: #780000; color: white; border: 2px solid #780000; border-radius: 8px 0 0 8px; flex-shrink: 0; padding: 10px 15px;">
+                        <i class="fas fa-search"></i>
+                      </span>
+                      <input 
+                        type="text" 
+                        id="searchBox" 
+                        class="form-control" 
+                        placeholder="Search by name, email, phone number..."
+                        style="border: 2px solid #780000; border-left: none; border-radius: 0 8px 8px 0; padding: 10px 15px; flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box;"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table
+                    id="datatable"
+                    class="table table-bordered table-striped"
+                  >
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Location</th>
+                        <th>Property Type</th>
+                        <th>Check In</th>
+                        <th>Check Out</th>
+                        <th>Number of Guests</th>
+                        <th>Phone Number</th>
+                        <th>Email</th>
+                        <th>Enquired At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% if enquiries %} 
+                        {% for enquiry in enquiries %}
+                        <tr>
+                          <td>{{ forloop.counter }}</td>
+                          <td>{{ enquiry.id }}</td>
+                          <td><strong>{{ enquiry.name }}</strong></td>
+                          <td>{{ enquiry.location.name }}</td>
+                          <td>
+                            <span class="badge bg-info">{{ enquiry.property_type.name }}</span>
+                          </td>
+                          <td>{{ enquiry.check_in|date:"M d, Y" }}</td>
+                          <td>{{ enquiry.check_out|date:"M d, Y" }}</td>
+                          <td>
+                            <span class="badge bg-primary">{{ enquiry.number_of_guests }} guests</span>
+                          </td>
+                          <td>{{ enquiry.phone_number }}</td>
+                          <td>{{ enquiry.email }}</td>
+                          <td>{{ enquiry.created_at|date:"M d, Y h:i A" }}</td>
+                        </tr>
+                        {% endfor %}
+                      {% endif %}
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if enquiries.has_other_pages %}
+                <nav aria-label="Page navigation">
+                  <ul class="pagination justify-content-center mt-4">
+                    {% if enquiries.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ enquiries.previous_page_number }}{% if selected_property_type %}&property_type={{ selected_property_type }}{% endif %}{% if selected_location %}&location={{ selected_location }}{% endif %}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in enquiries.paginator.page_range %}
+                      {% if enquiries.number == num %}
+                        <li class="page-item active">
+                          <span class="page-link">{{ num }}</span>
+                        </li>
+                      {% elif num > enquiries.number|add:'-3' and num < enquiries.number|add:'3' %}
+                        <li class="page-item">
+                          <a class="page-link" href="?page={{ num }}{% if selected_property_type %}&property_type={{ selected_property_type }}{% endif %}{% if selected_location %}&location={{ selected_location }}{% endif %}">{{ num }}</a>
+                        </li>
+                      {% endif %}
+                    {% endfor %}
+                    
+                    {% if enquiries.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ enquiries.next_page_number }}{% if selected_property_type %}&property_type={{ selected_property_type }}{% endif %}{% if selected_location %}&location={{ selected_location }}{% endif %}">Next</a>
+                    </li>
+                    {% endif %}
+                  </ul>
+                </nav>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+  $(document).ready(function() {
+    // Check if jQuery and DataTable are loaded
+    if (typeof $ === 'undefined') {
+      console.error('jQuery is not loaded');
+      return;
+    }
+    
+    if (typeof $.fn.DataTable === 'undefined') {
+      console.error('DataTables is not loaded');
+      return;
+    }
+
+    // Check if table exists
+    var tableElement = $('#datatable');
+    if (tableElement.length === 0) {
+      console.error('Table with id "datatable" not found');
+      return;
+    }
+
+    // Remove any empty rows with colspan before initializing DataTables
+    tableElement.find('tbody tr').each(function() {
+      if ($(this).find('td[colspan]').length > 0) {
+        $(this).remove();
+      }
+    });
+
+    // Initialize DataTable with proper configuration
+    var table = tableElement.DataTable({
+      "order": [[ 0, "desc" ]],
+      "pageLength": 30,
+      "searching": true,
+      "paging": true,
+      "info": true,
+      "autoWidth": false,
+      "columnDefs": [
+        { "width": "3%", "targets": 0 },
+        { "width": "3%", "targets": 1 },
+        { "width": "10%", "targets": 2 },
+        { "width": "8%", "targets": 3 },
+        { "width": "8%", "targets": 4 },
+        { "width": "8%", "targets": 5 },
+        { "width": "8%", "targets": 6 },
+        { "width": "8%", "targets": 7 },
+        { "width": "10%", "targets": 8 },
+        { "width": "15%", "targets": 9 },
+        { "width": "11%", "targets": 10 }
+      ],
+      "language": {
+        "search": "",
+        "searchPlaceholder": "Search by name, email, phone...",
+        "lengthMenu": "Show _MENU_ entries",
+        "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+        "infoEmpty": "No entries found",
+        "infoFiltered": "(filtered from _MAX_ total entries)",
+        "zeroRecords": "No matching records found"
+      },
+      "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+      "drawCallback": function() {
+        $('.dataTables_filter').hide();
+      }
+    });
+
+    // Setup search box
+    var searchBox = $('#searchBox');
+    
+    if (searchBox.length === 0) {
+      console.error('Search box with id "searchBox" not found');
+      return;
+    }
+
+    // Remove any existing event listeners
+    searchBox.off('keyup input paste change');
+
+    // Sync custom search box with DataTables search
+    var searchTimeout;
+    searchBox.on('keyup input', function() {
+      clearTimeout(searchTimeout);
+      var self = this;
+      searchTimeout = setTimeout(function() {
+        var searchValue = $(self).val() || '';
+        if (table) {
+          table.search(searchValue).draw();
+        }
+      }, 300);
+    });
+
+    // Handle paste events
+    searchBox.on('paste', function() {
+      var self = this;
+      setTimeout(function() {
+        var searchValue = $(self).val() || '';
+        if (table) {
+          table.search(searchValue).draw();
+        }
+      }, 10);
+    });
+
+    // Also trigger on change
+    searchBox.on('change', function() {
+      var searchValue = $(this).val() || '';
+      if (table) {
+        table.search(searchValue).draw();
+      }
+    });
+
+    // Ensure search box maintains proper width
+    $(window).on('resize', function() {
+      var searchContainer = $('#searchBox').closest('.input-group');
+      $('#searchBox').css({
+        'width': '100%',
+        'max-width': '100%',
+        'box-sizing': 'border-box'
+      });
+      searchContainer.css('width', '100%');
+    });
+
+    // Initial width fix on page load
+    setTimeout(function() {
+      var searchContainer = $('#searchBox').closest('.input-group');
+      $('#searchBox').css({
+        'width': '100%',
+        'max-width': '100%',
+        'box-sizing': 'border-box'
+      });
+      searchContainer.css({
+        'width': '100%',
+        'display': 'flex',
+        'flex-wrap': 'nowrap'
+      });
+    }, 100);
+
+    // Custom styling for length menu
+    $('.dataTables_length select').addClass('form-select');
+    $('.dataTables_length select').css({
+      'border': '2px solid #780000',
+      'border-radius': '8px',
+      'padding': '5px 10px'
+    });
+  });
+  
+  // Set minimum date for check-in and check-out fields
+  $(document).ready(function() {
+    var today = new Date().toISOString().split('T')[0];
+    $('#check_in').attr('min', today);
+    $('#check_out').attr('min', today);
+    
+    // Update check-out minimum date when check-in changes
+    $('#check_in').on('change', function() {
+      var checkInDate = $(this).val();
+      if (checkInDate) {
+        $('#check_out').attr('min', checkInDate);
+      }
+    });
+  });
+</script>
+{% endblock extra_js %}

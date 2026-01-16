@@ -108,7 +108,6 @@ def dashboard(request):
         'city_count': city_count,
         'total_collection': round(total_collection),
         'result': result,
-
         "months": months,
         "bookings": bookings,
     }
@@ -179,6 +178,113 @@ def list_event_bookings(request):
     }
     
     return render(request, 'list_event_bookings.html', context)
+
+
+@login_required(login_url='login_admin')
+def list_enquiries(request):
+    """
+    View to list all property enquiries in admin dashboard.
+    Only accessible to superusers.
+    Also handles POST requests to create new enquiries.
+    """
+    from customer.models import Enquiry
+    from django.core.paginator import Paginator
+    from django.contrib import messages
+    from datetime import datetime
+    
+    if not request.user.is_superuser:
+        messages.error(request, "You do not have permission to view enquiries.")
+        return redirect('dashboard')
+    
+    # Handle POST request to create new enquiry
+    if request.method == 'POST':
+        from masters.models import property_type, city
+        
+        try:
+            name = request.POST.get('name')
+            location_id = request.POST.get('location')
+            check_in_str = request.POST.get('check_in')
+            check_out_str = request.POST.get('check_out')
+            property_type_id = request.POST.get('property_type')
+            number_of_guests = request.POST.get('number_of_guests')
+            phone_number = request.POST.get('phone_number')
+            email = request.POST.get('email')
+            
+            # Validate required fields
+            if not all([name, location_id, check_in_str, check_out_str, property_type_id, number_of_guests, phone_number, email]):
+                messages.error(request, "All fields are required.")
+            else:
+                # Parse dates
+                check_in = datetime.strptime(check_in_str, "%Y-%m-%d").date()
+                check_out = datetime.strptime(check_out_str, "%Y-%m-%d").date()
+                
+                if check_in >= check_out:
+                    messages.error(request, "Check-out date must be after check-in date.")
+                elif check_in < datetime.now().date():
+                    messages.error(request, "Check-in date cannot be in the past.")
+                else:
+                    # Create enquiry
+                    enquiry = Enquiry.objects.create(
+                        name=name,
+                        location_id=int(location_id),
+                        check_in=check_in,
+                        check_out=check_out,
+                        property_type_id=int(property_type_id),
+                        number_of_guests=int(number_of_guests),
+                        phone_number=phone_number,
+                        email=email
+                    )
+                    messages.success(request, f"Enquiry created successfully for {enquiry.name}!")
+                    return redirect('list_enquiries')
+        except Exception as e:
+            messages.error(request, f"Error creating enquiry: {str(e)}")
+    
+    # Get all enquiries
+    queryset = Enquiry.objects.all().order_by("-created_at")
+    
+    # Filter by property type if provided
+    property_type_id = request.GET.get("property_type")
+    selected_property_type_id = None
+    if property_type_id:
+        try:
+            selected_property_type_id = int(property_type_id)
+            queryset = queryset.filter(property_type_id=selected_property_type_id)
+        except (ValueError, TypeError):
+            pass  # Invalid property_type_id, ignore filter
+    
+    # Filter by location if provided
+    location_id = request.GET.get("location")
+    selected_location_id = None
+    if location_id:
+        try:
+            selected_location_id = int(location_id)
+            queryset = queryset.filter(location_id=selected_location_id)
+        except (ValueError, TypeError):
+            pass  # Invalid location_id, ignore filter
+    
+    # Get all property types and locations for filter dropdowns
+    from masters.models import property_type, city
+    all_property_types = property_type.objects.all().order_by("name")
+    all_locations = city.objects.all().order_by("name")
+    
+    # Pagination
+    paginator = Paginator(queryset, 30)  # Show 30 enquiries per page
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    
+    # Statistics (based on filtered queryset)
+    total_enquiries = queryset.count()
+    
+    context = {
+        "enquiries": page_obj,
+        "total_enquiries": total_enquiries,
+        "property_types": all_property_types,
+        "locations": all_locations,
+        "selected_property_type": selected_property_type_id,
+        "selected_location": selected_location_id,
+    }
+    
+    return render(request, 'list_enquiries.html', context)
 
 
 

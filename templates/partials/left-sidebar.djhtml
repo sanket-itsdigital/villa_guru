@@ -341,6 +341,13 @@
 
         {% if request.user.is_superuser %}
         <li>
+          <a href="{% url 'list_enquiries' %}" class="nonnm">
+            <i data-feather="mail"></i>
+            <span>Enquiries</span>
+          </a>
+        </li>
+
+        <li>
           <a href="javascript: void(0);" class="has-arrow">
             <i data-feather="tag"></i>
             <span>Coupon/Offer</span>

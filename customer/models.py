@@ -469,3 +469,50 @@ class EventBooking(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.event.name} ({self.number_of_people} people)"
+
+
+class Enquiry(models.Model):
+    """
+    Model to store property enquiry information from customers.
+    Customers fill a form with their details to enquire about properties.
+    """
+    name = models.CharField(
+        max_length=255,
+        help_text="Customer's full name"
+    )
+    location = models.ForeignKey(
+        "masters.city",
+        on_delete=models.CASCADE,
+        help_text="Location/City for the enquiry"
+    )
+    check_in = models.DateField(
+        help_text="Check-in date"
+    )
+    check_out = models.DateField(
+        help_text="Check-out date"
+    )
+    property_type = models.ForeignKey(
+        "masters.property_type",
+        on_delete=models.CASCADE,
+        help_text="Type of property (Villa, Resort, Couple Stay)"
+    )
+    number_of_guests = models.PositiveIntegerField(
+        help_text="Total number of guests"
+    )
+    phone_number = models.CharField(
+        max_length=20,
+        help_text="Customer's phone number"
+    )
+    email = models.EmailField(
+        help_text="Customer's email address"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Enquiry"
+        verbose_name_plural = "Enquiries"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} - {self.property_type.name} ({self.location.name})"

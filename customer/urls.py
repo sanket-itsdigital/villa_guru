@@ -63,7 +63,11 @@ urlpatterns = [
         name="villa-room-list",
     ),
     path("room/<int:room_id>/", VillaRoomDetailAPIView.as_view(), name="room-detail"),
-    path("property-room-types/", PropertyRoomTypesAPIView.as_view(), name="property-room-types"),
+    path(
+        "property-room-types/",
+        PropertyRoomTypesAPIView.as_view(),
+        name="property-room-types",
+    ),
     path("available-rooms/", AvailableRoomsAPIView.as_view(), name="available-rooms"),
     path(
         "available-villa-resort-and-couple-stay/",
@@ -101,6 +105,12 @@ urlpatterns = [
         "event-bookings/list/",
         EventBookingListAPIView.as_view(),
         name="event-booking-list",
+    ),
+    # Enquiries
+    path(
+        "enquiries/",
+        EnquiryCreateAPIView.as_view(),
+        name="enquiry-create",
     ),
 ] + router.urls
 

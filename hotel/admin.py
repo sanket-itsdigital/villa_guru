@@ -15,7 +15,7 @@ class VillaAdmin(admin.ModelAdmin):
     date_hierarchy = 'created_at'
     fieldsets = (
         ('Basic Information', {
-            'fields': ('villa_id', 'user', 'name', 'category', 'property_type', 'description')
+            'fields': ('villa_id', 'user', 'name', 'category', 'property_type', 'description','max_adults', 'max_children')
         }),
         ('Location', {
             'fields': ('city', 'address', 'landmark', 'pincode')
