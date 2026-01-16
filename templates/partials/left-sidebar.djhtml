@@ -202,10 +202,10 @@
         <li>
           <a href="javascript: void(0);" class="has-arrow">
             <i data-feather="home"></i>
-            <span>Villa</span>
+            <span>Property</span>
           </a>
           <ul class="sub-menu">
-            <li><a href="{% url 'list_villa' %}">List Villa</a></li>
+            <li><a href="{% url 'list_villa' %}">List Property</a></li>
           </ul>
         </li>
 
@@ -271,30 +271,7 @@
             <li><a href="{% url 'list_villa_rooms' %}">List Rooms</a></li>
           </ul>
         </li>
-        
-        <li>
-          <a href="javascript: void(0);" class="has-arrow">
-            <i data-feather="grid"></i>
-            <span>Room Type</span>
-          </a>
-          <ul class="sub-menu">
-            <li><a href="{% url 'add_room_type' %}">Add Room Type</a></li>
-            <li><a href="{% url 'list_room_type' %}">List Room Type</a></li>
-          </ul>
-        </li>
         {% endif %}
-        {% endif %}
-        
-        {% if request.user.is_superuser %}
-        <li>
-          <a href="javascript: void(0);" class="has-arrow">
-            <i data-feather="grid"></i>
-            <span>Room Type</span>
-          </a>
-          <ul class="sub-menu">
-            <li><a href="{% url 'list_room_type' %}">List Room Type</a></li>
-          </ul>
-        </li>
         {% endif %}
 
         <li>
