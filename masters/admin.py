@@ -57,9 +57,9 @@ class TestimonialsAdmin(admin.ModelAdmin):
 
 @admin.register(event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'amount', 'start_date', 'date_created']
-    list_filter = ['start_date', 'date_created']
-    search_fields = ['name', 'description']
+    list_display = ['id', 'name', 'location', 'amount', 'start_date', 'date_created']
+    list_filter = ['location', 'start_date', 'date_created']
+    search_fields = ['name', 'description', 'location__name']
     readonly_fields = ['date_created']
     date_hierarchy = 'start_date'
 

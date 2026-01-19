@@ -91,6 +91,15 @@
                             <label for="amount" class="form-label">Amount:</label>
                             {{ form.amount }}
                         </div>
+
+                        <div class="mb-4">
+                            <label for="location" class="form-label">Location:</label>
+                            {{ form.location }}
+                            {% if form.location.errors %}
+                                <div class="text-danger">{{ form.location.errors.0 }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Select the city/location where the event will take place</small>
+                        </div>
                          
                         <div class="mb-4">
                             <label for="start_date" class="form-label">Start Date:</label>
