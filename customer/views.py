@@ -1140,6 +1140,126 @@ class ActiveResortAndCoupleStayListAPIView(APIView):
         return Response(response_data)
 
 
+class AllPropertiesListAPIView(APIView):
+    """
+    Get all active properties (Villa, Resort, and Couple Stay).
+    Returns all property types with their details.
+    Public endpoint - no authentication required.
+
+    Query Parameters:
+    - city (optional): Filter by city ID
+    - property_type (optional): Filter by property type ID (1=Villa, 2=Resort, 3=Couple Stay)
+    """
+
+    permission_classes = []  # Public API, no authentication required
+
+    @swagger_auto_schema(
+        operation_description="Get all active properties including Villa, Resort, and Couple Stay. Returns all property types.",
+        manual_parameters=[
+            openapi.Parameter(
+                "city",
+                openapi.IN_QUERY,
+                description="Filter by city ID",
+                type=openapi.TYPE_INTEGER,
+                required=False,
+            ),
+            openapi.Parameter(
+                "property_type",
+                openapi.IN_QUERY,
+                description="Filter by property type ID (1=Villa, 2=Resort, 3=Couple Stay)",
+                type=openapi.TYPE_INTEGER,
+                required=False,
+            ),
+        ],
+        responses={
+            200: openapi.Response(
+                description="List of all properties (Villa, Resort, Couple Stay)",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_OBJECT),
+                ),
+            ),
+        },
+        tags=["Properties"],
+    )
+    def get(self, request):
+        from django.db.models import Count
+        from masters.models import room_type
+        from masters.serializers import room_type_serializer
+        from .serializers import VillaSerializer
+
+        # Base queryset: All active properties (Villa, Resort, Couple Stay)
+        qs = (
+            villa.objects.filter(
+                go_live=True,
+                is_active=True,
+            )
+            .select_related("property_type", "city", "user")
+            .prefetch_related(
+                "rooms__room_type",
+                "rooms__room_type__amenities",
+                "images",
+                "amenities",
+            )
+            .order_by("-id")
+        )
+
+        # Filter by city if provided
+        city_id = request.query_params.get("city")
+        if city_id:
+            try:
+                qs = qs.filter(city_id=int(city_id))
+            except (ValueError, TypeError):
+                pass
+
+        # Filter by property_type if provided
+        property_type_id = request.query_params.get("property_type")
+        if property_type_id:
+            try:
+                qs = qs.filter(property_type_id=int(property_type_id))
+            except (ValueError, TypeError):
+                pass
+
+        # Serialize the properties
+        serializer = VillaSerializer(qs, many=True, context={"request": request})
+        property_data_list = serializer.data
+
+        # Add room_types for Resort/Couple Stay properties
+        property_dict = {v.id: v for v in qs}
+
+        response_data = []
+        for property_data in property_data_list:
+            # Remove rooms field
+            property_data.pop("rooms", None)
+
+            # Get property type name
+            property_type_name = property_data.get("property_type", {}).get("name", "")
+            property_id = property_data.get("id")
+            property_obj = property_dict.get(property_id)
+
+            # For Resort/Couple Stay: add room_types
+            if property_type_name in ["Resort", "Couple Stay"] and property_obj:
+                room_types_qs = (
+                    room_type.objects.filter(rooms__villa=property_obj)
+                    .distinct()
+                    .prefetch_related("amenities", "rooms__images")
+                )
+
+                room_types_serializer = room_type_serializer(
+                    room_types_qs,
+                    many=True,
+                    context={"request": request, "villa": property_obj},
+                )
+                property_data["room_types"] = room_types_serializer.data
+            else:
+                # Villa properties don't have individual room types
+                property_data["room_types"] = []
+
+            response_data.append(property_data)
+
+        return Response(response_data)
+
+
 class VillaRoomListAPIView(generics.ListAPIView):
     """
     List all rooms for a specific villa.
