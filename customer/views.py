@@ -1482,8 +1482,7 @@ class AvailableVillasAPIView(APIView):
                 # If max_adults is null, exclude it (property needs to have capacity defined)
                 # Use explicit filter to ensure null values are excluded
                 villa_properties = villa_properties.filter(
-                    max_adults__isnull=False,
-                    max_adults__gte=adults_count
+                    max_adults__isnull=False, max_adults__gte=adults_count
                 )
             except (ValueError, TypeError):
                 pass
@@ -1496,8 +1495,7 @@ class AvailableVillasAPIView(APIView):
                 # If max_children is null, exclude it (property needs to have capacity defined)
                 # Use explicit filter to ensure null values are excluded
                 villa_properties = villa_properties.filter(
-                    max_children__isnull=False,
-                    max_children__gte=children_count
+                    max_children__isnull=False, max_children__gte=children_count
                 )
             except (ValueError, TypeError):
                 pass
@@ -1768,9 +1766,9 @@ class AvailableVillasAPIView(APIView):
                     adults_count = int(adults)
                     # For Villa favorites: filter by max_adults (must be set and >= requested)
                     user_favorites_query = user_favorites_query.filter(
-                        Q(villa__property_type__name="Villa") & 
-                        Q(villa__max_adults__isnull=False) & 
-                        Q(villa__max_adults__gte=adults_count)
+                        Q(villa__property_type__name="Villa")
+                        & Q(villa__max_adults__isnull=False)
+                        & Q(villa__max_adults__gte=adults_count)
                     ) | user_favorites_query.exclude(villa__property_type__name="Villa")
                     # For Resort/Couple Stay favorites: filter by room max_adults
                     # This will be handled when we check the rooms
@@ -1782,9 +1780,9 @@ class AvailableVillasAPIView(APIView):
                     children_count = int(children)
                     # For Villa favorites: filter by max_children (must be set and >= requested)
                     user_favorites_query = user_favorites_query.filter(
-                        Q(villa__property_type__name="Villa") & 
-                        Q(villa__max_children__isnull=False) & 
-                        Q(villa__max_children__gte=children_count)
+                        Q(villa__property_type__name="Villa")
+                        & Q(villa__max_children__isnull=False)
+                        & Q(villa__max_children__gte=children_count)
                     ) | user_favorites_query.exclude(villa__property_type__name="Villa")
                 except (ValueError, TypeError):
                     pass
@@ -1800,7 +1798,7 @@ class AvailableVillasAPIView(APIView):
             # Get favorited room IDs (Resort/Couple Stay room favorites)
             # Filter these by adults/children at room level
             favorited_room_query = user_favorites_query.filter(room__isnull=False)
-            
+
             if adults:
                 try:
                     adults_count = int(adults)
@@ -1827,9 +1825,9 @@ class AvailableVillasAPIView(APIView):
                 except (ValueError, TypeError):
                     pass
 
-            favorited_room_villa_ids = (
-                favorited_room_query.values_list("villa_id", flat=True).distinct()
-            )
+            favorited_room_villa_ids = favorited_room_query.values_list(
+                "villa_id", flat=True
+            ).distinct()
 
             # Add villas that have favorited rooms to available list
             favorite_villa_ids.update(favorited_room_villa_ids)
@@ -1850,18 +1848,26 @@ class AvailableVillasAPIView(APIView):
             try:
                 adults_count = int(adults)
                 # Separate Villa and Resort/Couple Stay properties
-                villa_ids = list(available_villas.filter(property_type__name="Villa").values_list('id', flat=True))
-                resort_couple_stay_ids = list(available_villas.exclude(property_type__name="Villa").values_list('id', flat=True))
-                
+                villa_ids = list(
+                    available_villas.filter(property_type__name="Villa").values_list(
+                        "id", flat=True
+                    )
+                )
+                resort_couple_stay_ids = list(
+                    available_villas.exclude(property_type__name="Villa").values_list(
+                        "id", flat=True
+                    )
+                )
+
                 # Filter Villa properties: must have max_adults >= requested (exclude nulls)
                 filtered_villa_ids = list(
                     villa.objects.filter(
                         id__in=villa_ids,
                         max_adults__isnull=False,
-                        max_adults__gte=adults_count
-                    ).values_list('id', flat=True)
+                        max_adults__gte=adults_count,
+                    ).values_list("id", flat=True)
                 )
-                
+
                 # For Resort/Couple Stay: only include if they have rooms that meet criteria
                 # Get rooms that meet the adults criteria for these properties
                 valid_resort_rooms = villa_rooms.objects.filter(
@@ -1873,8 +1879,10 @@ class AvailableVillasAPIView(APIView):
                         & Q(max_guest_count__gte=adults_count)
                     )
                 )
-                filtered_resort_ids = list(valid_resort_rooms.values_list('villa_id', flat=True).distinct())
-                
+                filtered_resort_ids = list(
+                    valid_resort_rooms.values_list("villa_id", flat=True).distinct()
+                )
+
                 # Combine filtered IDs
                 final_ids = filtered_villa_ids + filtered_resort_ids
                 available_villas = available_villas.filter(id__in=final_ids)
@@ -1885,18 +1893,26 @@ class AvailableVillasAPIView(APIView):
             try:
                 children_count = int(children)
                 # Separate Villa and Resort/Couple Stay properties
-                villa_ids = list(available_villas.filter(property_type__name="Villa").values_list('id', flat=True))
-                resort_couple_stay_ids = list(available_villas.exclude(property_type__name="Villa").values_list('id', flat=True))
-                
+                villa_ids = list(
+                    available_villas.filter(property_type__name="Villa").values_list(
+                        "id", flat=True
+                    )
+                )
+                resort_couple_stay_ids = list(
+                    available_villas.exclude(property_type__name="Villa").values_list(
+                        "id", flat=True
+                    )
+                )
+
                 # Filter Villa properties: must have max_children >= requested (exclude nulls)
                 filtered_villa_ids = list(
                     villa.objects.filter(
                         id__in=villa_ids,
                         max_children__isnull=False,
-                        max_children__gte=children_count
-                    ).values_list('id', flat=True)
+                        max_children__gte=children_count,
+                    ).values_list("id", flat=True)
                 )
-                
+
                 # For Resort/Couple Stay: only include if they have rooms that meet criteria
                 # Get rooms that meet the children criteria for these properties
                 valid_resort_rooms = villa_rooms.objects.filter(
@@ -1908,8 +1924,10 @@ class AvailableVillasAPIView(APIView):
                         & Q(max_guest_count__gte=children_count)
                     )
                 )
-                filtered_resort_ids = list(valid_resort_rooms.values_list('villa_id', flat=True).distinct())
-                
+                filtered_resort_ids = list(
+                    valid_resort_rooms.values_list("villa_id", flat=True).distinct()
+                )
+
                 # Combine filtered IDs
                 final_ids = filtered_villa_ids + filtered_resort_ids
                 available_villas = available_villas.filter(id__in=final_ids)
@@ -1928,12 +1946,8 @@ class AvailableVillasAPIView(APIView):
                 adults_count = int(adults)
                 # Remove Villa properties that don't meet criteria
                 filtered_villas = filtered_villas.exclude(
-                    property_type__name="Villa",
-                    max_adults__isnull=True
-                ).exclude(
-                    property_type__name="Villa",
-                    max_adults__lt=adults_count
-                )
+                    property_type__name="Villa", max_adults__isnull=True
+                ).exclude(property_type__name="Villa", max_adults__lt=adults_count)
             except (ValueError, TypeError):
                 pass
 
@@ -1942,12 +1956,8 @@ class AvailableVillasAPIView(APIView):
                 children_count = int(children)
                 # Remove Villa properties that don't meet criteria
                 filtered_villas = filtered_villas.exclude(
-                    property_type__name="Villa",
-                    max_children__isnull=True
-                ).exclude(
-                    property_type__name="Villa",
-                    max_children__lt=children_count
-                )
+                    property_type__name="Villa", max_children__isnull=True
+                ).exclude(property_type__name="Villa", max_children__lt=children_count)
             except (ValueError, TypeError):
                 pass
 
@@ -1955,22 +1965,30 @@ class AvailableVillasAPIView(APIView):
             try:
                 rooms_count = int(rooms)
                 # For Villa properties: filter by no_of_rooms
-                villa_ids = list(filtered_villas.filter(property_type__name="Villa").values_list('id', flat=True))
-                resort_couple_stay_ids = list(filtered_villas.exclude(property_type__name="Villa").values_list('id', flat=True))
-                
+                villa_ids = list(
+                    filtered_villas.filter(property_type__name="Villa").values_list(
+                        "id", flat=True
+                    )
+                )
+                resort_couple_stay_ids = list(
+                    filtered_villas.exclude(property_type__name="Villa").values_list(
+                        "id", flat=True
+                    )
+                )
+
                 # Filter Villa properties: must have no_of_rooms >= requested
                 filtered_villa_ids = list(
                     villa.objects.filter(
-                        id__in=villa_ids,
-                        no_of_rooms__gte=rooms_count
-                    ).values_list('id', flat=True)
+                        id__in=villa_ids, no_of_rooms__gte=rooms_count
+                    ).values_list("id", flat=True)
                 )
-                
+
                 # For Resort/Couple Stay: ensure they have enough total rooms
                 # This was already handled in the availability check, but we double-check here
                 filtered_resort_ids = list(resort_couple_stay_ids)
                 if resort_couple_stay_ids:
                     from django.db.models import Sum
+
                     resort_room_counts = (
                         villa_rooms.objects.filter(villa_id__in=resort_couple_stay_ids)
                         .values("villa_id")
@@ -1979,7 +1997,7 @@ class AvailableVillasAPIView(APIView):
                         .values_list("villa_id", flat=True)
                     )
                     filtered_resort_ids = list(resort_room_counts)
-                
+
                 # Combine filtered IDs
                 final_ids = filtered_villa_ids + filtered_resort_ids
                 filtered_villas = filtered_villas.filter(id__in=final_ids)
@@ -2003,13 +2021,16 @@ class AvailableVillasAPIView(APIView):
             property_type_name = villa_data.get("property_type", {}).get("name", "")
             villa_id = villa_data.get("id")
             villa_obj = villa_dict.get(villa_id)
-            
+
             if adults and villa_obj:
                 try:
                     adults_count = int(adults)
                     if property_type_name == "Villa":
                         # For Villa: must have max_adults >= requested
-                        if not villa_obj.max_adults or villa_obj.max_adults < adults_count:
+                        if (
+                            not villa_obj.max_adults
+                            or villa_obj.max_adults < adults_count
+                        ):
                             continue  # Skip this property
                 except (ValueError, TypeError):
                     pass
@@ -2019,7 +2040,10 @@ class AvailableVillasAPIView(APIView):
                     children_count = int(children)
                     if property_type_name == "Villa":
                         # For Villa: must have max_children >= requested
-                        if not villa_obj.max_children or villa_obj.max_children < children_count:
+                        if (
+                            not villa_obj.max_children
+                            or villa_obj.max_children < children_count
+                        ):
                             continue  # Skip this property
                 except (ValueError, TypeError):
                     pass
@@ -2029,7 +2053,10 @@ class AvailableVillasAPIView(APIView):
                     rooms_count = int(rooms)
                     if property_type_name == "Villa":
                         # For Villa: must have no_of_rooms >= requested
-                        if not villa_obj.no_of_rooms or villa_obj.no_of_rooms < rooms_count:
+                        if (
+                            not villa_obj.no_of_rooms
+                            or villa_obj.no_of_rooms < rooms_count
+                        ):
                             continue  # Skip this property
                     # For Resort/Couple Stay: room count was already validated in availability check
                 except (ValueError, TypeError):
@@ -2069,33 +2096,36 @@ class AvailableVillasAPIView(APIView):
 
 class TopPicksByGuestsAPIView(APIView):
     """
-    API to get top 10 villas based on booking count.
-    Returns villas that have the most bookings (confirmed/paid bookings only).
+    API to get top 10 properties based on booking count.
+    Returns properties (Villa, Resort, Couple Stay) that have the most bookings (confirmed/paid bookings only).
+    Includes all property types: Villa, Resort, and Couple Stay.
     """
 
     permission_classes = []  # Public API, no authentication required
 
     @swagger_auto_schema(
-        operation_description="Get top 10 villas based on booking count (Top Picks By Guests)",
+        operation_description="Get top 10 properties (Villa, Resort, Couple Stay) based on booking count (Top Picks By Guests). Returns all property types.",
         responses={
             200: openapi.Response(
-                description="List of top 10 villas with booking counts",
+                description="List of top 10 properties with booking counts. Includes Villa, Resort, and Couple Stay property types.",
                 schema=openapi.Schema(
                     type=openapi.TYPE_ARRAY,
                     items=openapi.Schema(type=openapi.TYPE_OBJECT),
                 ),
             ),
         },
-        tags=["Villas"],
+        tags=["Properties"],
     )
     def get(self, request):
         from django.db.models import Count, Q
         from .serializers import VillaSerializer
 
-        # Count bookings per villa (only confirmed/paid bookings, exclude cancelled)
+        # Count bookings per property (only confirmed/paid bookings, exclude cancelled)
+        # Returns all property types: Villa, Resort, and Couple Stay
         # Use 'villabooking' as the reverse relation name
-        top_villas = (
+        top_properties = (
             villa.objects.filter(is_active=True, go_live=True)
+            .select_related("property_type")  # Optimize property_type queries
             .annotate(
                 booking_count=Count(
                     "villabooking",
@@ -2110,21 +2140,23 @@ class TopPicksByGuestsAPIView(APIView):
                     distinct=True,
                 )
             )
-            .filter(booking_count__gt=0)  # Only villas with at least 1 booking
-            .order_by("-booking_count")[:10]  # Order by booking count descending
-        )  # Get top 10
+            .filter(booking_count__gt=0)  # Only properties with at least 1 booking
+            .order_by("-booking_count")[
+                :10
+            ]  # Order by booking count descending, get top 10
+        )
 
         # Serialize the results
         serializer = VillaSerializer(
-            top_villas, many=True, context={"request": request}
+            top_properties, many=True, context={"request": request}
         )
 
-        # Add booking_count to each villa in the response
+        # Add booking_count to each property in the response
         response_data = []
-        for villa_obj, serialized_data in zip(top_villas, serializer.data):
-            villa_data = dict(serialized_data)
-            villa_data["booking_count"] = villa_obj.booking_count
-            response_data.append(villa_data)
+        for property_obj, serialized_data in zip(top_properties, serializer.data):
+            property_data = dict(serialized_data)
+            property_data["booking_count"] = property_obj.booking_count
+            response_data.append(property_data)
 
         return Response(response_data, status=200)
 
@@ -2552,7 +2584,7 @@ class EnquiryCreateAPIView(generics.CreateAPIView):
     Create a new property enquiry.
     POST /customer/enquiries/
     Public endpoint - no authentication required.
-    
+
     Customers can submit enquiries for properties by providing:
     - name: Customer's full name
     - location: City/Location ID (foreign key)
@@ -2573,7 +2605,16 @@ class EnquiryCreateAPIView(generics.CreateAPIView):
         operation_description="Create a new property enquiry. Public endpoint - no authentication required.",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=["name", "location", "check_in", "check_out", "property_type", "number_of_guests", "phone_number", "email"],
+            required=[
+                "name",
+                "location",
+                "check_in",
+                "check_out",
+                "property_type",
+                "number_of_guests",
+                "phone_number",
+                "email",
+            ],
             properties={
                 "name": openapi.Schema(
                     type=openapi.TYPE_STRING,
