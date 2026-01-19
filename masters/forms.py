@@ -150,7 +150,7 @@ class event_Form(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control description-box', 'id': 'description', 'rows': 5}),
             'itinerary': forms.Textarea(attrs={'class': 'form-control description-box', 'id': 'itinerary', 'rows': 5, 'placeholder': 'Enter event itinerary/schedule'}),
             'amount': forms.NumberInput(attrs={'class': 'form-control', 'id': 'amount', 'step': '0.01', 'min': '0', 'placeholder': '0.00'}),
-            'location': forms.Select(attrs={'class': 'form-control', 'id': 'location'}),
+            'location': forms.TextInput(attrs={'class': 'form-control', 'id': 'location', 'placeholder': 'Enter event location'}),
             'feature_image': forms.ClearableFileInput(attrs={'class': 'form-control', 'id': 'feature_image', 'accept': 'image/*'}),
             'start_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local', 'id': 'start_date'}),
             'end_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local', 'id': 'end_date'}),

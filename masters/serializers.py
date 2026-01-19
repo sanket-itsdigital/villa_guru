@@ -69,8 +69,6 @@ class testimonials_serializer(serializers.ModelSerializer):
 
 
 class event_serializer(serializers.ModelSerializer):
-    location_name = serializers.CharField(source="location.name", read_only=True)
-    
     class Meta:
         model = event
         fields = "__all__"

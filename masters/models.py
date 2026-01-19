@@ -174,13 +174,11 @@ class event(models.Model):
         blank=True,
         help_text="Event price/amount",
     )
-    location = models.ForeignKey(
-        "masters.city",
-        on_delete=models.SET_NULL,
+    location = models.CharField(
+        max_length=255,
         null=True,
         blank=True,
-        related_name="events",
-        help_text="Location/City where the event will take place",
+        help_text="Location where the event will take place",
     )
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(
