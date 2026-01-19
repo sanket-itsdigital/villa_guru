@@ -77,10 +77,13 @@ class property_type_Form(forms.ModelForm):
 class city_Form(forms.ModelForm):
     class Meta:
         model = city
-        fields = ['name']
+        fields = ['name', 'logo']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control', 'id': 'name'
+            }),
+            'logo': forms.ClearableFileInput(attrs={
+                'class': 'form-control', 'id': 'logo', 'accept': 'image/*'
             }),
         }
         

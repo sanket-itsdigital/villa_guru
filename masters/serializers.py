@@ -15,9 +15,20 @@ class property_type_serializer(serializers.ModelSerializer):
 
 
 class city_serializer(serializers.ModelSerializer):
+    logo = serializers.SerializerMethodField()
+    
     class Meta:
         model = city
         fields = "__all__"
+    
+    def get_logo(self, obj):
+        """
+        Return absolute URL for city logo.
+        """
+        request = self.context.get("request")
+        if obj.logo and request:
+            return request.build_absolute_uri(obj.logo.url)
+        return obj.logo.url if obj.logo else None
 
 
 class villa_amenity_serializer(serializers.ModelSerializer):

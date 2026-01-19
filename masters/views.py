@@ -467,6 +467,14 @@ from django.views import View
 class get_city(ListAPIView):
     queryset = city.objects.all().order_by("-id")
     serializer_class = city_serializer
+    
+    def get_serializer_context(self):
+        """
+        Extra context provided to the serializer class.
+        """
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 def add_amenity(request):

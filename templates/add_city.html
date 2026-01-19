@@ -58,7 +58,7 @@ Vaccination{% endblock title %} {% block extra_css %}
       </div>
       <div class="container">
         <div class="form-container">
-          <form method="POST">
+          <form method="POST" enctype="multipart/form-data">
             {% csrf_token %} {% if form.non_field_errors %}
             <div class="alert alert-danger">
               {% for error in form.non_field_errors %}
@@ -73,6 +73,21 @@ Vaccination{% endblock title %} {% block extra_css %}
               {% if form.name.errors %}
                 <div class="text-danger">{{ form.name.errors.0 }}</div>
               {% endif %}
+            </div>
+
+            <div class="mb-4">
+              <label for="logo" class="form-label">Logo:</label>
+              {{ form.logo }}
+              {% if form.logo.errors %}
+                <div class="text-danger">{{ form.logo.errors.0 }}</div>
+              {% endif %}
+              {% if form.instance.logo %}
+                <div class="mt-2">
+                  <p class="text-muted">Current logo:</p>
+                  <img src="{{ form.instance.logo.url }}" alt="Current logo" style="max-width: 200px; max-height: 200px; object-fit: contain; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
+                </div>
+              {% endif %}
+              <small class="form-text text-muted">Upload a logo image for this city. Accepted formats: JPG, PNG, GIF.</small>
             </div>
 
             <div class="text-center">

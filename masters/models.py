@@ -41,6 +41,7 @@ class property_type(models.Model):
 
 class city(models.Model):
     name = models.CharField(max_length=255)
+    logo = models.ImageField(upload_to="city_logos/", null=True, blank=True)
 
     def __str__(self):
         return self.name

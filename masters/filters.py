@@ -38,7 +38,7 @@ class AmenityFilter(django_filters.FilterSet):
 class CityFilter(django_filters.FilterSet):
     class Meta:
         model = city
-        fields = '__all__'  # city has no ImageField anymore
+        exclude = ['logo']  # Exclude ImageField
 
 
 class TestimonialsFilter(django_filters.FilterSet):
