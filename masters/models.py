@@ -62,13 +62,13 @@ class room_type(models.Model):
         null=True,
         blank=True,
         related_name="room_types",
-        help_text="Vendor who created this room type. Only vendors can create room types."
+        help_text="Vendor who created this room type. Only vendors can create room types.",
     )
     amenities = models.ManyToManyField(
         "masters.villa_amenity",
         blank=True,
         related_name="room_types",
-        help_text="Room amenities that will be available for this room type"
+        help_text="Room amenities that will be available for this room type",
     )
 
     class Meta:
@@ -200,16 +200,17 @@ class home_banner(models.Model):
     CATEGORY_CHOICES = [
         ("top", "Top"),
         ("bottom", "Bottom"),
+        ("landing_page", "Landing Page"),
     ]
-    
+
     title = models.CharField(max_length=225, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     image = models.ImageField(upload_to="homeBanners/")
     category = models.CharField(
-        max_length=10,
+        max_length=20,
         choices=CATEGORY_CHOICES,
         default="top",
-        help_text="Banner position: Top or Bottom"
+        help_text="Banner position: Top, Bottom, or Landing Page",
     )
     is_for_web = models.BooleanField(default=False)
     is_active = models.BooleanField(default=False)

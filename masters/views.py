@@ -467,13 +467,13 @@ from django.views import View
 class get_city(ListAPIView):
     queryset = city.objects.all().order_by("-id")
     serializer_class = city_serializer
-    
+
     def get_serializer_context(self):
         """
         Extra context provided to the serializer class.
         """
         context = super().get_serializer_context()
-        context['request'] = self.request
+        context["request"] = self.request
         return context
 
 
@@ -698,26 +698,26 @@ def add_room_type(request):
     Vendors can assign room amenities to the room type.
     """
     from django.contrib import messages
-    
+
     # Restrict admin from adding room types
     if request.user.is_superuser:
         messages.warning(
             request,
-            "Admins cannot add room types. Only vendors can create room types for their properties."
+            "Admins cannot add room types. Only vendors can create room types for their properties.",
         )
         return redirect("list_room_type")
-    
+
     # Only allow service providers (vendors)
     if not request.user.is_service_provider:
         messages.error(request, "You don't have permission to add room types.")
         return redirect("list_room_type")
-    
+
     # Check if vendor has property_type (should be Resort or Couple Stay for room management)
     if request.user.property_type and request.user.property_type.name == "Villa":
         messages.info(
             request,
             "Room types are only available for Resort and Couple Stay properties. "
-            "Villa properties are booked as whole units."
+            "Villa properties are booked as whole units.",
         )
         return redirect("list_room_type")
 
@@ -732,9 +732,9 @@ def add_room_type(request):
             # Save many-to-many relationships (amenities)
             forms.save_m2m()
             messages.success(
-                request, 
+                request,
                 f"Room type '{instance.name}' added successfully! "
-                f"You can now use this room type when adding rooms to your properties."
+                f"You can now use this room type when adding rooms to your properties.",
             )
             return redirect("list_room_type")
         else:
@@ -751,13 +751,13 @@ def add_room_type(request):
 def update_room_type(request, room_type_id):
 
     instance = get_object_or_404(room_type, id=room_type_id)
-    
+
     # For vendors: only allow editing their own room types
     if request.user.is_service_provider and not request.user.is_superuser:
         if instance.user != request.user:
             messages.error(request, "You don't have permission to edit this room type.")
             return redirect("list_room_type")
-    
+
     if request.method == "POST":
 
         forms = room_type_Form(request.POST, request.FILES, instance=instance)
@@ -787,11 +787,15 @@ def update_room_type(request, room_type_id):
 def list_room_type(request):
     if request.user.is_superuser:
         # Admin: show all room types with amenities prefetched
-        data = room_type.objects.prefetch_related('amenities').all().order_by("-id")
+        data = room_type.objects.prefetch_related("amenities").all().order_by("-id")
     else:
         # Vendor: show only their own room types with amenities prefetched
-        data = room_type.objects.prefetch_related('amenities').filter(user=request.user).order_by("-id")
-    
+        data = (
+            room_type.objects.prefetch_related("amenities")
+            .filter(user=request.user)
+            .order_by("-id")
+        )
+
     return render(request, "list_room_type.html", {"data": data})
 
 
@@ -799,23 +803,26 @@ def list_room_type(request):
 def delete_room_type(request, room_type_id):
 
     instance = get_object_or_404(room_type, id=room_type_id)
-    
+
     # For vendors: only allow deleting their own room types
     if request.user.is_service_provider and not request.user.is_superuser:
         if instance.user != request.user:
-            messages.error(request, "You don't have permission to delete this room type.")
+            messages.error(
+                request, "You don't have permission to delete this room type."
+            )
             return redirect("list_room_type")
-    
+
     # Check if room type is being used
     from hotel.models import villa_rooms
+
     if villa_rooms.objects.filter(room_type=instance).exists():
         messages.error(
             request,
             f"Cannot delete '{instance.name}' because it is being used by one or more rooms. "
-            "Please remove or update those rooms first."
+            "Please remove or update those rooms first.",
         )
         return redirect("list_room_type")
-    
+
     instance.delete()
     messages.success(request, "Room type deleted successfully!")
     return redirect("list_room_type")
@@ -1064,12 +1071,12 @@ class HomeBannerListAPIView(ListAPIView):
     Returns a list of all banners with complete information including:
     - id, title, description
     - image (with absolute URL)
-    - category (top/bottom)
+    - category (top/bottom/landing_page)
     - is_for_web, is_active flags
     - created_at timestamp
-    
+
     Filtering:
-    - category: Filter by banner position (top/bottom)
+    - category: Filter by banner position (top/bottom/landing_page)
     - is_for_web: Filter by web-only flag
     - is_active: Filter by active status
     """
