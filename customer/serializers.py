@@ -72,19 +72,24 @@ class VillaRoomSerializer(serializers.ModelSerializer):
             "images",
             "villa_details",
         ]
-        read_only_fields = ["villa_details", "booking_id", "villa_amenity_details", "room_count"]
-    
+        read_only_fields = [
+            "villa_details",
+            "booking_id",
+            "villa_amenity_details",
+            "room_count",
+        ]
+
     def get_available_count(self, obj):
         """Get available room count (set by view if available)"""
-        return getattr(obj, 'available_count', getattr(obj, 'room_count', 1))
-    
+        return getattr(obj, "available_count", getattr(obj, "room_count", 1))
+
     def get_total_rooms(self, obj):
         """Get total room count"""
-        return getattr(obj, 'total_rooms', getattr(obj, 'room_count', 1))
-    
+        return getattr(obj, "total_rooms", getattr(obj, "room_count", 1))
+
     def get_booked_count(self, obj):
         """Get booked room count"""
-        return getattr(obj, 'booked_count', 0)
+        return getattr(obj, "booked_count", 0)
 
     def get_villa_details(self, obj):
         # avoid full villa -> rooms -> villa recursion
@@ -478,7 +483,11 @@ class VillaBookingSerializer(serializers.ModelSerializer):
                     )
 
                 # Get total room count for this room type
-                total_room_count = room.room_count if hasattr(room, 'room_count') and room.room_count else 1
+                total_room_count = (
+                    room.room_count
+                    if hasattr(room, "room_count") and room.room_count
+                    else 1
+                )
 
                 # Check availability for each date
                 from datetime import timedelta
@@ -502,8 +511,8 @@ class VillaBookingSerializer(serializers.ModelSerializer):
                         # Include bookings that are either:
                         # 1. Paid (regardless of status), OR
                         # 2. Active status (confirmed, checked_in, pending)
-                        Q(payment_status="paid") | 
-                        Q(status__in=["confirmed", "checked_in", "pending"])
+                        Q(payment_status="paid")
+                        | Q(status__in=["confirmed", "checked_in", "pending"])
                     )
                     .exclude(id=self.instance.id if self.instance else None)
                     .prefetch_related("booked_rooms")
@@ -520,27 +529,26 @@ class VillaBookingSerializer(serializers.ModelSerializer):
                             current_date += timedelta(days=1)
 
                 current_date = check_in
-                min_available = float('inf')
-                
+                min_available = float("inf")
+
                 while current_date < check_out:
                     # Use automatic calculation method - it handles everything
                     room_availability = RoomAvailability.get_or_calculate_availability(
-                        room=room,
-                        date=current_date
+                        room=room, date=current_date
                     )
-                    
+
                     # Check if manually closed
                     if room_availability.is_manually_closed:
                         raise serializers.ValidationError(
                             f"Room {room.room_type.name if room.room_type else 'Room'} is not available on {current_date} (marked as closed)."
                         )
-                    
+
                     # Get the calculated available count
                     available_count = room_availability.available_count
-                    
+
                     # Ensure available_count is not negative
                     available_count = max(0, available_count)
-                    
+
                     min_available = min(min_available, available_count)
 
                     # Check if requested quantity exceeds available
@@ -618,8 +626,7 @@ class VillaBookingSerializer(serializers.ModelSerializer):
                 for booked_room in booked_rooms:
                     # Use automatic calculation method - it will update availability based on all bookings
                     RoomAvailability.get_or_calculate_availability(
-                        room=booked_room.room,
-                        date=current_date
+                        room=booked_room.room, date=current_date
                     )
                 current_date += timedelta(days=1)
 
@@ -778,9 +785,14 @@ class EnquirySerializer(serializers.ModelSerializer):
     """
     Serializer for property enquiries.
     """
+
     location_name = serializers.CharField(source="location.name", read_only=True)
-    property_type_name = serializers.CharField(source="property_type.name", read_only=True)
-    meal_option_display = serializers.CharField(source="get_meal_option_display", read_only=True)
+    property_type_name = serializers.CharField(
+        source="property_type.name", read_only=True
+    )
+    meal_option_display = serializers.CharField(
+        source="get_meal_option_display", read_only=True
+    )
 
     class Meta:
         model = Enquiry
@@ -825,7 +837,10 @@ class EventEnquirySerializer(serializers.ModelSerializer):
     """
     Serializer for event enquiries.
     """
-    enquiry_type_display = serializers.CharField(source="get_enquiry_type_display", read_only=True)
+
+    enquiry_type_display = serializers.CharField(
+        source="get_enquiry_type_display", read_only=True
+    )
 
     class Meta:
         model = EventEnquiry
@@ -846,18 +861,24 @@ class EventEnquirySerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """Validate event enquiry data"""
+        from django.utils import timezone
+
         check_in_datetime = data.get("check_in_datetime")
         check_out_datetime = data.get("check_out_datetime")
 
         if check_in_datetime and check_out_datetime:
             if check_in_datetime >= check_out_datetime:
                 raise serializers.ValidationError(
-                    {"check_out_datetime": "Check-out date and time must be after check-in date and time."}
+                    {
+                        "check_out_datetime": "Check-out date and time must be after check-in date and time."
+                    }
                 )
-            from datetime import datetime
-            if check_in_datetime < datetime.now():
+            # Use timezone-aware datetime for comparison (Django USE_TZ=True)
+            if check_in_datetime < timezone.now():
                 raise serializers.ValidationError(
-                    {"check_in_datetime": "Check-in date and time cannot be in the past."}
+                    {
+                        "check_in_datetime": "Check-in date and time cannot be in the past."
+                    }
                 )
 
         return data
