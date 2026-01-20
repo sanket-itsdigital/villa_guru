@@ -49,6 +49,7 @@ urlpatterns = [
     path('', dashboard, name="dashboard"),
     path('event-bookings/', list_event_bookings, name="list_event_bookings"),
     path('enquiries/', list_enquiries, name="list_enquiries"),
+    path('event-enquiries/', list_event_enquiries, name="list_event_enquiries"),
 
     path('admin/', admin.site.urls),
 

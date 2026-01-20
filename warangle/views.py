@@ -287,6 +287,91 @@ def list_enquiries(request):
     return render(request, 'list_enquiries.html', context)
 
 
+def list_event_enquiries(request):
+    """
+    View to list all event enquiries in admin dashboard.
+    Only accessible to superusers.
+    Also handles POST requests to create new event enquiries.
+    """
+    from customer.models import EventEnquiry
+    from django.core.paginator import Paginator
+    from django.contrib import messages
+    from datetime import datetime
+    
+    if not request.user.is_superuser:
+        messages.error(request, "You do not have permission to view event enquiries.")
+        return redirect('dashboard')
+    
+    # Handle POST request to create new event enquiry
+    if request.method == 'POST':
+        try:
+            name = request.POST.get('name')
+            enquiry_type = request.POST.get('enquiry_type')
+            phone_number = request.POST.get('phone_number')
+            email = request.POST.get('email')
+            check_in_datetime_str = request.POST.get('check_in_datetime')
+            check_out_datetime_str = request.POST.get('check_out_datetime')
+            number_of_people = request.POST.get('number_of_people')
+            
+            # Validate required fields
+            if not all([name, enquiry_type, phone_number, email, check_in_datetime_str, check_out_datetime_str, number_of_people]):
+                messages.error(request, "All fields are required.")
+            else:
+                # Parse datetimes
+                check_in_datetime = datetime.strptime(check_in_datetime_str, "%Y-%m-%dT%H:%M")
+                check_out_datetime = datetime.strptime(check_out_datetime_str, "%Y-%m-%dT%H:%M")
+                
+                if check_in_datetime >= check_out_datetime:
+                    messages.error(request, "Check-out date and time must be after check-in date and time.")
+                elif check_in_datetime < datetime.now():
+                    messages.error(request, "Check-in date and time cannot be in the past.")
+                else:
+                    # Create event enquiry
+                    event_enquiry = EventEnquiry.objects.create(
+                        name=name,
+                        enquiry_type=enquiry_type,
+                        phone_number=phone_number,
+                        email=email,
+                        check_in_datetime=check_in_datetime,
+                        check_out_datetime=check_out_datetime,
+                        number_of_people=int(number_of_people)
+                    )
+                    messages.success(request, f"Event enquiry created successfully for {event_enquiry.name}!")
+                    return redirect('list_event_enquiries')
+        except Exception as e:
+            messages.error(request, f"Error creating event enquiry: {str(e)}")
+    
+    # Get all event enquiries
+    queryset = EventEnquiry.objects.all().order_by("-created_at")
+    
+    # Filter by enquiry type if provided
+    enquiry_type_filter = request.GET.get("enquiry_type")
+    selected_enquiry_type = None
+    if enquiry_type_filter:
+        selected_enquiry_type = enquiry_type_filter
+        queryset = queryset.filter(enquiry_type=enquiry_type_filter)
+    
+    # Get enquiry type choices for filter dropdown
+    enquiry_type_choices = EventEnquiry.ENQUIRY_TYPE_CHOICES
+    
+    # Pagination
+    paginator = Paginator(queryset, 30)  # Show 30 enquiries per page
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    
+    # Statistics (based on filtered queryset)
+    total_enquiries = queryset.count()
+    
+    context = {
+        "event_enquiries": page_obj,
+        "total_enquiries": total_enquiries,
+        "enquiry_type_choices": enquiry_type_choices,
+        "selected_enquiry_type": selected_enquiry_type,
+    }
+    
+    return render(request, 'list_event_enquiries.html', context)
+
+
 
 
 

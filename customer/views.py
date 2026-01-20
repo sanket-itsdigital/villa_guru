@@ -2794,6 +2794,95 @@ class EnquiryCreateAPIView(generics.CreateAPIView):
         return super().post(request, *args, **kwargs)
 
 
+class EventEnquiryCreateAPIView(generics.CreateAPIView):
+    """
+    Create a new event enquiry.
+    POST /customer/event-enquiries/
+    Public endpoint - no authentication required.
+
+    Customers can submit enquiries for events by providing:
+    - name: Customer's full name
+    - enquiry_type: Type of event (corporate_events, wedding_ceremony, birthday_party, retirement_party, other)
+    - phone_number: Customer's phone number
+    - email: Customer's email address
+    - check_in_datetime: Event check-in date and time (YYYY-MM-DDTHH:MM:SS)
+    - check_out_datetime: Event check-out date and time (YYYY-MM-DDTHH:MM:SS)
+    - number_of_people: Number of people for the event
+    """
+
+    from .serializers import EventEnquirySerializer
+
+    serializer_class = EventEnquirySerializer
+    permission_classes = []  # Public endpoint
+
+    @swagger_auto_schema(
+        operation_description="Create a new event enquiry. Public endpoint - no authentication required.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=[
+                "name",
+                "enquiry_type",
+                "phone_number",
+                "email",
+                "check_in_datetime",
+                "check_out_datetime",
+                "number_of_people",
+            ],
+            properties={
+                "name": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Customer's full name",
+                    example="John Doe",
+                ),
+                "enquiry_type": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    enum=["corporate_events", "wedding_ceremony", "birthday_party", "retirement_party", "other"],
+                    description="Type of event enquiry",
+                    example="corporate_events",
+                ),
+                "phone_number": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Customer's phone number",
+                    example="+919876543210",
+                ),
+                "email": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format=openapi.FORMAT_EMAIL,
+                    description="Customer's email address",
+                    example="john@example.com",
+                ),
+                "check_in_datetime": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format=openapi.FORMAT_DATETIME,
+                    description="Event check-in date and time (YYYY-MM-DDTHH:MM:SS)",
+                    example="2026-02-01T10:00:00",
+                ),
+                "check_out_datetime": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format=openapi.FORMAT_DATETIME,
+                    description="Event check-out date and time (YYYY-MM-DDTHH:MM:SS)",
+                    example="2026-02-01T18:00:00",
+                ),
+                "number_of_people": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Number of people for the event",
+                    example=50,
+                ),
+            },
+        ),
+        responses={
+            201: openapi.Response(
+                description="Event enquiry created successfully",
+                schema=EventEnquirySerializer,
+            ),
+            400: "Bad Request - Validation error",
+        },
+        tags=["Event Enquiries"],
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+
 import json
 import logging
 import razorpay

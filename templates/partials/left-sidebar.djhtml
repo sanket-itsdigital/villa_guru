@@ -323,6 +323,12 @@
             <span>Enquiries</span>
           </a>
         </li>
+        <li>
+          <a href="{% url 'list_event_enquiries' %}" class="nonnm">
+            <i data-feather="calendar"></i>
+            <span>Event Enquiries</span>
+          </a>
+        </li>
 
         <li>
           <a href="javascript: void(0);" class="has-arrow">

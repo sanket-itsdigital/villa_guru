@@ -516,3 +516,53 @@ class Enquiry(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.property_type.name} ({self.location.name})"
+
+
+class EventEnquiry(models.Model):
+    """
+    Model to store event enquiry information from customers.
+    Customers fill a form with their details to enquire about events.
+    """
+    ENQUIRY_TYPE_CHOICES = [
+        ("corporate_events", "Corporate Events"),
+        ("wedding_ceremony", "Wedding Ceremony"),
+        ("birthday_party", "Birthday Party"),
+        ("retirement_party", "Retirement Party"),
+        ("other", "Other"),
+    ]
+    
+    name = models.CharField(
+        max_length=255,
+        help_text="Customer's full name"
+    )
+    enquiry_type = models.CharField(
+        max_length=50,
+        choices=ENQUIRY_TYPE_CHOICES,
+        help_text="Type of event enquiry"
+    )
+    phone_number = models.CharField(
+        max_length=20,
+        help_text="Customer's phone number"
+    )
+    email = models.EmailField(
+        help_text="Customer's email address"
+    )
+    check_in_datetime = models.DateTimeField(
+        help_text="Event check-in date and time"
+    )
+    check_out_datetime = models.DateTimeField(
+        help_text="Event check-out date and time"
+    )
+    number_of_people = models.PositiveIntegerField(
+        help_text="Number of people for the event"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Event Enquiry"
+        verbose_name_plural = "Event Enquiries"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} - {self.get_enquiry_type_display()} ({self.number_of_people} people)"

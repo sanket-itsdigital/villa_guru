@@ -117,6 +117,12 @@ urlpatterns = [
         EnquiryCreateAPIView.as_view(),
         name="enquiry-create",
     ),
+    # Event Enquiries
+    path(
+        "event-enquiries/",
+        EventEnquiryCreateAPIView.as_view(),
+        name="event-enquiry-create",
+    ),
 ] + router.urls
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

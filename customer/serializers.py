@@ -816,3 +816,45 @@ class EnquirySerializer(serializers.ModelSerializer):
                 )
 
         return data
+
+
+class EventEnquirySerializer(serializers.ModelSerializer):
+    """
+    Serializer for event enquiries.
+    """
+    enquiry_type_display = serializers.CharField(source="get_enquiry_type_display", read_only=True)
+
+    class Meta:
+        model = EventEnquiry
+        fields = [
+            "id",
+            "name",
+            "enquiry_type",
+            "enquiry_type_display",
+            "phone_number",
+            "email",
+            "check_in_datetime",
+            "check_out_datetime",
+            "number_of_people",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["created_at", "updated_at"]
+
+    def validate(self, data):
+        """Validate event enquiry data"""
+        check_in_datetime = data.get("check_in_datetime")
+        check_out_datetime = data.get("check_out_datetime")
+
+        if check_in_datetime and check_out_datetime:
+            if check_in_datetime >= check_out_datetime:
+                raise serializers.ValidationError(
+                    {"check_out_datetime": "Check-out date and time must be after check-in date and time."}
+                )
+            from datetime import datetime
+            if check_in_datetime < datetime.now():
+                raise serializers.ValidationError(
+                    {"check_in_datetime": "Check-in date and time cannot be in the past."}
+                )
+
+        return data
