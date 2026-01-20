@@ -2714,6 +2714,7 @@ class EnquiryCreateAPIView(generics.CreateAPIView):
     - number_of_guests: Total number of guests
     - phone_number: Customer's phone number
     - email: Customer's email address
+    - meal_option: Meal option ('with_meal' or 'without_meal', default: 'without_meal')
     """
 
     from .serializers import EnquirySerializer
@@ -2779,6 +2780,13 @@ class EnquiryCreateAPIView(generics.CreateAPIView):
                     description="Customer's email address",
                     example="john@example.com",
                 ),
+                "meal_option": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    enum=["with_meal", "without_meal"],
+                    description="Meal option: 'with_meal' or 'without_meal'",
+                    example="with_meal",
+                    default="without_meal",
+                ),
             },
         ),
         responses={
@@ -2836,7 +2844,13 @@ class EventEnquiryCreateAPIView(generics.CreateAPIView):
                 ),
                 "enquiry_type": openapi.Schema(
                     type=openapi.TYPE_STRING,
-                    enum=["corporate_events", "wedding_ceremony", "birthday_party", "retirement_party", "other"],
+                    enum=[
+                        "corporate_events",
+                        "wedding_ceremony",
+                        "birthday_party",
+                        "retirement_party",
+                        "other",
+                    ],
                     description="Type of event enquiry",
                     example="corporate_events",
                 ),

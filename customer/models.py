@@ -476,6 +476,11 @@ class Enquiry(models.Model):
     Model to store property enquiry information from customers.
     Customers fill a form with their details to enquire about properties.
     """
+    MEAL_CHOICES = [
+        ("with_meal", "With Meal"),
+        ("without_meal", "Without Meal"),
+    ]
+    
     name = models.CharField(
         max_length=255,
         help_text="Customer's full name"
@@ -505,6 +510,12 @@ class Enquiry(models.Model):
     )
     email = models.EmailField(
         help_text="Customer's email address"
+    )
+    meal_option = models.CharField(
+        max_length=20,
+        choices=MEAL_CHOICES,
+        default="without_meal",
+        help_text="Meal option: With Meal or Without Meal"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

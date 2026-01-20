@@ -780,6 +780,7 @@ class EnquirySerializer(serializers.ModelSerializer):
     """
     location_name = serializers.CharField(source="location.name", read_only=True)
     property_type_name = serializers.CharField(source="property_type.name", read_only=True)
+    meal_option_display = serializers.CharField(source="get_meal_option_display", read_only=True)
 
     class Meta:
         model = Enquiry
@@ -795,6 +796,8 @@ class EnquirySerializer(serializers.ModelSerializer):
             "number_of_guests",
             "phone_number",
             "email",
+            "meal_option",
+            "meal_option_display",
             "created_at",
             "updated_at",
         ]
