@@ -1537,7 +1537,7 @@ Currently, there are no rate limits implemented. However, please use the API res
 
 ## Support
 
-For API support, please contact: Rabbitstay221@gmail.com
+For API support, please contact: villaguru@gmail.com
 
 ---
 

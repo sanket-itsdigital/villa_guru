@@ -1341,7 +1341,7 @@ from customer.forms import *
 #     email = EmailMessage(
 #         subject=subject,
 #         body=body,
-#         from_email='rabbitstay1@gmail.com',
+#         from_email='villaguru@gmail.com',
 #         to=['pratikgosavi654@gmail.com'],
 #     )
 
@@ -1650,7 +1650,7 @@ def generate_invoice_pdf(request, booking_id):
     email = EmailMessage(
         subject=subject,
         body="Hi, attached pdf for invoice",
-        from_email="Rabbitstay221@gmail.com",
+        from_email="viilaguru221@gmail.com",
         # to=[booking.villa.user.email],
         to=[booking.villa.user.email],
     )

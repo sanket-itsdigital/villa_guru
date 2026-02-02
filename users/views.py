@@ -858,7 +858,7 @@ def send_test_email(request, subject, body, user_instance):
     send_mail(
         subject=subject,
         message=body,
-        from_email="Rabbitstay221@gmail.com",
+        from_email="villaguru221@gmail.com",
         recipient_list=[user_instance.email],  # send to user email
         fail_silently=False,
     )

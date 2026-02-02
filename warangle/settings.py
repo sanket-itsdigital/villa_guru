@@ -31,9 +31,6 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://vendor.rabbitstay.com",
-    "https://rabbitstay.com",
-    "https://www.rabbitstay.com",
     "https://proemial-amya-ruinously.ngrok-free.dev",
 ]
 
@@ -72,10 +69,6 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:8081",  # React frontend
     "http://localhost:5173",
-    "https://rabbit-stay-d121a.web.app",
-    "https://rabbitstaybackend.pythonanywhere.com",
-    "https://rabbitstay.com",
-    "https://rabbitstays.com",
     "https://villaguru.in",
     "https://proemial-amya-ruinously.ngrok-free.dev",
 ]
@@ -213,8 +206,8 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": "rabbitstay",
-            "USER": "rabbituser",
+            "NAME": "villaguru",
+            "USER": "villaguru",
             "PASSWORD": "Hardpassword@12",
             "HOST": "localhost",
             "PORT": "5432",
@@ -258,7 +251,7 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"  # or your email provider
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "Rabbitstay221@gmail.com"
+EMAIL_HOST_USER = "villaguru221@gmail.com"
 EMAIL_HOST_PASSWORD = "qxacifguvstguift"  # use App Password if using Gmail
 
 
