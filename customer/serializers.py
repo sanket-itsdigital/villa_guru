@@ -126,6 +126,7 @@ class VillaSerializer(serializers.ModelSerializer):
         many=False, read_only=True
     )  # property_type is a ForeignKey, not ManyToMany
     main_image = serializers.SerializerMethodField()
+    video = serializers.SerializerMethodField()
     user = VillaUserSerializer(read_only=True)  # Return user details instead of just ID
 
     min_price = serializers.SerializerMethodField()
@@ -158,6 +159,7 @@ class VillaSerializer(serializers.ModelSerializer):
             "villa_star_facility",
             "mrp",
             "main_image",
+            "video",
             "profit_margin",
             "is_featured",
             "description",
@@ -212,6 +214,15 @@ class VillaSerializer(serializers.ModelSerializer):
         if obj.main_image and request:
             return request.build_absolute_uri(obj.main_image.url)
         return obj.main_image.url if obj.main_image else None
+
+    def get_video(self, obj):
+        """
+        Return absolute URL for video.
+        """
+        request = self.context.get("request")
+        if obj.video and request:
+            return request.build_absolute_uri(obj.video.url)
+        return obj.video.url if obj.video else None
 
     def get_is_best_rated(self, obj):
         """
