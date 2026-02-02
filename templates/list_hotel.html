@@ -70,18 +70,7 @@
             </div>
 
                      
-<form method="get">
-    <div class="row">
-        <div class="col-md-3 mb-2">
-            <label for="id_property_type">Property Type</label>
-            {{ filterset.form.property_type }}
-        </div>
-        <div class="col-md-3 mb-2 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary me-2" style="background-color: #dc3545; border-color: #dc3545;">Apply</button>
-            <a href="{% url 'list_villa' %}" class="btn btn-secondary">Reset</a>
-        </div>
-    </div>
-</form>
+
 
             <div class="container">
                 <div class="row">
@@ -102,7 +91,9 @@
                                                 <th>Ammenities</th>
                                                 <th>Price/Night</th>
                                                 <th>MRP</th>
-                                                <th>Markup %</th>
+                                                {% if request.user.is_superuser %}
+                                                    <th>Markup %</th>
+                                                {% endif %}
                                                 <th>Featured</th>
                                                 <th>Is Active</th>
                                                 <th>Go Live</th>
@@ -154,6 +145,7 @@
                                                         <span class="text-muted">-</span>
                                                     {% endif %}
                                                 </td>
+                                                {% if request.user.is_superuser %}
                                                 <td>
                                                     {% if hotel.markup_percentage is not None %}
                                                         <span class="badge bg-info text-dark">{{ hotel.markup_percentage }}%</span>
@@ -163,6 +155,7 @@
                                                         <small class="text-muted d-block">Default</small>
                                                     {% endif %}
                                                 </td>
+                                                {% endif %}
                                                 <td>{{ hotel.is_featured|yesno:"Yes,No" }}</td>
                                                 <td> {% if hotel.is_active %}
     <span class="text-success">&#10004;</span>  {# ✅ check mark #}

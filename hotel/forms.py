@@ -46,6 +46,10 @@ class villa_Form(forms.ModelForm):
                 'placeholder': 'Weekend price increase % (e.g., 25 for 25% increase on weekends)'
             }),
             'main_image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'video': forms.ClearableFileInput(attrs={
+                'class': 'form-control',
+                'accept': 'video/mp4,video/webm,video/ogg',
+            }),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': "Description", 'style': "padding: 10px"}),
             'about': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': "About the property - detailed information", 'style': "padding: 10px"}),
             'specialties': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': "Specialties - unique features and selling points", 'style': "padding: 10px"}),
@@ -82,6 +86,24 @@ class villa_Form(forms.ModelForm):
             self.fields.pop('markup_percentage', None)  # hide markup_percentage from vendors
             self.fields.pop('is_active', None)  # hide is_active from vendors
             self.fields.pop('star_rating', None)  # hide is_active from vendors
+
+            # On update: ensure property_type shows as dropdown with valid queryset (view may override)
+            if self.instance and self.instance.pk and 'property_type' in self.fields:
+                from masters.models import property_type as property_type_model
+                if user.property_type:
+                    self.fields['property_type'].queryset = property_type_model.objects.filter(
+                        id=user.property_type.id
+                    )
+                    self.fields['property_type'].initial = user.property_type
+                    # Keep as dropdown (no readonly on select) so it displays properly at update time
+                    self.fields['property_type'].help_text = (
+                        f"You can only manage {user.property_type.name} properties."
+                    )
+                else:
+                    # Vendor without property_type: at least show instance's type
+                    self.fields['property_type'].queryset = property_type_model.objects.filter(
+                        id=self.instance.property_type_id
+                    ) if self.instance.property_type_id else property_type_model.objects.all()
             
             # Check if villa has bookings - if yes, disable price_per_night for vendors
             if self.instance and self.instance.pk:

@@ -110,9 +110,9 @@
             </li> {% endcomment %}
             <li><a href="{% url 'customer_user_list' %}">Customer List</a></li>
             <li>
-              <a href="{% url 'provider_user_list' %}">Villa User List</a>
+              <a href="{% url 'provider_user_list' %}">User List</a>
             </li>
-            <li><a href="{% url 'vendor_request' %}">Villa Request List</a></li>
+            <li><a href="{% url 'vendor_request' %}">Request List</a></li>
           </ul>
 
           {% comment %}
@@ -231,8 +231,7 @@
             {% elif request.user.property_type and request.user.property_type.name == 'Resort' %}
               {% if not request.user.villas.exists %}
                 <li><a href="{% url 'add_villa' %}">Add Resort</a></li>
-              {% else %}
-                <li class="text-muted" style="padding-left: 20px; color: #999;">You can only have one Resort</li>
+              
               {% endif %}
             {% elif request.user.property_type and request.user.property_type.name == 'Couple Stay' %}
               {% if not request.user.villas.exists %}
@@ -343,7 +342,7 @@
         {% endif %}
 
         <!-- ===== CA Section (Yellow) ===== -->
-        {% if request.user|has_group:'Staff' or request.user.is_superuser or request.user.is_service_provider %}
+        {% if request.user|has_group:'Staff' or request.user.is_superuser %}
 
         <li>
           <a href="{% url 'list_villa_earning' %}" class="nonnm">

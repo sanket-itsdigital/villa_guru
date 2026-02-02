@@ -1,6 +1,6 @@
 {% extends "partials/adminBase.html" %} 
 {% load static %} 
-{% block title %}Villa Users List{% endblock title %} 
+{% block title %}Users List{% endblock title %} 
 {% block extra_css %}
 <!-- plugin css -->
 <link
@@ -90,7 +90,7 @@
           <div
             class="page-title-box d-sm-flex align-items-center justify-content-between"
           >
-            <h4 class="mb-sm-0 font-size-18">Villa Users List</h4>
+            <h4 class="mb-sm-0 font-size-18">Users List</h4>
           </div>
         </div>
       </div>
@@ -107,13 +107,13 @@
                     <thead>
                       <tr>
                         <th>#</th>
-                        <th>Villa ID</th>
-                        <th>Villa Name</th>
+                        <th>Property ID</th>
+                        <th>Property Name</th>
                         <th>Manager Name</th>
                         <th>Mobile</th>
                         <th>Email</th>
                         <th>Active</th>
-                        <th>Villa Status</th>
+                        <th>Property Status</th>
                         <th>Action</th>
                       </tr>
                     </thead>

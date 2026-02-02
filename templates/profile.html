@@ -28,36 +28,7 @@
                                 <th scope="row">Mobile</th>
                                 <td>{{ user.mobile }}</td>
                             </tr>
-                            <tr>
-                                <th scope="row">Email</th>
-                                <td>
-                                {{ user.email }}
-                                {% if user.email_verified %}
-                                    <span class="badge bg-success">Verified</span>
-                                {% else %}
-                                    <span class="badge bg-danger">Not Verified</span>
-                                    <a href="{% url 'change_email' %}" class="btn btn-sm btn-warning ms-2">Verify Now</a>
-                                {% endif %}
-                            </td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Firebase UID</th>
-                                <td>{{ user.firebase_uid }}</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Role</th>
-                                <td>
-                                    {% if user.is_superuser %}
-                                        Admin
-                                    {% elif user.is_service_provider %}
-                                        Service Provider
-                                    {% elif user.is_customer %}
-                                        Customer
-                                    {% else %}
-                                        User
-                                    {% endif %}
-                                </td>
-                            </tr>
+                            
                         </tbody>
                     </table>
 

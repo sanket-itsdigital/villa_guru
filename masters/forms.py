@@ -68,12 +68,26 @@ class property_type_Form(forms.ModelForm):
                 attrs={'class': 'form-control', 'id': 'name'}
             )
         }
-    
+
+    def clean_name(self):
+        name = self.cleaned_data.get("name")
+        if not name:
+            return name
+        # Check if a property type with this name already exists
+        qs = property_type.objects.filter(name=name)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError(
+                "A property type with this name already exists. Please choose a different name."
+            )
+        return name
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Set choices for the name field
         self.fields['name'].choices = property_type.PROPERTY_TYPE_CHOICES
-        
+
 class city_Form(forms.ModelForm):
     class Meta:
         model = city

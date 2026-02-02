@@ -68,6 +68,12 @@ class villa(models.Model):
         help_text="Maximum Retail Price (MRP) for the villa",
     )
     main_image = models.ImageField(upload_to="hotels/", null=True, blank=True)
+    video = models.FileField(
+        upload_to="villa_videos/",
+        null=True,
+        blank=True,
+        help_text="Upload a video for the property (e.g. MP4, WebM)",
+    )
     profit_margin = models.DecimalField(
         max_digits=5, decimal_places=2, null=True, blank=True
     )
@@ -162,7 +168,7 @@ class villa(models.Model):
         # First save to get ID
         if not self.villa_id:
             super().save(*args, **kwargs)  # Save once to get ID
-            self.villa_id = f"RS-{self.id:03d}"
+            self.villa_id = f"VG-{self.id:03d}"
             super().save(update_fields=["villa_id"])  # Save only villa_id
         else:
             super().save(*args, **kwargs)

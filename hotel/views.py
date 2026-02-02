@@ -195,16 +195,15 @@ def add_hotel(request):
     else:
         form = villa_Form(user=request.user)
         
-        # For vendors: restrict property_type field
+        # For vendors: restrict property_type to dropdown (one option)
         if request.user.is_service_provider and not request.user.is_superuser:
             if request.user.property_type:
                 from masters.models import property_type
-                # Limit property_type choices to vendor's property_type only
+                # Limit property_type choices to vendor's property_type only; show as dropdown
                 form.fields['property_type'].queryset = property_type.objects.filter(
                     id=request.user.property_type.id
                 )
                 form.fields['property_type'].initial = request.user.property_type
-                form.fields['property_type'].widget.attrs['readonly'] = True
                 form.fields['property_type'].help_text = f"You can only add {request.user.property_type.name} properties."
 
         system_settings = (
@@ -416,6 +415,30 @@ def update_hotel(request, villa_id):
     else:
 
         forms = villa_Form(instance=instance, user=request.user)
+
+        # Ensure Property Type shows as dropdown on update: for vendors, set queryset and initial
+        if request.user.is_service_provider and not request.user.is_superuser:
+            if request.user.property_type and "property_type" in forms.fields:
+                from masters.models import property_type as property_type_model
+                forms.fields["property_type"].queryset = property_type_model.objects.filter(
+                    id=request.user.property_type.id
+                )
+                forms.fields["property_type"].initial = request.user.property_type
+                # Keep as dropdown (no readonly) so it displays properly at update time
+                forms.fields["property_type"].help_text = (
+                    f"You can only manage {request.user.property_type.name} properties."
+                )
+            # If vendor has no property_type, ensure instance's property_type is in queryset
+            elif instance and instance.property_type_id and "property_type" in forms.fields:
+                from masters.models import property_type as property_type_model
+                forms.fields["property_type"].queryset = property_type_model.objects.filter(
+                    id=instance.property_type_id
+                )
+        # For superuser on update, ensure property_type field has full queryset (default)
+        elif request.user.is_superuser and "property_type" in forms.fields:
+            from masters.models import property_type as property_type_model
+            forms.fields["property_type"].queryset = property_type_model.objects.all()
+
         from masters.models import SystemSettings
 
         system_settings = (

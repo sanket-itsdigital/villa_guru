@@ -136,10 +136,7 @@
                         <th>Base Amount</th>
                         <th>GST Amount</th>
                         <th>Total Amount</th>
-                        <th>Rabbit Commission</th>
-                        <th>Rabbit Commission GST</th>
-                        <th>TDS</th>
-                        <th>TCS</th>
+                       
                         <th>Total Earning</th>
                         <th>Booked At</th>
                         {% comment %}
@@ -166,10 +163,8 @@
                         <td>{{ booking.base_amount|default:"-" }}</td>
                         <td>{{ booking.gst_amount|default:"-" }}</td>
                         <td>{{ booking.total_amount|default:"-" }}</td>
-                        <td>{{ booking.commission_amount|default:"-" }}</td>
-                        <td>{{ booking.commission_gst|default:"-" }}</td>
-                        <td>{{ booking.tds_amount|default:"-" }}</td>
-                        <td>{{ booking.tcs_amount|default:"-" }}</td>
+                        
+                       
                         <td>{{ booking.hotel_earning|default:"-" }}</td>
                         <td>{{ booking.created_at|date:"d M Y H:i" }}</td>
 

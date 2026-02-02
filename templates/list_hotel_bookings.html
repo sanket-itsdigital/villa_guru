@@ -154,16 +154,17 @@
                         <th>User</th>
                         <th>Status</th>
                         <th>Payment Status</th>
-                        <th>Payment Type</th>
                         <th>Check-In</th>
                         <th>Check-Out</th>
                         <th>Guests</th>
                         <th>Children</th>
                         <th>Name</th>
-                        <th>Phone</th>
-                        <th>Email</th>
-                        <th>Base Amount</th>
-                        <th>GST Amount</th>
+                        {% if request.user.is_superuser %}
+                          <th>Phone</th>
+                          <th>Email</th>
+                          <th>Base Amount</th>
+                          <th>GST Amount</th>
+                        {% endif %}
                         <th>Total Amount</th>
                         <th>Booked At</th>
                         <th>Action</th>
@@ -207,7 +208,7 @@
                           {% endif %}
                         </td>
 
-                        <td>{{ booking.payment_type }}</td>
+
                         <td>{{ booking.check_in }}</td>
                         <td>{{ booking.check_out }}</td>
                         <td>{{ booking.guest_count }}</td>
@@ -215,10 +216,12 @@
                         <td>
                           {{ booking.first_name }} {{ booking.last_name }}
                         </td>
-                        <td>{{ booking.phone_number }}</td>
-                        <td>{{ booking.email|default:"-" }}</td>
-                        <td>{{ booking.base_amount|default:"-" }}</td>
-                        <td>{{ booking.gst_amount|default:"-" }}</td>
+                        {% if request.user.is_superuser %}
+                          <td>{{ booking.phone_number }}</td>
+                          <td>{{ booking.email|default:"-" }}</td>
+                          <td>{{ booking.base_amount|default:"-" }}</td>
+                          <td>{{ booking.gst_amount|default:"-" }}</td>
+                        {% endif %}
                         <td>{{ booking.total_amount|default:"-" }}</td>
                         <td>{{ booking.created_at|date:"d M Y H:i" }}</td>
 

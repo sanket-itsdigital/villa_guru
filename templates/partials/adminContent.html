@@ -218,7 +218,7 @@
             <div class="card-body">
               <div class="d-flex flex-wrap align-items-center mb-4">
                 <h5 class="card-title me-2">Market Overview</h5>
-                <div class="ms-auto">
+                {% comment %} <div class="ms-auto">
                   <div>
                     <button type="button" class="btn btn-soft-primary btn-sm">
                       ALL
@@ -236,7 +236,7 @@
                       1Y
                     </button>
                   </div>
-                </div>
+                </div> {% endcomment %}
               </div>
 
               <div class="row align-items-center">
@@ -252,13 +252,13 @@
                 <div class="col-xl-4">
                   <div class="p-4">
                     <div class="mt-4 pt-2">
-                      <a
+                      {% comment %} <a
                         href="{% url 'list_villa' %}"
                         class="btn btn-primary w-100"
                         style="background-color: #780000; !important ;"
                         >See All Villa Booking
                         <i class="mdi mdi-arrow-right ms-1"></i
-                      ></a>
+                      ></a> {% endcomment %}
                     </div>
                   </div>
                 </div>
@@ -269,79 +269,7 @@
           <!-- end col -->
         </div>
         <!-- end row-->
-        {% if request.user.is_superuser %}
-        <div class="col-xl-4">
-          <!-- card -->
-          <div class="card">
-            <!-- card body -->
-            <div class="card-body">
-              <div class="d-flex flex-wrap align-items-center mb-4">
-                <h5 class="card-title me-2">Bookings by Locations</h5>
-                <div class="ms-auto">
-                  <div class="dropdown">
-                    <a
-                      class="dropdown-toggle text-reset"
-                      href="#"
-                      id="dropdownMenuButton1"
-                      data-bs-toggle="dropdown"
-                      aria-haspopup="true"
-                      aria-expanded="false"
-                    >
-                      <span class="text-muted font-size-12">Sort By:</span>
-                      <span class="fw-medium"
-                        >World <i class="mdi mdi-chevron-down ms-1"></i
-                      ></span>
-                    </a>
-
-                    <div
-                      class="dropdown-menu dropdown-menu-end"
-                      aria-labelledby="dropdownMenuButton1"
-                    >
-                      {% for city_name in result.keys %}
-                      <a class="dropdown-item" href="#">{{ city_name }}</a>
-                      {% endfor %}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Optional chart container (e.g. Chart.js or ApexCharts) -->
-              <div
-                id="sales-by-locations"
-                data-colors='["#0a3622"]'
-                style="height: 253px"
-              ></div>
-
-              <div class="px-2 py-2">
-                {% for city_name, percent in result.items %}
-                <p class="{% if not forloop.first %}mt-3 {% endif %}mb-1">
-                  {{ city_name|default:"Unknown City" }}
-                  <span class="float-end">{{ percent }}%</span>
-                </p>
-                <div class="progress mt-2" style="height: 6px">
-                  <div
-                    class="progress-bar progress-bar-striped"
-                    role="progressbar"
-                    style="width: {{ percent }}%; background-color: #F0D28C"
-                    aria-valuenow="{{ percent }}"
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                  ></div>
-                </div>
-                {% empty %}
-                <p class="text-muted">No booking data available</p>
-                {% endfor %}
-              </div>
-            </div>
-
-            <!-- end card body -->
-          </div>
-          <!-- end card -->
-        </div>
-        <!-- end col -->
-      </div>
-
-      {% endif %}
+       
 
       <!-- end row-->
     </div>
