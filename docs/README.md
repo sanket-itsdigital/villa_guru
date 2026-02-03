@@ -88,7 +88,22 @@ Guide for price calculation:
 
 ---
 
-### 7. [Production Migration Fix](./FIX_PRODUCTION_MIGRATION.md)
+### 7. [Payment Guide](./PAYMENT_GUIDE.md)
+**Razorpay Payment – Full Flow & APIs**
+
+Complete payment documentation:
+- Payment flow (create booking → Razorpay Checkout → verify payment → webhook)
+- All payment-related APIs (create booking, verify payment, webhook)
+- Request/response examples and cURL
+- Frontend integration (Razorpay Checkout script & React)
+- Webhook URL setup and events
+- Payment status values, env variables, error handling
+
+**Use this for:** Implementing online payment, Razorpay integration, webhook setup
+
+---
+
+### 8. [Production Migration Fix](./FIX_PRODUCTION_MIGRATION.md)
 **Migration Troubleshooting Guide**
 
 Documentation for fixing production migration issues:
@@ -141,9 +156,13 @@ Documentation for fixing production migration issues:
 - `GET /customer/room/{id}/` - Get room details
 
 ### Bookings
-- `POST /customer/villa-resort-and-couple-stay/bookings/` - Create booking
+- `POST /customer/villa-resort-and-couple-stay/bookings/` - Create booking (returns Razorpay order_id & key)
+- `POST /customer/villa-resort-and-couple-stay/bookings/verify-payment/` - Verify Razorpay payment
 - `GET /customer/villa-resort-and-couple-stay/bookings/` - List bookings
 - `GET /customer/villa-resort-and-couple-stay/bookings/{id}/` - Get booking details
+
+### Payment (Razorpay)
+- Webhook: `POST /customer/booking/webhook/` - Razorpay server-to-server notifications (see [Payment Guide](./PAYMENT_GUIDE.md))
 
 ---
 

@@ -10,6 +10,7 @@ from decimal import Decimal
 class VillaBooking(models.Model):
 
     STATUS_CHOICES = [
+        ("pending", "Pending Payment"),
         ("confirmed", "Confirmed"),
         ("checked_in", "Check In"),
         ("cancelled", "Cancelled"),
@@ -22,9 +23,9 @@ class VillaBooking(models.Model):
     ]
 
     status = models.CharField(
-        max_length=10, choices=STATUS_CHOICES, default="confirmed"
+        max_length=20, choices=STATUS_CHOICES, default="confirmed"
     )
-    
+
     booking_type = models.CharField(
         max_length=20,
         choices=BOOKING_TYPE_CHOICES,
@@ -38,7 +39,7 @@ class VillaBooking(models.Model):
         "users.User", on_delete=models.SET_NULL, null=True, blank=True
     )
     villa = models.ForeignKey("hotel.villa", on_delete=models.CASCADE)
-    
+
     villa_price_per_night = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -140,25 +141,25 @@ class VillaBooking(models.Model):
         if self.check_in and self.check_out:
             nights = (self.check_out - self.check_in).days or 1
             base = Decimal("0.00")
-            
+
             # Determine property type
             property_type_name = None
             if self.villa and self.villa.property_type:
                 property_type_name = self.villa.property_type.name
-            
+
             # Determine booking type based on property type if not explicitly set
             if not self.booking_type:
                 if property_type_name == "Villa":
                     self.booking_type = "whole_villa"
                 else:
                     self.booking_type = "selected_rooms"
-            
+
             if self.booking_type == "whole_villa":
                 # Villa-level booking (whole villa only)
                 # Calculate total price using date-specific pricing
                 current_date = self.check_in
                 daily_prices = []
-                
+
                 while current_date < self.check_out:
                     # Get marked-up price for this specific date
                     marked_up_price = self.villa.get_marked_up_price(date=current_date)
@@ -172,7 +173,7 @@ class VillaBooking(models.Model):
                             daily_prices.append(default_price)
                             base += default_price
                     current_date += timedelta(days=1)
-                
+
                 # Store average price per night for display purposes
                 if daily_prices:
                     avg_price = sum(daily_prices) / len(daily_prices)
@@ -195,11 +196,15 @@ class VillaBooking(models.Model):
                 # Room-based booking (Resort/Couple Stay)
                 # Calculate from booked rooms
                 # Only access booked_rooms if the instance has been saved (has a primary key)
-                if self.pk and hasattr(self, 'booked_rooms'):
+                if self.pk and hasattr(self, "booked_rooms"):
                     for booking_room in self.booked_rooms.all():
-                        room_total = booking_room.price_per_night * nights * booking_room.quantity
+                        room_total = (
+                            booking_room.price_per_night
+                            * nights
+                            * booking_room.quantity
+                        )
                         base += room_total
-                
+
                 # If no rooms booked yet (during initial save), we'll recalculate later
                 if base == 0:
                     # Use a placeholder - will be recalculated when rooms are added
@@ -281,14 +286,15 @@ class favouritevilla(models.Model):
     - Whole villas (villa is set, room is None)
     - Individual rooms from Resort/Couple Stay (villa is set, room is set)
     """
+
     user = models.ForeignKey("users.User", on_delete=models.CASCADE)
     villa = models.ForeignKey("hotel.villa", on_delete=models.CASCADE)
     room = models.ForeignKey(
-        "hotel.villa_rooms", 
-        on_delete=models.CASCADE, 
-        null=True, 
+        "hotel.villa_rooms",
+        on_delete=models.CASCADE,
+        null=True,
         blank=True,
-        help_text="Room ID for Resort/Couple Stay favorites. Leave null for whole villa favorites."
+        help_text="Room ID for Resort/Couple Stay favorites. Leave null for whole villa favorites.",
     )
 
     class Meta:
@@ -348,6 +354,7 @@ class VillaReview(models.Model):
     Review model for villas.
     Only customers can create reviews.
     """
+
     RATING_CHOICES = [
         (1, "1 Star"),
         (2, "2 Stars"),
@@ -398,31 +405,27 @@ class BookingRoom(models.Model):
     Used for Resort and Couple Stay property types where customers can select specific rooms.
     For Villa property type, all rooms are automatically booked.
     """
+
     booking = models.ForeignKey(
-        VillaBooking,
-        on_delete=models.CASCADE,
-        related_name="booked_rooms"
+        VillaBooking, on_delete=models.CASCADE, related_name="booked_rooms"
     )
     room = models.ForeignKey(
-        "hotel.villa_rooms",
-        on_delete=models.CASCADE,
-        related_name="bookings"
+        "hotel.villa_rooms", on_delete=models.CASCADE, related_name="bookings"
     )
     quantity = models.PositiveIntegerField(
-        default=1,
-        help_text="Number of rooms of this type booked"
+        default=1, help_text="Number of rooms of this type booked"
     )
     price_per_night = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        help_text="Price per night for this room at the time of booking"
+        help_text="Price per night for this room at the time of booking",
     )
-    
+
     class Meta:
         unique_together = ("booking", "room")
         verbose_name = "Booking Room"
         verbose_name_plural = "Booking Rooms"
-    
+
     def __str__(self):
         return f"{self.booking.booking_id} - {self.room} (Qty: {self.quantity})"
 
@@ -432,23 +435,16 @@ class EventBooking(models.Model):
     Model to store event booking information from customers.
     Customers fill a form with their basic details to book an event.
     """
+
     event = models.ForeignKey(
         "masters.event",
         on_delete=models.CASCADE,
         related_name="bookings",
-        help_text="The event being booked"
+        help_text="The event being booked",
     )
-    name = models.CharField(
-        max_length=255,
-        help_text="Customer's full name"
-    )
-    phone_number = models.CharField(
-        max_length=20,
-        help_text="Customer's phone number"
-    )
-    email = models.EmailField(
-        help_text="Customer's email address"
-    )
+    name = models.CharField(max_length=255, help_text="Customer's full name")
+    phone_number = models.CharField(max_length=20, help_text="Customer's phone number")
+    email = models.EmailField(help_text="Customer's email address")
     number_of_people = models.PositiveIntegerField(
         help_text="Number of people attending the event"
     )
@@ -457,7 +453,7 @@ class EventBooking(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text="User who made the booking (if logged in)"
+        help_text="User who made the booking (if logged in)",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -476,46 +472,33 @@ class Enquiry(models.Model):
     Model to store property enquiry information from customers.
     Customers fill a form with their details to enquire about properties.
     """
+
     MEAL_CHOICES = [
         ("with_meal", "With Meal"),
         ("without_meal", "Without Meal"),
     ]
-    
-    name = models.CharField(
-        max_length=255,
-        help_text="Customer's full name"
-    )
+
+    name = models.CharField(max_length=255, help_text="Customer's full name")
     location = models.ForeignKey(
         "masters.city",
         on_delete=models.CASCADE,
-        help_text="Location/City for the enquiry"
+        help_text="Location/City for the enquiry",
     )
-    check_in = models.DateField(
-        help_text="Check-in date"
-    )
-    check_out = models.DateField(
-        help_text="Check-out date"
-    )
+    check_in = models.DateField(help_text="Check-in date")
+    check_out = models.DateField(help_text="Check-out date")
     property_type = models.ForeignKey(
         "masters.property_type",
         on_delete=models.CASCADE,
-        help_text="Type of property (Villa, Resort, Couple Stay)"
+        help_text="Type of property (Villa, Resort, Couple Stay)",
     )
-    number_of_guests = models.PositiveIntegerField(
-        help_text="Total number of guests"
-    )
-    phone_number = models.CharField(
-        max_length=20,
-        help_text="Customer's phone number"
-    )
-    email = models.EmailField(
-        help_text="Customer's email address"
-    )
+    number_of_guests = models.PositiveIntegerField(help_text="Total number of guests")
+    phone_number = models.CharField(max_length=20, help_text="Customer's phone number")
+    email = models.EmailField(help_text="Customer's email address")
     meal_option = models.CharField(
         max_length=20,
         choices=MEAL_CHOICES,
         default="without_meal",
-        help_text="Meal option: With Meal or Without Meal"
+        help_text="Meal option: With Meal or Without Meal",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -534,6 +517,7 @@ class EventEnquiry(models.Model):
     Model to store event enquiry information from customers.
     Customers fill a form with their details to enquire about events.
     """
+
     ENQUIRY_TYPE_CHOICES = [
         ("corporate_events", "Corporate Events"),
         ("wedding_ceremony", "Wedding Ceremony"),
@@ -541,29 +525,15 @@ class EventEnquiry(models.Model):
         ("retirement_party", "Retirement Party"),
         ("other", "Other"),
     ]
-    
-    name = models.CharField(
-        max_length=255,
-        help_text="Customer's full name"
-    )
+
+    name = models.CharField(max_length=255, help_text="Customer's full name")
     enquiry_type = models.CharField(
-        max_length=50,
-        choices=ENQUIRY_TYPE_CHOICES,
-        help_text="Type of event enquiry"
+        max_length=50, choices=ENQUIRY_TYPE_CHOICES, help_text="Type of event enquiry"
     )
-    phone_number = models.CharField(
-        max_length=20,
-        help_text="Customer's phone number"
-    )
-    email = models.EmailField(
-        help_text="Customer's email address"
-    )
-    check_in_datetime = models.DateTimeField(
-        help_text="Event check-in date and time"
-    )
-    check_out_datetime = models.DateTimeField(
-        help_text="Event check-out date and time"
-    )
+    phone_number = models.CharField(max_length=20, help_text="Customer's phone number")
+    email = models.EmailField(help_text="Customer's email address")
+    check_in_datetime = models.DateTimeField(help_text="Event check-in date and time")
+    check_out_datetime = models.DateTimeField(help_text="Event check-out date and time")
     number_of_people = models.PositiveIntegerField(
         help_text="Number of people for the event"
     )

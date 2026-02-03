@@ -607,40 +607,16 @@ class VillaBookingSerializer(serializers.ModelSerializer):
         # Save again to recalculate pricing with the booked rooms
         booking.save()
 
-        # Auto-update availability for ALL bookings (both online and offline)
-        # This ensures calendar reflects booking status automatically
-        if booking.booking_type == "whole_villa":
-            # Villa property: Close availability for all booked dates
-            from hotel.models import VillaAvailability
-            from datetime import timedelta
+        # Online payment: do NOT reserve availability until payment succeeds
+        if booking.payment_type == "online":
+            booking.status = "pending"
+            booking.save(update_fields=["status"])
+            return booking
 
-            current_date = booking.check_in
-            while current_date < booking.check_out:
-                # Close availability for all bookings (prevents double booking)
-                VillaAvailability.objects.update_or_create(
-                    villa=booking.villa,
-                    date=current_date,
-                    defaults={"is_open": False},  # Close the villa for this date
-                )
-                current_date += timedelta(days=1)
-        else:
-            # Resort/Couple Stay: Update room availability automatically
-            # The signal will handle this, but we can also trigger it manually here
-            from hotel.models import RoomAvailability
-            from datetime import timedelta
+        # Cash/offline: reserve availability immediately
+        from .services import confirm_booking_availability
 
-            # Get all booked rooms for this booking
-            booked_rooms = booking.booked_rooms.all()
-
-            current_date = booking.check_in
-            while current_date < booking.check_out:
-                for booked_room in booked_rooms:
-                    # Use automatic calculation method - it will update availability based on all bookings
-                    RoomAvailability.get_or_calculate_availability(
-                        room=booked_room.room, date=current_date
-                    )
-                current_date += timedelta(days=1)
-
+        confirm_booking_availability(booking)
         return booking
 
 

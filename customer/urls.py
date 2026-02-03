@@ -50,6 +50,11 @@ urlpatterns = [
         ),
         name="villa-resort-couple-stay-booking-detail",
     ),
+    path(
+        "villa-resort-and-couple-stay/bookings/verify-payment/",
+        VerifyRazorpayPaymentAPIView.as_view(),
+        name="verify-razorpay-payment",
+    ),
     path("villas/", VillaListAPIView.as_view(), name="villa-list"),
     path("villas/<int:villa_id>/", VillaDetailAPIView.as_view(), name="villa-detail"),
     path(

@@ -34,6 +34,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://vendor.rabbitstay.com",
     "https://rabbitstay.com",
     "https://www.rabbitstay.com",
+    "https://proemial-amya-ruinously.ngrok-free.dev",
 ]
 
 # Application definition
@@ -75,7 +76,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://rabbitstaybackend.pythonanywhere.com",
     "https://rabbitstay.com",
     "https://rabbitstays.com",
-    "https://villaguru.in"
+    "https://villaguru.in",
+    "https://proemial-amya-ruinously.ngrok-free.dev",
 ]
 
 
@@ -148,9 +150,10 @@ firebase_key_path = os.path.join(BASE_DIR, "warangle", "firebase_key.json")
 cred = credentials.Certificate(firebase_key_path)
 initialize_app(cred)
 
-
-RAZORPAY_KEY_ID = "rzp_live_RE2gwnn077s5MX"
-RAZORPAY_KEY_SECRET = "A3iDN0SmfqUR2uNHjMROYCHB"
+RAZORPAY_KEY_ID= "rzp_test_SBa2u3H44TczR1"
+RAZORPAY_KEY_SECRET = "hUcnDtyWbAxt6KaRJCkU1B3m"
+# RAZORPAY_KEY_ID = "rzp_live_RE2gwnn077s5MX"
+# RAZORPAY_KEY_SECRET = "A3iDN0SmfqUR2uNHjMROYCHB"
 RAZORPAY_WEBHOOK_SECRET = "s8f7s9df87s9df87s9df87s9df87s9df8"
 
 STREAM_API_KEY = "c7wwttj85hg7"

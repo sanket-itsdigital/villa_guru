@@ -198,7 +198,15 @@ class VillaBookingViewSet(viewsets.ModelViewSet):
         tags=["Bookings"],
     )
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        # Include Razorpay key so frontend can initialize checkout
+        response_data = dict(serializer.data)
+        response_data["razorpay_key_id"] = getattr(settings, "RAZORPAY_KEY_ID", "")
+        response_data["currency"] = "INR"
+        return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
 
     @swagger_auto_schema(
         operation_description="List all bookings for the authenticated user",
@@ -283,6 +291,116 @@ class VillaBookingViewSet(viewsets.ModelViewSet):
 
 
 from rest_framework.views import APIView
+
+
+class VerifyRazorpayPaymentAPIView(APIView):
+    """
+    Verify Razorpay payment after successful checkout on the client.
+    Call this after the user completes payment so the booking is marked paid immediately
+    (in addition to the webhook which may arrive later).
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Verify Razorpay payment after checkout. Send razorpay_order_id, razorpay_payment_id, razorpay_signature from the client.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=[
+                "booking_id",
+                "razorpay_order_id",
+                "razorpay_payment_id",
+                "razorpay_signature",
+            ],
+            properties={
+                "booking_id": openapi.Schema(type=openapi.TYPE_INTEGER),
+                "razorpay_order_id": openapi.Schema(type=openapi.TYPE_STRING),
+                "razorpay_payment_id": openapi.Schema(type=openapi.TYPE_STRING),
+                "razorpay_signature": openapi.Schema(type=openapi.TYPE_STRING),
+            },
+        ),
+        tags=["Bookings"],
+    )
+    def post(self, request):
+        from django.utils import timezone
+        from .models import PaymentTransaction
+
+        booking_id = request.data.get("booking_id")
+        razorpay_order_id = request.data.get("razorpay_order_id")
+        razorpay_payment_id = request.data.get("razorpay_payment_id")
+        razorpay_signature = request.data.get("razorpay_signature")
+
+        if not all(
+            [booking_id, razorpay_order_id, razorpay_payment_id, razorpay_signature]
+        ):
+            return Response(
+                {
+                    "success": False,
+                    "error": "booking_id, razorpay_order_id, razorpay_payment_id and razorpay_signature are required.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            booking = VillaBooking.objects.get(id=booking_id, user=request.user)
+        except VillaBooking.DoesNotExist:
+            return Response(
+                {"success": False, "error": "Booking not found or access denied."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            client = razorpay.Client(
+                auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+            )
+            params = {
+                "razorpay_order_id": razorpay_order_id,
+                "razorpay_payment_id": razorpay_payment_id,
+                "razorpay_signature": razorpay_signature,
+            }
+            client.utility.verify_payment_signature(params)
+        except razorpay.errors.SignatureVerificationError:
+            return Response(
+                {"success": False, "error": "Invalid payment signature."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            if booking.payment_status != "paid":
+                booking.payment_id = razorpay_payment_id
+                booking.order_id = razorpay_order_id
+                booking.payment_status = "paid"
+                booking.payment_type = "online"
+                booking.status = "confirmed"
+                booking.paid_at = timezone.now()
+                booking.save()
+
+                # Reserve availability only after payment success
+                from .services import confirm_booking_availability
+
+                confirm_booking_availability(booking)
+
+            PaymentTransaction.objects.update_or_create(
+                booking=booking,
+                razorpay_payment_id=razorpay_payment_id,
+                defaults={
+                    "razorpay_order_id": razorpay_order_id,
+                    "razorpay_signature": razorpay_signature,
+                    "amount": booking.total_amount,
+                    "currency": "INR",
+                    "status": "paid",
+                    "method": "online",
+                },
+            )
+
+        serializer = VillaBookingSerializer(booking, context={"request": request})
+        return Response(
+            {
+                "success": True,
+                "message": "Payment verified.",
+                "booking": serializer.data,
+            }
+        )
 
 
 class VillaBookingRecalculateAPIView(APIView):
@@ -2933,6 +3051,10 @@ from .models import VillaBooking, PaymentTransaction
 logger = logging.getLogger("razorpay_webhook")
 
 
+from django.views.decorators.csrf import csrf_exempt
+
+
+@csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def razorpay_booking_webhook(request):
@@ -3027,7 +3149,6 @@ def razorpay_booking_webhook(request):
         mapped_status = status_map.get(status, "pending")
 
         # ✅ Atomic update
-        # ✅ Atomic update
         with transaction.atomic():
             # Only update if current booking not already paid
             if booking.payment_status != "paid" or mapped_status == "paid":
@@ -3037,6 +3158,14 @@ def razorpay_booking_webhook(request):
                 booking.payment_type = "online"
                 if mapped_status == "paid":
                     booking.paid_at = timezone.now()
+                    booking.status = "confirmed"
+                    # Reserve availability only after payment success
+                    from .services import confirm_booking_availability
+
+                    confirm_booking_availability(booking)
+                elif mapped_status == "failed":
+                    # Free the slot so others can book
+                    booking.status = "cancelled"
                 booking.save()
 
             txn, created = PaymentTransaction.objects.get_or_create(
