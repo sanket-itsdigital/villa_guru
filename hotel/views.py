@@ -137,27 +137,29 @@ def add_hotel(request):
     """
     from masters.models import SystemSettings
     from django.contrib import messages
-    
+
     # For vendors: check property_type restrictions
     if request.user.is_service_provider and not request.user.is_superuser:
         if not request.user.property_type:
-            messages.error(request, "Your account doesn't have a property type assigned. Please contact admin.")
+            messages.error(
+                request,
+                "Your account doesn't have a property type assigned. Please contact admin.",
+            )
             return redirect("list_villa")
-        
+
         property_type_name = request.user.property_type.name
-        
+
         # For Resort and Couple Stay: check if vendor already has a property
         if property_type_name in ["Resort", "Couple Stay"]:
             existing_property = villa.objects.filter(
-                user=request.user,
-                property_type=request.user.property_type
+                user=request.user, property_type=request.user.property_type
             ).exists()
-            
+
             if existing_property:
                 messages.warning(
                     request,
                     f"You can only have one {property_type_name} property. "
-                    "You can add multiple rooms to your existing property instead."
+                    "You can add multiple rooms to your existing property instead.",
                 )
                 return redirect("list_villa")
 
@@ -171,14 +173,16 @@ def add_hotel(request):
                 # Set property_type to match vendor's property_type
                 if request.user.property_type:
                     villa_obj.property_type = request.user.property_type
-            
+
             villa_obj.save()
             form.save_m2m()  # Save the many-to-many relationships
 
             for img in request.FILES.getlist("image"):
                 VillaImage.objects.create(villa=villa_obj, image=img)
 
-            messages.success(request, f"Property '{villa_obj.name}' added successfully!")
+            messages.success(
+                request, f"Property '{villa_obj.name}' added successfully!"
+            )
             return redirect("list_villa")
 
         else:
@@ -194,17 +198,20 @@ def add_hotel(request):
 
     else:
         form = villa_Form(user=request.user)
-        
+
         # For vendors: restrict property_type to dropdown (one option)
         if request.user.is_service_provider and not request.user.is_superuser:
             if request.user.property_type:
                 from masters.models import property_type
+
                 # Limit property_type choices to vendor's property_type only; show as dropdown
-                form.fields['property_type'].queryset = property_type.objects.filter(
+                form.fields["property_type"].queryset = property_type.objects.filter(
                     id=request.user.property_type.id
                 )
-                form.fields['property_type'].initial = request.user.property_type
-                form.fields['property_type'].help_text = f"You can only add {request.user.property_type.name} properties."
+                form.fields["property_type"].initial = request.user.property_type
+                form.fields["property_type"].help_text = (
+                    f"You can only add {request.user.property_type.name} properties."
+                )
 
         system_settings = (
             SystemSettings.get_settings() if request.user.is_superuser else None
@@ -262,9 +269,9 @@ def view_hotel(request):
         if request.user.property_type:
             villas_qs = (
                 villa.objects.filter(
-                    user=request.user, 
+                    user=request.user,
                     is_active=True,
-                    property_type=request.user.property_type
+                    property_type=request.user.property_type,
                 )
                 .select_related("user", "city", "property_type")
                 .prefetch_related(
@@ -320,7 +327,7 @@ def update_hotel(request, villa_id):
     - Vendors can only update their own villas matching their property_type
     """
     from django.contrib import messages
-    
+
     if request.user.is_superuser:
         instance = villa.objects.get(id=villa_id)
     else:
@@ -328,11 +335,14 @@ def update_hotel(request, villa_id):
         try:
             instance = villa.objects.get(id=villa_id, user=request.user)
             # Check if villa matches vendor's property_type
-            if request.user.property_type and instance.property_type != request.user.property_type:
+            if (
+                request.user.property_type
+                and instance.property_type != request.user.property_type
+            ):
                 messages.error(
                     request,
                     f"You can only manage {request.user.property_type.name} properties. "
-                    f"This property is a {instance.property_type.name}."
+                    f"This property is a {instance.property_type.name}.",
                 )
                 return redirect("list_villa")
         except villa.DoesNotExist:
@@ -420,8 +430,9 @@ def update_hotel(request, villa_id):
         if request.user.is_service_provider and not request.user.is_superuser:
             if request.user.property_type and "property_type" in forms.fields:
                 from masters.models import property_type as property_type_model
-                forms.fields["property_type"].queryset = property_type_model.objects.filter(
-                    id=request.user.property_type.id
+
+                forms.fields["property_type"].queryset = (
+                    property_type_model.objects.filter(id=request.user.property_type.id)
                 )
                 forms.fields["property_type"].initial = request.user.property_type
                 # Keep as dropdown (no readonly) so it displays properly at update time
@@ -429,14 +440,20 @@ def update_hotel(request, villa_id):
                     f"You can only manage {request.user.property_type.name} properties."
                 )
             # If vendor has no property_type, ensure instance's property_type is in queryset
-            elif instance and instance.property_type_id and "property_type" in forms.fields:
+            elif (
+                instance
+                and instance.property_type_id
+                and "property_type" in forms.fields
+            ):
                 from masters.models import property_type as property_type_model
-                forms.fields["property_type"].queryset = property_type_model.objects.filter(
-                    id=instance.property_type_id
+
+                forms.fields["property_type"].queryset = (
+                    property_type_model.objects.filter(id=instance.property_type_id)
                 )
         # For superuser on update, ensure property_type field has full queryset (default)
         elif request.user.is_superuser and "property_type" in forms.fields:
             from masters.models import property_type as property_type_model
+
             forms.fields["property_type"].queryset = property_type_model.objects.all()
 
         from masters.models import SystemSettings
@@ -488,7 +505,7 @@ from django.db.models import Prefetch
 @login_required(login_url="login_admin")
 def list_hotel(request):
     """
-    List all villas. 
+    List all villas.
     - Admins can see all villas
     - Vendors can only see their own villas matching their property_type
     """
@@ -500,22 +517,25 @@ def list_hotel(request):
         # Vendor: show only their own villas matching their property_type
         if request.user.property_type:
             data = villa.objects.filter(
-                user=request.user,
-                property_type=request.user.property_type
+                user=request.user, property_type=request.user.property_type
             )
         else:
             # If vendor doesn't have property_type set, show all their villas (fallback)
             data = villa.objects.filter(user=request.user)
-    
+
     # Apply prefetch for optimization
-    data = data.prefetch_related(
-        Prefetch(
-            "rooms",
-            queryset=villa_rooms.objects.select_related("room_type").prefetch_related(
-                "villa_amenities"
-            ),
+    data = (
+        data.prefetch_related(
+            Prefetch(
+                "rooms",
+                queryset=villa_rooms.objects.select_related(
+                    "room_type"
+                ).prefetch_related("villa_amenities"),
+            )
         )
-    ).select_related("user", "city", "property_type").order_by("-id")
+        .select_related("user", "city", "property_type")
+        .order_by("-id")
+    )
 
     filterset = VillaFilter(request.GET, queryset=data, request=request)
     filtered_bookings = filterset.qs
@@ -557,25 +577,28 @@ def add_hotel_rooms(request):
     - Resort/Couple Stay vendors: can add rooms only to their property type
     """
     from django.contrib import messages
-    
+
     # For vendors: check property_type restrictions
     if request.user.is_service_provider and not request.user.is_superuser:
         # Check if vendor has property_type
         if not request.user.property_type:
-            messages.error(request, "Your account doesn't have a property type assigned. Please contact admin.")
+            messages.error(
+                request,
+                "Your account doesn't have a property type assigned. Please contact admin.",
+            )
             return redirect("list_villa_rooms")
-        
+
         property_type_name = request.user.property_type.name
-        
+
         # Villa vendors cannot add rooms
         if property_type_name == "Villa":
             messages.warning(
                 request,
                 "Room management is not available for Villa properties. "
-                "Villa properties are booked as whole units, not individual rooms."
+                "Villa properties are booked as whole units, not individual rooms.",
             )
             return redirect("list_villa")
-        
+
         # Get user's villas that match their property_type (Resort or Couple Stay)
         user_villas = villa.objects.filter(
             user=request.user,
@@ -607,10 +630,12 @@ def add_hotel_rooms(request):
                 if selected_villa:
                     # Check if villa belongs to user and matches property_type
                     if selected_villa.user != request.user:
-                        messages.error(request, "You can only add rooms to your own properties.")
+                        messages.error(
+                            request, "You can only add rooms to your own properties."
+                        )
                         context = {"form": form}
                         return render(request, "add_hotel_rooms.html", context)
-                    
+
                     if selected_villa.property_type != request.user.property_type:
                         messages.error(
                             request,
@@ -629,7 +654,7 @@ def add_hotel_rooms(request):
                     if not user_villa:
                         messages.error(
                             request,
-                            f"You don't have any {request.user.property_type.name} properties. Please create one first."
+                            f"You don't have any {request.user.property_type.name} properties. Please create one first.",
                         )
                         return redirect("list_villa")
                     instance.villa = user_villa
@@ -639,14 +664,14 @@ def add_hotel_rooms(request):
                 instance.room_count = 1
 
             instance.save()
-            
+
             # Auto-assign amenities from room_type if room_type has amenities
             if instance.room_type and instance.room_type.amenities.exists():
                 # Get amenities from room_type
                 room_type_amenities = instance.room_type.amenities.all()
                 # Add them to the room (in addition to any manually selected)
                 instance.villa_amenities.add(*room_type_amenities)
-            
+
             form.save_m2m()
 
             for img in request.FILES.getlist("image"):
@@ -661,7 +686,10 @@ def add_hotel_rooms(request):
             print(form.errors)
             # Re-apply villa filtering for vendors in case of errors
             if request.user.is_service_provider and not request.user.is_superuser:
-                if request.user.property_type and request.user.property_type.name in ["Resort", "Couple Stay"]:
+                if request.user.property_type and request.user.property_type.name in [
+                    "Resort",
+                    "Couple Stay",
+                ]:
                     user_villas = villa.objects.filter(
                         user=request.user,
                         is_active=True,
@@ -678,20 +706,22 @@ def add_hotel_rooms(request):
         # For vendors: filter villa dropdown based on property_type
         if request.user.is_service_provider and not request.user.is_superuser:
             if not request.user.property_type:
-                messages.error(request, "Your account doesn't have a property type assigned.")
+                messages.error(
+                    request, "Your account doesn't have a property type assigned."
+                )
                 return redirect("list_villa_rooms")
-            
+
             property_type_name = request.user.property_type.name
-            
+
             # Villa vendors cannot add rooms
             if property_type_name == "Villa":
                 messages.warning(
                     request,
                     "Room management is not available for Villa properties. "
-                    "Villa properties are booked as whole units."
+                    "Villa properties are booked as whole units.",
                 )
                 return redirect("list_villa")
-            
+
             # Filter to show only properties matching vendor's property_type
             user_villas = villa.objects.filter(
                 user=request.user,
@@ -720,19 +750,20 @@ def update_hotel_rooms(request, villa_rooms_id):
     # For vendors: only allow editing rooms for their property_type (Resort/Couple Stay)
     if request.user.is_service_provider and not request.user.is_superuser:
         if not request.user.property_type:
-            messages.error(request, "Your account doesn't have a property type assigned.")
+            messages.error(
+                request, "Your account doesn't have a property type assigned."
+            )
             return redirect("list_villa_rooms")
-        
+
         property_type_name = request.user.property_type.name
-        
+
         # Villa vendors cannot edit rooms
         if property_type_name == "Villa":
             messages.warning(
-                request,
-                "Room management is not available for Villa properties."
+                request, "Room management is not available for Villa properties."
             )
             return redirect("list_villa")
-        
+
         # Check if the room belongs to a property owned by the user and matches property_type
         if not instance.villa or instance.villa.user != request.user:
             messages.error(request, "You don't have permission to edit this room.")
@@ -753,34 +784,34 @@ def update_hotel_rooms(request, villa_rooms_id):
 
         if form.is_valid():
             room = form.save(commit=False)
-            
+
             # Validate room_count is not reduced below currently booked rooms
-            new_room_count = form.cleaned_data.get('room_count', instance.room_count)
+            new_room_count = form.cleaned_data.get("room_count", instance.room_count)
             if new_room_count < instance.room_count:
                 # Check how many rooms are currently booked
                 from customer.models import BookingRoom
                 from customer.models import VillaBooking
                 from datetime import date
-                
+
                 # Get all active bookings for this room
                 active_bookings = VillaBooking.objects.filter(
                     booked_rooms__room=instance,
-                    status__in=['confirmed', 'checked_in', 'pending']
+                    status__in=["confirmed", "checked_in", "pending"],
                 ).distinct()
-                
+
                 # Calculate maximum booked quantity across all dates
                 max_booked = 0
                 for booking in active_bookings:
                     booking_room = booking.booked_rooms.filter(room=instance).first()
                     if booking_room:
                         max_booked = max(max_booked, booking_room.quantity)
-                
+
                 if new_room_count < max_booked:
                     messages.error(
                         request,
                         f"Cannot reduce room count to {new_room_count}. "
                         f"There are currently {max_booked} rooms of this type booked. "
-                        f"Room count must be at least {max_booked}."
+                        f"Room count must be at least {max_booked}.",
                     )
                     form = villa_rooms_Form(
                         request.POST,
@@ -788,7 +819,10 @@ def update_hotel_rooms(request, villa_rooms_id):
                         instance=instance,
                         user=request.user,
                     )
-                    if request.user.property_type and request.user.property_type.name in ["Resort", "Couple Stay"]:
+                    if (
+                        request.user.property_type
+                        and request.user.property_type.name in ["Resort", "Couple Stay"]
+                    ):
                         user_villas = villa.objects.filter(
                             user=request.user,
                             is_active=True,
@@ -807,14 +841,20 @@ def update_hotel_rooms(request, villa_rooms_id):
                 selected_villa = form.cleaned_data.get("villa") or instance.villa
                 if selected_villa:
                     if selected_villa.user != request.user:
-                        messages.error(request, "You can only assign rooms to your own properties.")
+                        messages.error(
+                            request, "You can only assign rooms to your own properties."
+                        )
                         form = villa_rooms_Form(
                             request.POST,
                             request.FILES,
                             instance=instance,
                             user=request.user,
                         )
-                        if request.user.property_type and request.user.property_type.name in ["Resort", "Couple Stay"]:
+                        if (
+                            request.user.property_type
+                            and request.user.property_type.name
+                            in ["Resort", "Couple Stay"]
+                        ):
                             user_villas = villa.objects.filter(
                                 user=request.user,
                                 is_active=True,
@@ -823,10 +863,12 @@ def update_hotel_rooms(request, villa_rooms_id):
                             form.fields["villa"].queryset = user_villas
                         context = {
                             "form": form,
-                            "existing_images": instance.images.all() if instance else None,
+                            "existing_images": (
+                                instance.images.all() if instance else None
+                            ),
                         }
                         return render(request, "add_hotel_rooms.html", context)
-                    
+
                     if selected_villa.property_type != request.user.property_type:
                         messages.error(
                             request,
@@ -844,7 +886,8 @@ def update_hotel_rooms(request, villa_rooms_id):
                             request.user.is_service_provider
                             and not request.user.is_superuser
                             and request.user.property_type
-                            and request.user.property_type.name in ["Resort", "Couple Stay"]
+                            and request.user.property_type.name
+                            in ["Resort", "Couple Stay"]
                         ):
                             user_villas = villa.objects.filter(
                                 user=request.user,
@@ -868,14 +911,14 @@ def update_hotel_rooms(request, villa_rooms_id):
                         )
 
             room.save()
-            
+
             # Auto-assign amenities from room_type if room_type has amenities
             if room.room_type and room.room_type.amenities.exists():
                 # Get amenities from room_type
                 room_type_amenities = room.room_type.amenities.all()
                 # Add them to the room (in addition to any manually selected)
                 room.villa_amenities.add(*room_type_amenities)
-            
+
             form.save_m2m()
 
             for img in request.FILES.getlist("image"):
@@ -887,7 +930,10 @@ def update_hotel_rooms(request, villa_rooms_id):
             print(form.errors)
             # Re-apply villa filtering for vendors in case of errors
             if request.user.is_service_provider and not request.user.is_superuser:
-                if request.user.property_type and request.user.property_type.name in ["Resort", "Couple Stay"]:
+                if request.user.property_type and request.user.property_type.name in [
+                    "Resort",
+                    "Couple Stay",
+                ]:
                     user_villas = villa.objects.filter(
                         user=request.user,
                         is_active=True,
@@ -899,7 +945,10 @@ def update_hotel_rooms(request, villa_rooms_id):
 
         # For vendors: filter villa dropdown based on property_type
         if request.user.is_service_provider and not request.user.is_superuser:
-            if request.user.property_type and request.user.property_type.name in ["Resort", "Couple Stay"]:
+            if request.user.property_type and request.user.property_type.name in [
+                "Resort",
+                "Couple Stay",
+            ]:
                 user_villas = villa.objects.filter(
                     user=request.user,
                     is_active=True,
@@ -921,19 +970,20 @@ def delete_hotel_rooms(request, villa_rooms_id):
     # For vendors: only allow deleting rooms from their own properties matching property_type
     if request.user.is_service_provider and not request.user.is_superuser:
         if not request.user.property_type:
-            messages.error(request, "Your account doesn't have a property type assigned.")
+            messages.error(
+                request, "Your account doesn't have a property type assigned."
+            )
             return redirect("list_villa_rooms")
-        
+
         property_type_name = request.user.property_type.name
-        
+
         # Villa vendors cannot delete rooms
         if property_type_name == "Villa":
             messages.warning(
-                request,
-                "Room management is not available for Villa properties."
+                request, "Room management is not available for Villa properties."
             )
             return redirect("list_villa")
-        
+
         if not room.villa or room.villa.user != request.user:
             messages.error(request, "You don't have permission to delete this room.")
             return redirect("list_villa_rooms")
@@ -958,19 +1008,20 @@ def view_hotel_rooms(request, hotel_id):
     # For vendors: only allow viewing rooms from their own properties matching property_type
     if request.user.is_service_provider and not request.user.is_superuser:
         if not request.user.property_type:
-            messages.error(request, "Your account doesn't have a property type assigned.")
+            messages.error(
+                request, "Your account doesn't have a property type assigned."
+            )
             return redirect("list_villa_rooms")
-        
+
         property_type_name = request.user.property_type.name
-        
+
         # Villa vendors cannot view rooms
         if property_type_name == "Villa":
             messages.warning(
-                request,
-                "Room management is not available for Villa properties."
+                request, "Room management is not available for Villa properties."
             )
             return redirect("list_villa")
-        
+
         if villa_instance.user != request.user:
             messages.error(
                 request, "You don't have permission to view rooms for this property."
@@ -1015,7 +1066,7 @@ def list_hotel_rooms(request):
     - Resort/Couple Stay vendors: see only rooms from their property type
     """
     from django.contrib import messages
-    
+
     if request.user.is_superuser:
         # Admin: show all rooms from all villas
         all_rooms = (
@@ -1027,30 +1078,30 @@ def list_hotel_rooms(request):
         # Group by villa for display and calculate available count
         from customer.models import BookingRoom, VillaBooking
         from datetime import date
-        
+
         villas_with_rooms = {}
         for room in all_rooms:
             if room.villa not in villas_with_rooms:
                 villas_with_rooms[room.villa] = []
-            
+
             # Calculate currently booked rooms (active bookings)
             active_bookings = VillaBooking.objects.filter(
                 booked_rooms__room=room,
-                status__in=['confirmed', 'checked_in', 'pending']
+                status__in=["confirmed", "checked_in", "pending"],
             ).distinct()
-            
+
             # Get maximum booked quantity
             max_booked = 0
             for booking in active_bookings:
                 booking_room = booking.booked_rooms.filter(room=room).first()
                 if booking_room:
                     max_booked = max(max_booked, booking_room.quantity)
-            
+
             # Calculate available
             available_count = max(0, room.room_count - max_booked)
             room.available_count = available_count
             room.booked_count = max_booked
-            
+
             villas_with_rooms[room.villa].append(room)
 
         context = {"villas_with_rooms": villas_with_rooms}
@@ -1058,20 +1109,22 @@ def list_hotel_rooms(request):
     else:
         # Vendor: check property_type restrictions
         if not request.user.property_type:
-            messages.error(request, "Your account doesn't have a property type assigned.")
+            messages.error(
+                request, "Your account doesn't have a property type assigned."
+            )
             return redirect("list_villa")
-        
+
         property_type_name = request.user.property_type.name
-        
+
         # Villa vendors cannot access room management
         if property_type_name == "Villa":
             messages.warning(
                 request,
                 "Room management is not available for Villa properties. "
-                "Villa properties are booked as whole units, not individual rooms."
+                "Villa properties are booked as whole units, not individual rooms.",
             )
             return redirect("list_villa")
-        
+
         # Resort/Couple Stay vendors: show only rooms from their property type
         user_villas = villa.objects.filter(
             user=request.user,
@@ -1098,30 +1151,30 @@ def list_hotel_rooms(request):
         # Group by villa for display and calculate available count
         from customer.models import BookingRoom, VillaBooking
         from datetime import date
-        
+
         villas_with_rooms = {}
         for room in all_rooms:
             if room.villa not in villas_with_rooms:
                 villas_with_rooms[room.villa] = []
-            
+
             # Calculate currently booked rooms (active bookings)
             active_bookings = VillaBooking.objects.filter(
                 booked_rooms__room=room,
-                status__in=['confirmed', 'checked_in', 'pending']
+                status__in=["confirmed", "checked_in", "pending"],
             ).distinct()
-            
+
             # Get maximum booked quantity
             max_booked = 0
             for booking in active_bookings:
                 booking_room = booking.booked_rooms.filter(room=room).first()
                 if booking_room:
                     max_booked = max(max_booked, booking_room.quantity)
-            
+
             # Calculate available
             available_count = max(0, room.room_count - max_booked)
             room.available_count = available_count
             room.booked_count = max_booked
-            
+
             villas_with_rooms[room.villa].append(room)
 
         context = {"villas_with_rooms": villas_with_rooms}
@@ -1249,7 +1302,7 @@ def list_hotel_future_bookings(request):
         if request.user.property_type:
             queryset = base_queryset.filter(
                 villa__user=request.user,
-                villa__property_type=request.user.property_type
+                villa__property_type=request.user.property_type,
             )
         else:
             queryset = base_queryset.filter(villa__user=request.user)
@@ -1355,9 +1408,12 @@ def update_hotel_bookings(request, booking_id):
 @login_required(login_url="login_admin")
 def view_hotel_bookings(request, booking_id):
 
-    instance = HotelBooking.objects.get(id=booking_id)
+    if request.user.is_superuser:
+        instance = VillaBooking.objects.get(id=booking_id)
+    else:
+        instance = VillaBooking.objects.get(villa__user=request.user, id=booking_id)
 
-    form = HotelBookingStatusForm(instance=instance, user=request.user)
+    form = VillaBookingStatusForm(instance=instance, user=request.user)
 
     context = {"form": form}
     return render(request, "view_hotel_bookings.html", context)
@@ -1632,14 +1688,12 @@ def update_hotel_availability(request):
     # Get all properties for vendor matching their property_type
     if request.user.property_type:
         all_villas = villa.objects.filter(
-            user=request.user, 
-            is_active=True,
-            property_type=request.user.property_type
+            user=request.user, is_active=True, property_type=request.user.property_type
         ).select_related("property_type", "city")
     else:
-        all_villas = villa.objects.filter(user=request.user, is_active=True).select_related(
-            "property_type", "city"
-        )
+        all_villas = villa.objects.filter(
+            user=request.user, is_active=True
+        ).select_related("property_type", "city")
 
     # Get filter parameters
     filter_status = request.GET.get("status", "all")  # 'all', 'booked', 'available'
@@ -1697,7 +1751,7 @@ def update_hotel_availability(request):
                         date=selected_date_obj,
                         defaults={
                             "available_count": count_int,
-                            "is_manually_closed": (count_int == 0)
+                            "is_manually_closed": (count_int == 0),
                         },
                     )
                     # If manually setting a specific count, mark as not manually closed
@@ -2127,8 +2181,7 @@ def handle_bulk_availability_management(
                     is_manually_closed = False
                     # Get current calculated availability or use room_count
                     room_avail = RoomAvailability.get_or_calculate_availability(
-                        room=room,
-                        date=current_date
+                        room=room, date=current_date
                     )
                     # Don't override if already calculated correctly
                 elif bulk_status == "offline_booked":
@@ -2136,20 +2189,14 @@ def handle_bulk_availability_management(
                     RoomAvailability.objects.update_or_create(
                         room=room,
                         date=current_date,
-                        defaults={
-                            "available_count": 0,
-                            "is_manually_closed": True
-                        },
+                        defaults={"available_count": 0, "is_manually_closed": True},
                     )
                 else:  # unavailable
                     # Mark as manually closed (unavailable)
                     RoomAvailability.objects.update_or_create(
                         room=room,
                         date=current_date,
-                        defaults={
-                            "available_count": 0,
-                            "is_manually_closed": True
-                        },
+                        defaults={"available_count": 0, "is_manually_closed": True},
                     )
                 updated_count += 1
 
@@ -2237,9 +2284,7 @@ def update_from_to_hotel_availability(request):
     villa_id = request.GET.get("villa_id") or request.POST.get("villa_id")
     if request.user.property_type:
         villas_list = villa.objects.filter(
-            user=request.user, 
-            is_active=True,
-            property_type=request.user.property_type
+            user=request.user, is_active=True, property_type=request.user.property_type
         )
     else:
         villas_list = villa.objects.filter(user=request.user, is_active=True)
@@ -2309,7 +2354,7 @@ def update_from_to_hotel_availability(request):
                                 date=current_date,
                                 defaults={
                                     "available_count": count_int,
-                                    "is_manually_closed": (count_int == 0)
+                                    "is_manually_closed": (count_int == 0),
                                 },
                             )
                             # If setting a specific count > 0, it's a manual override
@@ -2383,9 +2428,9 @@ def manage_villa_pricing(request):
         # Vendor can see their own villas matching their property_type
         if request.user.property_type:
             villas_list = villa.objects.filter(
-                user=request.user, 
+                user=request.user,
                 is_active=True,
-                property_type=request.user.property_type
+                property_type=request.user.property_type,
             )
         else:
             villas_list = villa.objects.filter(user=request.user, is_active=True)
